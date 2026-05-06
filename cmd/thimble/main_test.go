@@ -15,20 +15,20 @@ import (
 func TestNamespacedCRUDAndRender(t *testing.T) {
 	st := testStore(t)
 
-	if err := st.Init("koja", "production", []string{"age1operator"}); err != nil {
+	if err := st.Init("web-api", "production", []string{"age1operator"}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
-	if err := st.CreateSecret("koja", "production", "POSTGRES_PASSWORD", "alpha secret"); err != nil {
+	if err := st.CreateSecret("web-api", "production", "POSTGRES_PASSWORD", "alpha secret"); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if err := st.UpdateSecret("koja", "production", "POSTGRES_PASSWORD", "bravo secret"); err != nil {
+	if err := st.UpdateSecret("web-api", "production", "POSTGRES_PASSWORD", "bravo secret"); err != nil {
 		t.Fatalf("update: %v", err)
 	}
-	if err := st.SetSecret("koja", "staging", "IGNORED", "value"); err == nil {
+	if err := st.SetSecret("web-api", "staging", "IGNORED", "value"); err == nil {
 		t.Fatalf("set against uninitialized namespace succeeded")
 	}
 
-	keys, err := st.ListSecrets("koja", "production")
+	keys, err := st.ListSecrets("web-api", "production")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestNamespacedCRUDAndRender(t *testing.T) {
 		t.Fatalf("keys = %q, want %q", got, want)
 	}
 
-	rendered, err := st.Render("koja", "production")
+	rendered, err := st.Render("web-api", "production")
 	if err != nil {
 		t.Fatalf("render: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestNamespacedCRUDAndRender(t *testing.T) {
 		t.Fatalf("rendered dotenv missing updated value: %q", rendered)
 	}
 
-	ciphertext, err := os.ReadFile(filepath.Join(st.root, "koja", "production.env.age"))
+	ciphertext, err := os.ReadFile(filepath.Join(st.root, "web-api", "production.env.age"))
 	if err != nil {
 		t.Fatalf("read ciphertext: %v", err)
 	}
@@ -52,10 +52,10 @@ func TestNamespacedCRUDAndRender(t *testing.T) {
 		t.Fatalf("ciphertext contains plaintext secret")
 	}
 
-	if err := st.DeleteSecret("koja", "production", "POSTGRES_PASSWORD"); err != nil {
+	if err := st.DeleteSecret("web-api", "production", "POSTGRES_PASSWORD"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
-	rendered, err = st.Render("koja", "production")
+	rendered, err = st.Render("web-api", "production")
 	if err != nil {
 		t.Fatalf("render after delete: %v", err)
 	}
@@ -134,6 +134,9 @@ func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 	if !strings.Contains(body, "API_KEY") {
 		t.Fatalf("web UI did not show key: %s", body)
 	}
+	if !strings.Contains(body, `aria-label="Thimble"`) || !strings.Contains(body, "Safe entry") {
+		t.Fatalf("web UI polish elements missing: %s", body)
+	}
 	if strings.Contains(body, "browser secret") {
 		t.Fatalf("web UI leaked secret value")
 	}
@@ -162,9 +165,103 @@ func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 	}
 }
 
+func TestCLIRejectsSecretArgumentAndAcceptsPipe(t *testing.T) {
+	root := t.TempDir()
+	fakeAge := writeFakeAge(t, root)
+	t.Setenv("PATH", filepath.Dir(fakeAge)+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	var stdout, stderr strings.Builder
+	if err := run([]string{"--store", filepath.Join(root, "secrets"), "init", "web-api", "dev", "--recipient", "age1operator"}, &stdout, &stderr); err != nil {
+		t.Fatalf("init: %v stderr=%s", err, stderr.String())
+	}
+	err := run([]string{"--store", filepath.Join(root, "secrets"), "set", "web-api", "dev", "API_KEY", "unsafe-argv-value"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatalf("set with argv value succeeded")
+	}
+	if !strings.Contains(err.Error(), "do not pass secret values") {
+		t.Fatalf("unexpected argv value error: %v", err)
+	}
+
+	withStdin(t, "safe piped value\n", func() {
+		if err := run([]string{"--store", filepath.Join(root, "secrets"), "set", "web-api", "dev", "API_KEY"}, &stdout, &stderr); err != nil {
+			t.Fatalf("piped set: %v stderr=%s", err, stderr.String())
+		}
+	})
+	rendered, err := newStore(filepath.Join(root, "secrets"), "").Render("web-api", "dev")
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !strings.Contains(rendered, "API_KEY=\"safe piped value\"") {
+		t.Fatalf("piped value was not stored: %q", rendered)
+	}
+}
+
+func TestProvisionAndSetAndGetFlow(t *testing.T) {
+	st := testStore(t)
+	if err := st.Init("worker", "prod", []string{"age1operator"}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	root := t.TempDir()
+	producer := filepath.Join(root, "producer.sh")
+	if err := os.WriteFile(producer, []byte("#!/bin/sh\nprintf '%s\\n' generated-secret\n"), 0o700); err != nil {
+		t.Fatalf("write producer: %v", err)
+	}
+	var stdout, stderr strings.Builder
+	if err := runAndSet(st, []string{"worker", "prod", "SERVICE_TOKEN", "--", producer}, &stdout, &stderr); err != nil {
+		t.Fatalf("and-set: %v stderr=%s", err, stderr.String())
+	}
+	rendered, err := st.Render("worker", "prod")
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !strings.Contains(rendered, "SERVICE_TOKEN=generated-secret") {
+		t.Fatalf("and-set value missing: %q", rendered)
+	}
+
+	capture := filepath.Join(root, "capture.sh")
+	outFile := filepath.Join(root, "captured.txt")
+	if err := os.WriteFile(capture, []byte("#!/bin/sh\ncat > \"$1\"\n"), 0o700); err != nil {
+		t.Fatalf("write capture: %v", err)
+	}
+	if err := runAndGet(st, []string{"worker", "prod", "SERVICE_TOKEN", "--", capture, outFile}, &stdout, &stderr); err != nil {
+		t.Fatalf("and-get: %v stderr=%s", err, stderr.String())
+	}
+	captured, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatalf("read captured: %v", err)
+	}
+	if string(captured) != "generated-secret" {
+		t.Fatalf("and-get passed %q", captured)
+	}
+}
+
+func TestProvisionRequiresStrongTokenAndWritesToPipe(t *testing.T) {
+	var stderr strings.Builder
+	if err := runProvision([]string{"--bytes", "8"}, ioDiscardFile{}, &stderr); err == nil {
+		t.Fatalf("weak provision succeeded")
+	}
+
+	var stdout strings.Builder
+	if err := runProvision([]string{"--bytes", "16"}, &stdout, &stderr); err != nil {
+		t.Fatalf("provision to non-terminal writer: %v", err)
+	}
+	if strings.TrimSpace(stdout.String()) == "" {
+		t.Fatalf("provision wrote no token")
+	}
+}
+
 func testStore(t *testing.T) *store {
 	t.Helper()
 	root := t.TempDir()
+	fakeAge := writeFakeAge(t, root)
+	st := newStore(filepath.Join(root, "secrets"), "")
+	st.agePath = fakeAge
+	st.now = func() time.Time { return time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC) }
+	return st
+}
+
+func writeFakeAge(t *testing.T, root string) string {
+	t.Helper()
 	fakeAge := filepath.Join(root, "age")
 	script := `#!/bin/sh
 set -eu
@@ -179,8 +276,30 @@ fi
 	if err := os.WriteFile(fakeAge, []byte(script), 0o700); err != nil {
 		t.Fatalf("write fake age: %v", err)
 	}
-	st := newStore(filepath.Join(root, "secrets"), "")
-	st.agePath = fakeAge
-	st.now = func() time.Time { return time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC) }
-	return st
+	return fakeAge
 }
+
+func withStdin(t *testing.T, input string, fn func()) {
+	t.Helper()
+	old := os.Stdin
+	read, write, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	if _, err := write.WriteString(input); err != nil {
+		t.Fatalf("write pipe: %v", err)
+	}
+	if err := write.Close(); err != nil {
+		t.Fatalf("close pipe writer: %v", err)
+	}
+	os.Stdin = read
+	defer func() {
+		os.Stdin = old
+		read.Close()
+	}()
+	fn()
+}
+
+type ioDiscardFile struct{}
+
+func (ioDiscardFile) Write(p []byte) (int, error) { return len(p), nil }

@@ -23,6 +23,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/term"
 )
 
 const (
@@ -100,11 +102,17 @@ func run(args []string, stdout, stderr io.Writer) error {
 	case "recipient":
 		return runRecipient(st, rest[1:], stdout, stderr)
 	case "create":
-		return runWrite(st, rest[1:], stdout, false)
+		return runWrite(st, rest[1:], stdout, stderr, false)
 	case "update":
-		return runWrite(st, rest[1:], stdout, true)
+		return runWrite(st, rest[1:], stdout, stderr, true)
 	case "set":
-		return runSet(st, rest[1:], stdout)
+		return runSet(st, rest[1:], stdout, stderr)
+	case "provision":
+		return runProvision(rest[1:], stdout, stderr)
+	case "and-set":
+		return runAndSet(st, rest[1:], stdout, stderr)
+	case "and-get":
+		return runAndGet(st, rest[1:], stdout, stderr)
 	case "delete", "rm":
 		return runDelete(st, rest[1:], stdout)
 	case "list", "ls":
@@ -131,32 +139,47 @@ Commands:
   init <app> <env> --recipient age1...    create an encrypted namespace
   recipient add <app> <env> age1...       grant a recipient and re-encrypt
   recipient remove <app> <env> age1...    remove a recipient and re-encrypt
-  create <app> <env> KEY [VALUE]          create one secret key
-  update <app> <env> KEY [VALUE]          update one existing secret key
-  set <app> <env> KEY [VALUE]             create or update one secret key
+  create <app> <env> KEY                  create one secret key from pipe or masked prompt
+  update <app> <env> KEY                  update one existing key from pipe or masked prompt
+  set <app> <env> KEY                     create or update one key from pipe or masked prompt
+  provision [--bytes 32]                  generate a random secret for a pipe
+  and-set <app> <env> KEY -- <command>    set a key from a command's stdout
+  and-get <app> <env> KEY -- <command>    pass a key to a command on stdin
   delete <app> <env> KEY                  delete one secret key
   list <app> <env>                        list keys only, never values
   render <app> <env> --format dotenv      render decrypted dotenv to stdout
   web [--addr 127.0.0.1:8787]             run the local web UI
 
-Values omitted on create/update/set are read from stdin.`)
+Secret values are never accepted as command arguments.`)
 }
 
 func runInit(st *store, args []string, stdout, stderr io.Writer) error {
-	fs := flag.NewFlagSet("init", flag.ContinueOnError)
-	fs.SetOutput(stderr)
-	var recipients multiFlag
-	fs.Var(&recipients, "recipient", "age recipient; repeatable")
-	if err := fs.Parse(args); err != nil {
-		return err
+	var recipients []string
+	var positional []string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--recipient":
+			if i+1 >= len(args) {
+				return errors.New("--recipient requires a value")
+			}
+			recipients = append(recipients, args[i+1])
+			i++
+		case strings.HasPrefix(arg, "--recipient="):
+			recipients = append(recipients, strings.TrimPrefix(arg, "--recipient="))
+		case strings.HasPrefix(arg, "-"):
+			return fmt.Errorf("unknown init flag %q", arg)
+		default:
+			positional = append(positional, arg)
+		}
 	}
-	if fs.NArg() != 2 {
+	if len(positional) != 2 {
 		return errors.New("usage: thimble init <app> <env> --recipient age1...")
 	}
 	if len(recipients) == 0 {
 		return errors.New("init requires at least one --recipient")
 	}
-	app, env := fs.Arg(0), fs.Arg(1)
+	app, env := positional[0], positional[1]
 	if err := st.Init(app, env, recipients); err != nil {
 		return err
 	}
@@ -186,18 +209,21 @@ func runRecipient(st *store, args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-func runWrite(st *store, args []string, stdout io.Writer, requireExisting bool) error {
-	if len(args) != 3 && len(args) != 4 {
-		if requireExisting {
-			return errors.New("usage: thimble update <app> <env> <KEY> [VALUE]")
-		}
-		return errors.New("usage: thimble create <app> <env> <KEY> [VALUE]")
+func runWrite(st *store, args []string, stdout, stderr io.Writer, requireExisting bool) error {
+	if len(args) > 3 {
+		return errors.New("do not pass secret values as arguments; pipe stdin or use the masked prompt")
 	}
-	value, err := valueArg(args)
+	if len(args) != 3 {
+		if requireExisting {
+			return errors.New("usage: thimble update <app> <env> <KEY>")
+		}
+		return errors.New("usage: thimble create <app> <env> <KEY>")
+	}
+	app, env, key := args[0], args[1], args[2]
+	value, err := secretInput(key, stderr)
 	if err != nil {
 		return err
 	}
-	app, env, key := args[0], args[1], args[2]
 	if requireExisting {
 		err = st.UpdateSecret(app, env, key, value)
 	} else {
@@ -210,20 +236,95 @@ func runWrite(st *store, args []string, stdout io.Writer, requireExisting bool) 
 	return nil
 }
 
-func runSet(st *store, args []string, stdout io.Writer) error {
-	if len(args) != 3 && len(args) != 4 {
-		return errors.New("usage: thimble set <app> <env> <KEY> [VALUE]")
+func runSet(st *store, args []string, stdout, stderr io.Writer) error {
+	if len(args) > 3 {
+		return errors.New("do not pass secret values as arguments; pipe stdin or use the masked prompt")
 	}
-	value, err := valueArg(args)
+	if len(args) != 3 {
+		return errors.New("usage: thimble set <app> <env> <KEY>")
+	}
+	app, env, key := args[0], args[1], args[2]
+	value, err := secretInput(key, stderr)
 	if err != nil {
 		return err
 	}
-	app, env, key := args[0], args[1], args[2]
 	if err := st.SetSecret(app, env, key, value); err != nil {
 		return err
 	}
 	fmt.Fprintf(stdout, "saved %s in %s/%s\n", key, app, env)
 	return nil
+}
+
+func runProvision(args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("provision", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	byteCount := fs.Int("bytes", 32, "random byte count before encoding")
+	show := fs.Bool("show", false, "allow writing the generated secret to a terminal")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return errors.New("usage: thimble provision [--bytes 32]")
+	}
+	if *byteCount < 16 {
+		return errors.New("provision requires at least 16 bytes")
+	}
+	if writerIsTerminal(stdout) && !*show {
+		return errors.New("refusing to print a new secret to the terminal; pipe it or pass --show")
+	}
+	b := make([]byte, *byteCount)
+	if _, err := rand.Read(b); err != nil {
+		return err
+	}
+	_, err := fmt.Fprintln(stdout, base64.RawURLEncoding.EncodeToString(b))
+	return err
+}
+
+func runAndSet(st *store, args []string, stdout, stderr io.Writer) error {
+	if len(args) < 5 {
+		return errors.New("usage: thimble and-set <app> <env> <KEY> -- <command> [args...]")
+	}
+	app, env, key := args[0], args[1], args[2]
+	cmdArgs, err := commandAfterDash(args[3:])
+	if err != nil {
+		return err
+	}
+	value, err := runSecretProducer(cmdArgs, stderr)
+	if err != nil {
+		return err
+	}
+	if err := st.SetSecret(app, env, key, value); err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "saved %s in %s/%s from command output\n", key, app, env)
+	return nil
+}
+
+func runAndGet(st *store, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("and-get", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	envVar := fs.String("env", "", "also expose the secret as this environment variable")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) < 5 {
+		return errors.New("usage: thimble and-get [--env NAME] <app> <env> <KEY> -- <command> [args...]")
+	}
+	app, env, key := rest[0], rest[1], rest[2]
+	cmdArgs, err := commandAfterDash(rest[3:])
+	if err != nil {
+		return err
+	}
+	values, _, err := st.readEnv(app, env)
+	if err != nil {
+		return err
+	}
+	value, ok := values[key]
+	if !ok {
+		return fmt.Errorf("%s does not exist", key)
+	}
+	return runSecretConsumer(cmdArgs, value, *envVar, stdout, stderr)
 }
 
 func runDelete(st *store, args []string, stdout io.Writer) error {
@@ -740,15 +841,80 @@ func quoteDotenvValue(value string) string {
 	return `"` + replacer.Replace(value) + `"`
 }
 
-func valueArg(args []string) (string, error) {
-	if len(args) == 4 {
-		return args[3], nil
+func secretInput(key string, stderr io.Writer) (string, error) {
+	if stdinIsTerminal() {
+		fmt.Fprintf(stderr, "Secret value for %s: ", key)
+		b, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Fprintln(stderr)
+		if err != nil {
+			return "", err
+		}
+		value := string(b)
+		if value == "" {
+			return "", errors.New("empty secret values are not accepted")
+		}
+		return value, nil
 	}
 	b, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimRight(string(b), "\r\n"), nil
+	value := strings.TrimRight(string(b), "\r\n")
+	if value == "" {
+		return "", errors.New("secret value must come from a non-empty pipe or masked prompt")
+	}
+	return value, nil
+}
+
+func commandAfterDash(args []string) ([]string, error) {
+	if len(args) == 0 || args[0] != "--" {
+		return nil, errors.New("command separator -- is required")
+	}
+	if len(args) == 1 {
+		return nil, errors.New("command after -- is required")
+	}
+	return args[1:], nil
+}
+
+func runSecretProducer(args []string, stderr io.Writer) (string, error) {
+	cmd := exec.CommandContext(context.Background(), args[0], args[1:]...)
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = io.MultiWriter(stderr, &errOut)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("secret producer failed: %s", redact(errOut.String()))
+	}
+	value := strings.TrimRight(out.String(), "\r\n")
+	if value == "" {
+		return "", errors.New("secret producer wrote no secret to stdout")
+	}
+	return value, nil
+}
+
+func runSecretConsumer(args []string, value, envVar string, stdout, stderr io.Writer) error {
+	if envVar != "" {
+		if err := validateKey(envVar); err != nil {
+			return fmt.Errorf("invalid --env name: %w", err)
+		}
+	}
+	cmd := exec.CommandContext(context.Background(), args[0], args[1:]...)
+	cmd.Stdin = strings.NewReader(value)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if envVar != "" {
+		cmd.Env = append(os.Environ(), envVar+"="+value)
+	}
+	return cmd.Run()
+}
+
+func stdinIsTerminal() bool {
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+func writerIsTerminal(w io.Writer) bool {
+	file, ok := w.(*os.File)
+	return ok && term.IsTerminal(int(file.Fd()))
 }
 
 func validateName(kind, name string) error {
@@ -1060,10 +1226,13 @@ const uiTemplate = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Thimble</title>
   <style>
-    :root { color-scheme: light; --ink:#17202a; --muted:#607080; --line:#d8dee5; --accent:#116466; --bg:#f7f8f6; --panel:#ffffff; --warn:#9a3412; }
+    :root { color-scheme: light; --ink:#17202a; --muted:#607080; --line:#d8dee5; --accent:#116466; --accent-soft:#e8f3ef; --bg:#f7f8f6; --panel:#ffffff; --warn:#9a3412; }
     * { box-sizing: border-box; }
     body { margin:0; font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
-    header { display:flex; justify-content:space-between; align-items:center; padding:18px 24px; border-bottom:1px solid var(--line); background:var(--panel); }
+    header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 24px; border-bottom:1px solid var(--line); background:var(--panel); }
+    .brand { display:flex; gap:12px; align-items:center; min-width:0; }
+    .logo { width:42px; height:42px; flex:0 0 42px; }
+    .brand-copy { display:grid; gap:1px; min-width:0; }
     h1 { margin:0; font-size:20px; letter-spacing:0; }
     h2 { margin:0 0 12px; font-size:15px; }
     main { display:grid; grid-template-columns:minmax(240px,320px) 1fr; gap:20px; padding:20px 24px; max-width:1180px; margin:0 auto; }
@@ -1071,6 +1240,8 @@ const uiTemplate = `<!doctype html>
     a { color:var(--accent); text-decoration:none; }
     a:hover { text-decoration:underline; }
     .muted { color:var(--muted); }
+    .tip { background:var(--accent-soft); border-color:#b9d8ce; color:#20332f; }
+    .tip strong { display:block; margin-bottom:3px; }
     .stack { display:grid; gap:12px; }
     .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     label { display:grid; gap:5px; font-weight:600; }
@@ -1087,13 +1258,28 @@ const uiTemplate = `<!doctype html>
     .notice { border-color:#9bc7a8; background:#edf7ef; }
     .error { border-color:#e0a287; background:#fff3ed; }
     .pill { display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; }
+    .field-note { margin:4px 0 0; color:var(--muted); font-size:12px; }
     @media (max-width: 820px) { main { grid-template-columns:1fr; padding:14px; } header { padding:14px; } }
   </style>
 </head>
 <body>
 <header>
-  <h1>Thimble</h1>
-  <span class="muted">local age-backed secrets</span>
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="Thimble">
+      <rect width="64" height="64" rx="14" fill="#eef6f3"/>
+      <path d="M20 17c2.5-4 21.5-4 24 0l4 31c.5 3.7-3.2 7-7.1 7H23.1c-3.9 0-7.6-3.3-7.1-7l4-31Z" fill="#116466"/>
+      <path d="M23 20c2.1-2.1 15.9-2.1 18 0l3.6 28.2c.2 1.6-1.4 2.8-3.7 2.8H23.1c-2.3 0-3.9-1.2-3.7-2.8L23 20Z" fill="#ffffff" opacity=".88"/>
+      <path d="M24 24h16M24.5 30h15M25 36h14M26 42h12" stroke="#116466" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+      <path d="M33 11l18 18" stroke="#17202a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M49.5 27.5l4 4" stroke="#17202a" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="28" cy="27" r="1.8" fill="#116466"/><circle cx="36" cy="27" r="1.8" fill="#116466"/><circle cx="31" cy="34" r="1.8" fill="#116466"/><circle cx="39" cy="34" r="1.8" fill="#116466"/><circle cx="29" cy="41" r="1.8" fill="#116466"/><circle cx="37" cy="41" r="1.8" fill="#116466"/>
+    </svg>
+    <div class="brand-copy">
+      <h1>Thimble</h1>
+      <span class="muted">local age-backed secrets</span>
+    </div>
+  </div>
+  <span class="pill">values stay redacted</span>
 </header>
 <main>
   <aside class="stack">
@@ -1109,15 +1295,23 @@ const uiTemplate = `<!doctype html>
       {{end}}
       </ul>
     </section>
+    <section class="tip">
+      <strong>Namespace model</strong>
+      <span>Use one namespace per application and environment. A production bundle and a staging bundle can share key names while keeping recipients separate.</span>
+    </section>
     <section class="stack">
       <h2>Create Namespace</h2>
       <form class="stack" action="/namespace" method="post">
         <input type="hidden" name="token" value="{{.Token}}">
         <label>Application <input name="app" autocomplete="off" required></label>
         <label>Environment <input name="env" autocomplete="off" required></label>
-        <label>Recipients <textarea name="recipients" spellcheck="false" required></textarea></label>
+        <label>Recipients <textarea name="recipients" spellcheck="false" required></textarea><span class="field-note">Add verified age public recipients only. One per line or comma-separated.</span></label>
         <button>Create</button>
       </form>
+    </section>
+    <section class="tip">
+      <strong>Peer handoff</strong>
+      <span>Commit encrypted bundles, never identities. Add a peer by verifying their recipient out of band, then re-encrypt with Recipient Add.</span>
     </section>
   </aside>
   <section class="stack">
@@ -1126,6 +1320,10 @@ const uiTemplate = `<!doctype html>
         <h2>{{.Selected.App}} / {{.Selected.Env}}</h2>
         <span class="pill">values redacted</span>
       </div>
+      <section class="tip">
+        <strong>Safe entry</strong>
+        <span>Use the CLI masked prompt or pipe for high-risk values. The browser stores updates but never shows existing secret values back to you.</span>
+      </section>
       <form class="row" action="/secret" method="post">
         <input type="hidden" name="token" value="{{$.Token}}">
         <input type="hidden" name="app" value="{{.Selected.App}}">
@@ -1159,6 +1357,7 @@ const uiTemplate = `<!doctype html>
       </table>
       <section class="stack">
         <h2>Recipients</h2>
+        <p class="field-note">Recipient changes re-encrypt this bundle. Keep at least one offline recovery recipient before removing an operator.</p>
         <ul>
         {{range .Selected.Recipients}}
           <li>
@@ -1184,6 +1383,10 @@ const uiTemplate = `<!doctype html>
     {{else}}
       <h2>Select a Namespace</h2>
       <p class="muted">Create or select an application/environment namespace to manage redacted keys.</p>
+      <section class="tip">
+        <strong>Good first flow</strong>
+        <span>Create a namespace, add one operator recipient and one recovery recipient, then set values through a pipe or masked prompt.</span>
+      </section>
     {{end}}
   </section>
 </main>
