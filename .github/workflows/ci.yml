@@ -65,3 +65,20 @@ jobs:
         # G204 (subprocess) suppressions are inline at the four call
         # sites in internal/age and internal/cli, each justified.
         run: gosec -tests=false ./...
+
+  integration:
+    name: integration (real age)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: install age
+        # `age` lives in the universe component on Ubuntu 24.04.
+        # The package ships both `age` and `age-keygen`.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age
+      - name: integration tests
+        run: go test -tags integration -timeout 60s ./...
