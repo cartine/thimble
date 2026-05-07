@@ -17,6 +17,12 @@ import (
 // digits, and underscore, not starting with a digit.
 var KeyPattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
+// MaxValueBytes caps the size of a single dotenv line so a runaway
+// value (e.g. a piped binary blob) does not peg memory. 1 MiB is the
+// K-25 ceiling: enough for huge JWTs, certs, and PEM-encoded keys
+// while still bounding worst-case allocation.
+const MaxValueBytes = 1 << 20
+
 // ValidateKey returns nil if key matches the dotenv-style uppercase
 // naming convention, or an error otherwise.
 func ValidateKey(key string) error {
@@ -28,10 +34,13 @@ func ValidateKey(key string) error {
 
 // Parse reads a dotenv-formatted string and returns the key/value map.
 // Comments (lines starting with #) and blank lines are ignored.
-// Quoted values support \n, \r, \t, \\, and \" escapes.
+// Quoted values support \n, \r, \t, \\, and \" escapes. Lines longer
+// than MaxValueBytes return a precise "exceeds 1 MiB" error rather
+// than the default bufio.ErrTooLong.
 func Parse(input string) (map[string]string, error) {
 	values := map[string]string{}
 	scanner := bufio.NewScanner(strings.NewReader(input))
+	scanner.Buffer(make([]byte, 0, 64*1024), MaxValueBytes)
 	lineNo := 0
 	for scanner.Scan() {
 		lineNo++
@@ -54,6 +63,12 @@ func Parse(input string) (map[string]string, error) {
 		values[key] = value
 	}
 	if err := scanner.Err(); err != nil {
+		if errors.Is(err, bufio.ErrTooLong) {
+			return nil, fmt.Errorf(
+				"value on line %d exceeds 1 MiB; store it as a file or split it.",
+				lineNo+1,
+			)
+		}
 		return nil, err
 	}
 	return values, nil
