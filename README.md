@@ -331,6 +331,19 @@ DATABASE_URL` against the same starting manifest, exactly one push
 succeeds. The other operator pulls, sees the new version, re-runs `set`
 against the fresh manifest, and pushes. Both audit-log entries survive.
 
+When peers.toml is configured (K-55), every successful local mutation
+triggers a best-effort rsync push to each peer (K-56). The push runs
+*after* the local commit, *outside* the flock, and is bounded by a
+30-second per-peer timeout (override via `THIMBLE_PEER_PUSH_TIMEOUT`).
+A peer push failure does **not** fail the local mutation — the local
+store is the source of truth for the leader and peers reconcile on
+the next push or operator-initiated catch-up. Failures emit one
+stderr line per peer (`peer push failed: <name>: <reason>`) and are
+recorded in `secrets/.peer-state.json` for `thimble peer status` and
+`thimble doctor`. Pass `--no-peer-push` to suppress the broadcast for
+batch operations; set `THIMBLE_PEER_PUSH=off` to disable globally
+(single-leader mode).
+
 ## Safe Secret Entry
 
 Thimble does not accept secret values as command arguments. Arguments are too

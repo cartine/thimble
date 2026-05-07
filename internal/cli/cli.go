@@ -135,45 +135,77 @@ func dispatch(
 	ctx context.Context, st *store.Store, tool *age.Tool, cfg cliConfig,
 	args []string, stdout, stderr io.Writer,
 ) error {
-	switch args[0] {
+	cmd := args[0]
+	suppressPush, rest := extractNoPeerPush(args[1:])
+	err := dispatchCommand(ctx, st, tool, cfg, cmd, rest, stdout, stderr)
+	if err != nil {
+		return err
+	}
+	if isMutatingCommand(cmd) {
+		maybePushPeers(cfg, suppressPush, stderr)
+	}
+	return nil
+}
+
+// dispatchCommand is the inner switch over the command verb. The
+// outer dispatch wrapper handles --no-peer-push extraction and the
+// post-success push hook.
+func dispatchCommand(
+	ctx context.Context, st *store.Store, tool *age.Tool, cfg cliConfig,
+	cmd string, rest []string, stdout, stderr io.Writer,
+) error {
+	switch cmd {
 	case "init":
-		return runInit(st, args[1:], stdout, stderr)
+		return runInit(st, rest, stdout, stderr)
 	case "recipient":
-		return runRecipientV2(st, args[1:], stdout, stderr)
+		return runRecipientV2(st, rest, stdout, stderr)
 	case "create":
-		return runWrite(st, args[1:], stdout, stderr, false)
+		return runWrite(st, rest, stdout, stderr, false)
 	case "update":
-		return runWrite(st, args[1:], stdout, stderr, true)
+		return runWrite(st, rest, stdout, stderr, true)
 	case "set":
-		return runSet(st, args[1:], stdout, stderr)
+		return runSet(st, rest, stdout, stderr)
 	case "provision":
-		return runProvision(args[1:], stdout, stderr)
+		return runProvision(rest, stdout, stderr)
 	case "and-set":
-		return runAndSet(st, args[1:], stdout, stderr)
+		return runAndSet(st, rest, stdout, stderr)
 	case "and-get":
-		return runAndGet(st, args[1:], stdout, stderr)
+		return runAndGet(st, rest, stdout, stderr)
 	case "delete", "rm":
-		return runDelete(st, args[1:], stdout)
+		return runDelete(st, rest, stdout)
 	case "list", "ls":
-		return runList(st, args[1:], stdout)
+		return runList(st, rest, stdout)
 	case "render":
-		return runRender(st, args[1:], stdout, stderr)
+		return runRender(st, rest, stdout, stderr)
 	case "verify":
-		return runVerify(st, args[1:], stdout, stderr)
+		return runVerify(st, rest, stdout, stderr)
 	case "audit":
-		return runAudit(st, args[1:], stdout, stderr)
+		return runAudit(st, rest, stdout, stderr)
 	case "doctor":
-		return runDoctor(ctx, st, tool, args[1:], stdout, stderr, cfg)
+		return runDoctor(ctx, st, tool, rest, stdout, stderr, cfg)
 	case "web":
-		return runWeb(st, args[1:], stdout, stderr)
+		return runWeb(st, rest, stdout, stderr)
 	case "peer":
-		return runPeer(cfg, args[1:], stdout, stderr)
+		return runPeer(cfg, rest, stdout, stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return nil
 	default:
-		return fmt.Errorf("unknown command %q", args[0])
+		return fmt.Errorf("unknown command %q", cmd)
 	}
+}
+
+// isMutatingCommand returns true for the verbs that change on-disk
+// state and therefore deserve a peer push.  Read-only commands
+// (list, render, verify, audit, doctor, web, provision, and-get)
+// return false so they don't trigger broadcast traffic.
+func isMutatingCommand(cmd string) bool {
+	switch cmd {
+	case "init", "create", "update", "set", "delete", "rm",
+		"and-set", "recipient":
+		return true
+	}
+	return false
 }
 
 func envOrDefault(name, fallback string) string {
@@ -242,5 +274,9 @@ Commands:
   peer list                               list configured peer leaders
   peer join [--replace] <ssh-target>      bootstrap this leader by rsync'ing
                                           secrets/ from an existing peer
+
+Per-mutation flags:
+  --no-peer-push                          suppress the K-56 on-mutate broadcast
+                                          (also: THIMBLE_PEER_PUSH=off globally)
 
 Secret values are never accepted as command arguments.`

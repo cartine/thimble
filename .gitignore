@@ -1,5 +1,9 @@
 /thimble
 secrets/
+# K-56/K-57 local peer health state (also covered by secrets/ above
+# but listed explicitly for stores configured with --store outside
+# secrets/).
+.peer-state.json
 /.claude/**
 !/.claude/
 !/.claude/skills/
