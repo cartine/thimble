@@ -18,11 +18,14 @@ to decrypt that bundle.
 curl -fsSL https://raw.githubusercontent.com/cartine/thimble/main/scripts/install.sh | sh
 ```
 
-Pin or update through the same installer:
+Pin or update through the same installer (substitute a real tag from the
+[releases page](https://github.com/cartine/thimble/releases) for `vX.Y.Z`):
 
 ```sh
-THIMBLE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/cartine/thimble/main/scripts/install.sh | sh
+THIMBLE_VERSION=vX.Y.Z curl -fsSL https://raw.githubusercontent.com/cartine/thimble/main/scripts/install.sh | sh
 ```
+
+The install URL itself is pinned to a tag — not `main` — by [K-39](tasks/knots/K-39-install-pin-to-tag.md).
 
 From a checkout:
 
