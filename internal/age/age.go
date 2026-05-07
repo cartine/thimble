@@ -38,6 +38,9 @@ func (t *Tool) Encrypt(ctx context.Context, recipients []string, plain string) (
 	for _, recipient := range recipients {
 		args = append(args, "-r", recipient)
 	}
+	// #nosec G204 -- t.binary is the trusted age binary configured at
+	// startup; recipients are validated by store.ValidateRecipient before
+	// reaching here. K-18 will pin the binary path absolutely.
 	cmd := exec.CommandContext(ctx, t.binary, args...)
 	cmd.Stdin = strings.NewReader(plain)
 	var stdout, stderr bytes.Buffer
@@ -58,6 +61,9 @@ func (t *Tool) Decrypt(ctx context.Context, path string) (string, error) {
 		args = append(args, "-i", t.identity)
 	}
 	args = append(args, path)
+	// #nosec G204 -- t.binary is the trusted age binary configured at
+	// startup; path is a manifest-controlled file inside the store root.
+	// K-18 will pin the binary path absolutely.
 	cmd := exec.CommandContext(ctx, t.binary, args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

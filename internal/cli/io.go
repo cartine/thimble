@@ -60,6 +60,9 @@ func commandAfterDash(args []string) ([]string, error) {
 // stdout as the secret value. Stderr is forwarded to stderr but a copy
 // is buffered so failure messages can be redacted before surfacing.
 func runSecretProducer(args []string, stderr io.Writer) (string, error) {
+	// #nosec G204 -- args is the command the operator placed after `--`
+	// on the Thimble CLI. Running operator-supplied commands is the
+	// documented design of `thimble set --from-cmd ... --` and friends.
 	cmd := exec.CommandContext(context.Background(), args[0], args[1:]...)
 	var out bytes.Buffer
 	var errOut bytes.Buffer
@@ -83,6 +86,9 @@ func runSecretConsumer(args []string, value, envVar string, stdout, stderr io.Wr
 			return fmt.Errorf("invalid --env name: %w", err)
 		}
 	}
+	// #nosec G204 -- args is the command the operator placed after `--`
+	// on the Thimble CLI. Running operator-supplied consumers (e.g.
+	// `thimble and-get app/env -- ./run.sh`) is the documented design.
 	cmd := exec.CommandContext(context.Background(), args[0], args[1:]...)
 	cmd.Stdin = strings.NewReader(value)
 	cmd.Stdout = stdout

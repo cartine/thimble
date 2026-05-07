@@ -44,3 +44,24 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: govulncheck
         run: govulncheck ./...
+
+  lint:
+    name: staticcheck + gosec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+      - name: install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: staticcheck
+        run: staticcheck ./...
+      - name: gosec
+        # -tests=false skips test fixtures (which intentionally write
+        # 0o700 fake `age` shell scripts and would otherwise trip G306).
+        # G204 (subprocess) suppressions are inline at the four call
+        # sites in internal/age and internal/cli, each justified.
+        run: gosec -tests=false ./...
