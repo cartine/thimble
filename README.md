@@ -325,34 +325,43 @@ Imagine a small service deployed by one operator and one deploy host.
    thimble provision | thimble set web-api production SESSION_SECRET
    ```
 
-5. The encrypted bundle is committed:
+5. The operator synchronizes the `secrets/` directory to the store host
+   (Pattern A — see [Storing and Syncing](#storing-and-syncing)). The
+   encrypted bundle and manifest now live where the deploy host can pull
+   them:
 
    ```sh
-   git add secrets/thimble.json secrets/web-api/production.env.age
-   git commit -m "add web-api production secrets"
-   git push
+   rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
    ```
 
-6. The deploy host pulls the repository and renders only at deploy time:
+6. The deploy host pulls the `secrets/` directory from the store host and
+   renders only at deploy time:
 
    ```sh
+   rsync -av store-host:/srv/abc-secrets/ /etc/thimble/
    THIMBLE_AGE_IDENTITY=/etc/thimble/identity.txt \
      thimble render web-api production > /run/web-api.env
    chmod 0600 /run/web-api.env
    ```
 
-The repository carries encrypted bundles and metadata. The operator laptop and
+The store host carries encrypted bundles and metadata. The operator laptop and
 deploy host carry private identities. No peer needs another peer's private key.
 
 ## Peer-To-Peer Sync
 
-Thimble's durable object is the encrypted bundle, not a central server. Git is
-the simplest peer transport:
+Thimble's durable object is the encrypted bundle, not a central server.
+Peers exchange bundles and recipient metadata using whatever file transport
+they already trust. The recommended default is rsync over ssh against a
+designated store host (Pattern A in [Storing and Syncing](#storing-and-syncing)):
 
 ```text
-operator laptop  ->  git remote  ->  deploy host
-backup machine   ->  git remote  ->  operator laptop
+operator laptop  ->  rsync over ssh  ->  store host  ->  rsync over ssh  ->  deploy host
+backup machine   ->  rsync over ssh  ->  store host
 ```
+
+Object storage (S3, MinIO, GCS) and direct host-to-host scp/rsync are equally
+valid; the encrypted bundle is the durable object and any byte-faithful
+transport will do.
 
 Adding a peer securely:
 
@@ -388,7 +397,9 @@ Adding a peer securely:
    thimble recipient add web-api production age1peer...
    ```
 
-5. The encrypted bundle and `thimble.json` are committed and synced.
+5. The encrypted bundle and `thimble.json` are synchronized to the store
+   host (or whichever transport you use — see
+   [Storing and Syncing](#storing-and-syncing)).
 
 Bootstrapping a namespace before the policy is enforceable (≤1 recipient):
 
@@ -411,9 +422,7 @@ Removing a peer:
 
 ```sh
 thimble recipient remove --rotate web-api production age1peer...
-git add secrets/thimble.json secrets/web-api/production.env.age \
-        secrets/web-api/production.origins.json
-git commit -m "remove retired production recipient and rotate provisioned values"
+rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
 ```
 
 `--rotate` regenerates every value whose origin is `provision` (the high-entropy
@@ -434,10 +443,11 @@ lazily on the next mutating operation for legacy namespaces.
 
 Peer safety rules:
 
-- Commit encrypted `.env.age` bundles, never plaintext `.env` files.
-- Never commit age identity files.
+- Move encrypted `.env.age` bundles between peers, never plaintext `.env` files.
+- Never copy age identity files between peers.
 - Keep at least one offline recovery recipient.
-- Verify new recipients outside the git diff before granting access.
+- Verify new recipients out of band before granting access — do not trust
+  the recipient string in the manifest diff alone.
 - Review recipient-only diffs as carefully as secret changes.
 - Review `bundle_sha256` changes alongside ciphertext changes — a recipient-only
   diff that also bumps the SHA is the canonical re-encrypt; one without the
@@ -499,8 +509,8 @@ PR workflow. Run `make lint` before committing.
 
 | Threat | Mitigation |
 |---|---|
-| Lost laptop with an identity file | Recipients in encrypted bundles + `age` ChaCha20 — bundles in git remain unreadable to a finder. Run `thimble recipient remove --rotate` to drop the lost peer and atomically regenerate every provisioned value in one step. |
-| Repo write-access attacker smuggling a recipient | Quorum-signed recipient list — when `secrets/recipients.signed.toml` is present, M of N existing operators must produce signatures over the addition before it commits. See [docs/recipient-quorum.md](docs/recipient-quorum.md). |
+| Lost laptop with an identity file | Recipients in encrypted bundles + `age` ChaCha20 — bundles at rest in any store remain unreadable to a finder without a listed identity. Run `thimble recipient remove --rotate` to drop the lost peer and atomically regenerate every provisioned value in one step. |
+| Store write-access attacker smuggling a recipient | Quorum-signed recipient list — when `secrets/recipients.signed.toml` is present, M of N existing operators must produce signatures over the addition before it applies. See [docs/recipient-quorum.md](docs/recipient-quorum.md). |
 | Network MITM during install | `scripts/install.sh` verifies SHA-256 against the published checksums file (mandatory after K-38). |
 | Sigstore-style provenance attacks on releases | `gh attestation verify` + cosign verification (post-K-40). |
 | Accidental argv leak via shell history / `ps` | CLI rejects secret values as command arguments. Use the masked prompt, pipes, `provision`, or `and-set`. |

@@ -8,8 +8,8 @@
 
 ## Goal
 
-Today, anyone with merge access to the consumer repo can add their own
-recipient via a one-line manifest diff and unlock plaintext access to every
+Today, anyone with write access to the secrets store can add their own
+recipient via a one-line manifest change and unlock plaintext access to every
 future write. The README's "verify out of band" rule is process, not
 enforcement. Add a real gate.
 

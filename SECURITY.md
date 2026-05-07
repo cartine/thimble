@@ -62,13 +62,14 @@ review notes from the initial implementation are at
 
 - **Single-operator recipient additions when no quorum policy is
   configured.** When `secrets/recipients.signed.toml` is absent, any
-  operator with merge access to the consumer repo can grant a new
-  recipient via a one-line manifest diff. K-36 ships the structural
+  operator with write access to the secrets store can grant a new
+  recipient via a one-line manifest change. K-36 ships the structural
   fix as **opt-in**: drop a policy file listing M-of-N operators and
   every recipient add must be signed by M of them before the bundle
   re-encrypts. Without the policy file, the only mitigations are
-  out-of-band review of recipient diffs and the K-27 audit log.
-  Protocol detail: [docs/recipient-quorum.md](docs/recipient-quorum.md).
+  out-of-band review of recipient changes before they apply and the
+  K-27 audit log. Protocol detail:
+  [docs/recipient-quorum.md](docs/recipient-quorum.md).
 
 - **Removing a recipient does not invalidate plaintext or encrypted
   copies they already obtained.** Once a peer has decrypted a bundle

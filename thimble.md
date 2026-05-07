@@ -43,7 +43,8 @@ a small CLI and an intentionally narrow mental model.
 
 ## Design Principles
 
-- **File-first:** encrypted secrets are ordinary files that can live in git.
+- **File-first:** encrypted secrets are ordinary files; any byte-faithful
+  transport (rsync, object storage, scp) can move them between peers.
 - **Peer-capable:** operators and deploy hosts can sync encrypted bundles
   without a required central server.
 - **Recipient-based:** access is controlled by public encryption recipients,
@@ -114,7 +115,8 @@ Peers can be:
 - an offline backup location
 - a future agent workstation with limited permissions
 
-The simplest sync mode is git. A later mode could use direct peer exchange:
+The simplest sync mode is rsync over ssh; pick whatever your team already
+uses. A later mode could use direct peer exchange:
 
 ```sh
 thimble peer invite production alice-laptop
@@ -133,7 +135,7 @@ flowchart TD
     A["Operator runs thimble edit production"] --> B["Decrypt to temp editor buffer"]
     B --> C["Operator changes KOJA_SMTP_PASSWORD"]
     C --> D["Encrypt production.env.age for recipients"]
-    D --> E["Commit encrypted bundle to git"]
+    D --> E["Sync encrypted bundle to store host"]
     E --> F["thimble deploy production koja"]
     F --> G["SSH to Hetzner deploy host"]
     G --> H["Upload rendered /opt/quilt/.env with mode 0600"]
@@ -176,7 +178,8 @@ the host, which is inherent to the application needing them.
   a simpler UX wrapper?
 - How should agents request a secret-dependent operation without seeing the
   decrypted secret?
-- How much audit belongs in git history versus Thimble's own metadata?
+- How much audit belongs in the transport's history (commit log, object
+  storage versioning) versus Thimble's own append-only audit log?
 
 ## First Implementation Slice
 

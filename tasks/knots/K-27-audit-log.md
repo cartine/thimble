@@ -28,4 +28,5 @@ operator handoffs dramatically easier.
 ## Notes
 
 Don't include values, ever. Don't include identity file paths. Thumbprints
-are public — they can sit in git alongside encrypted bundles without harm.
+are public — they can sit alongside encrypted bundles in any store without
+harm.

@@ -15,7 +15,7 @@ their risk model in 30 seconds.
 ## Acceptance
 
 - README gains a "Threat Model" section (one screen, not a paper) covering:
-  - **In scope**: lost laptop with identity file, repo write-access attacker
+  - **In scope**: lost laptop with identity file, store write-access attacker
     smuggling a recipient, network MITM during install, terminal
     history/scrollback exposure, accidental argv leak.
   - **Out of scope**: root on the deploy host (see thimble.md), `age`

@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Stripped git as a transport from documentation and examples. Thimble's
+  data model is file-first; movement of bundles and manifests between
+  operators and hosts uses any file transport (rsync over ssh, object
+  storage, etc.). Pattern A (store host with sshd) is the recommended
+  default. See README "Storing and Syncing" (added in K-54). Mentions of
+  git for Thimble's own development workflow (cloning the source repo,
+  release pipeline) are unchanged.
+
 ### Added
 
 - 48-knot hardening rollout tracked in [tasks/knot-plan.md](tasks/knot-plan.md)

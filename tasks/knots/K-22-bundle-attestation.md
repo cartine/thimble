@@ -8,7 +8,8 @@
 
 ## Goal
 
-A repo writer can swap `production.env.age` for an older bundle, or one
+An attacker with write access to the secrets store can swap
+`production.env.age` for an older bundle, or one
 encrypted only to themselves, while leaving the manifest's recipient list
 unchanged. Downstream peers won't notice. Bind the manifest to the
 ciphertext.
