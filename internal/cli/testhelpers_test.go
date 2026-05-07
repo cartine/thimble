@@ -10,6 +10,10 @@ import (
 	"github.com/cartine/thimble/internal/store"
 )
 
+// testRecipientOperator is a real-shape 62-char age recipient (Bech32
+// charset only). Used to satisfy ValidateRecipient under K-20.
+const testRecipientOperator = "age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+
 // newTestStore returns a Store backed by a fake `age` binary that
 // reverses ROT13 instead of doing real encryption. Deterministic
 // timestamps are pinned via SetClock so test output stays stable.

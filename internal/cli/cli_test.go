@@ -20,7 +20,7 @@ func TestCLIRejectsSecretArgumentAndAcceptsPipe(t *testing.T) {
 	initArgs := append([]string{}, storeFlag...)
 	initArgs = append(
 		initArgs,
-		"init", "web-api", "dev", "--recipient", "age1operator",
+		"init", "web-api", "dev", "--recipient", testRecipientOperator,
 	)
 	if err := Run(initArgs, &stdout, &stderr); err != nil {
 		t.Fatalf("init: %v stderr=%s", err, stderr.String())
@@ -56,7 +56,7 @@ func TestCLIRejectsSecretArgumentAndAcceptsPipe(t *testing.T) {
 
 func TestProvisionAndSetAndGetFlow(t *testing.T) {
 	st := newTestStore(t)
-	if err := st.Init("worker", "prod", []string{"age1operator"}); err != nil {
+	if err := st.Init("worker", "prod", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
 	root := t.TempDir()

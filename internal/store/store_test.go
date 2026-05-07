@@ -3,6 +3,7 @@ package store_test
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -11,10 +12,19 @@ import (
 	"github.com/cartine/thimble/internal/store"
 )
 
+// Realistic 62-char age recipients (Bech32 charset, no 1/b/i/o)
+// shared across store/cli/web/age tests for K-20 strict format
+// validation.
+const (
+	testRecipientOperator = "age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+	testRecipientAlice    = "age1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	testRecipientBob      = "age1zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+)
+
 func TestNamespacedCRUDAndRender(t *testing.T) {
 	st := newTestStore(t)
 
-	if err := st.Init("web-api", "production", []string{"age1operator"}); err != nil {
+	if err := st.Init("web-api", "production", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
 	if err := st.CreateSecret(
@@ -70,30 +80,32 @@ func TestNamespacedCRUDAndRender(t *testing.T) {
 func TestRecipientsRewriteBundle(t *testing.T) {
 	st := newTestStore(t)
 
-	if err := st.Init("api", "prod", []string{"age1alice"}); err != nil {
+	if err := st.Init("api", "prod", []string{testRecipientAlice}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
 	if err := st.SetSecret("api", "prod", "TOKEN", "topsecret"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if err := st.AddRecipient("api", "prod", "age1bob"); err != nil {
+	if err := st.AddRecipient("api", "prod", testRecipientBob); err != nil {
 		t.Fatalf("add recipient: %v", err)
 	}
 	meta, err := st.Find("api", "prod")
 	if err != nil {
 		t.Fatalf("find env: %v", err)
 	}
-	if got, want := strings.Join(meta.Recipients, ","), "age1alice,age1bob"; got != want {
-		t.Fatalf("recipients = %q, want %q", got, want)
+	wantList := []string{testRecipientAlice, testRecipientBob}
+	sort.Strings(wantList)
+	if got, w := strings.Join(meta.Recipients, ","), strings.Join(wantList, ","); got != w {
+		t.Fatalf("recipients = %q, want %q", got, w)
 	}
-	if err := st.RemoveRecipient("api", "prod", "age1alice"); err != nil {
+	if err := st.RemoveRecipient("api", "prod", testRecipientAlice); err != nil {
 		t.Fatalf("remove recipient: %v", err)
 	}
 	meta, err = st.Find("api", "prod")
 	if err != nil {
 		t.Fatalf("find env after remove: %v", err)
 	}
-	if got, want := strings.Join(meta.Recipients, ","), "age1bob"; got != want {
+	if got, want := strings.Join(meta.Recipients, ","), testRecipientBob; got != want {
 		t.Fatalf("recipients = %q, want %q", got, want)
 	}
 	rendered, err := st.Render("api", "prod")

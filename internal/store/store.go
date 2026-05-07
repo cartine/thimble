@@ -61,9 +61,11 @@ func (s *Store) Init(app, env string, recipients []string) error {
 	if err := ValidateName("environment", env); err != nil {
 		return err
 	}
-	if err := ValidateRecipients(recipients); err != nil {
+	cleaned, err := CleanRecipients(recipients)
+	if err != nil {
 		return err
 	}
+	recipients = cleaned
 	m, err := s.loadManifest()
 	if err != nil {
 		return err
@@ -92,22 +94,28 @@ func (s *Store) Init(app, env string, recipients []string) error {
 // AddRecipient grants recipient access to (app, env) and re-encrypts
 // the bundle to the updated recipient list.
 func (s *Store) AddRecipient(app, env, recipient string) error {
-	if err := ValidateRecipient(recipient); err != nil {
+	cleaned, err := CleanRecipient(recipient)
+	if err != nil {
 		return err
 	}
 	return s.rewriteEnv(app, env, func(meta *EnvManifest, _ map[string]string) error {
-		meta.Recipients = sortedUnique(append(meta.Recipients, recipient))
+		meta.Recipients = sortedUnique(append(meta.Recipients, cleaned))
 		return nil
 	})
 }
 
 // RemoveRecipient drops recipient from (app, env) and re-encrypts.
-// Refuses to remove the last recipient.
+// Refuses to remove the last recipient. The lookup is normalized so
+// trailing newlines are tolerated.
 func (s *Store) RemoveRecipient(app, env, recipient string) error {
+	cleaned, err := CleanRecipient(recipient)
+	if err != nil {
+		return err
+	}
 	return s.rewriteEnv(app, env, func(meta *EnvManifest, _ map[string]string) error {
 		next := meta.Recipients[:0]
 		for _, existing := range meta.Recipients {
-			if existing != recipient {
+			if existing != cleaned {
 				next = append(next, existing)
 			}
 		}

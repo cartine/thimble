@@ -17,7 +17,7 @@ import (
 
 func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 	st := newTestStore(t)
-	if err := st.Init("webapp", "dev", []string{"age1operator"}); err != nil {
+	if err := st.Init("webapp", "dev", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
 	if err := st.SetSecret("webapp", "dev", "API_KEY", "browser secret"); err != nil {
@@ -88,6 +88,10 @@ func postUpdateForm(mux http.Handler) int {
 	mux.ServeHTTP(rec, req)
 	return rec.Code
 }
+
+// testRecipientOperator is a real-shape 62-char age recipient (Bech32
+// charset only). Used to satisfy ValidateRecipient under K-20.
+const testRecipientOperator = "age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
 
 func newTestStore(t *testing.T) *store.Store {
 	t.Helper()
