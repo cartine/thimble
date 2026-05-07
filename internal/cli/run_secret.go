@@ -72,19 +72,27 @@ func runAndGet(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("and-get", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	envVar := fs.String("env", "", "also expose the secret as this environment variable")
+	allowShellEnv := fs.Bool("allow-shell-env", false,
+		"allow --env when the child is a shell or docker run (K-24)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	rest := fs.Args()
 	if len(rest) < 5 {
 		return errors.New(
-			"usage: thimble and-get [--env NAME] <app> <env> <KEY> -- <command> [args...]",
+			"usage: thimble and-get [--env NAME] [--allow-shell-env] " +
+				"<app> <env> <KEY> -- <command> [args...]",
 		)
 	}
 	app, env, key := rest[0], rest[1], rest[2]
 	cmdArgs, err := commandAfterDash(rest[3:])
 	if err != nil {
 		return err
+	}
+	if *envVar != "" && !*allowShellEnv {
+		if err := guardShellEnv(cmdArgs, *envVar); err != nil {
+			return err
+		}
 	}
 	values, _, err := st.ReadEnv(app, env)
 	if err != nil {

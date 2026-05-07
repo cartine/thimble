@@ -167,7 +167,9 @@ Commands:
   and-set [--show-stderr] <app> <env> KEY -- <command>
                                           set a key from a command's stdout
                                           (producer stderr is captured by default)
-  and-get <app> <env> KEY -- <command>    pass a key to a command on stdin
+  and-get [--env NAME] [--allow-shell-env] <app> <env> KEY -- <command>
+                                          pass a key to a command on stdin
+                                          (refuses --env to bare shells unless --allow-shell-env)
   delete <app> <env> KEY                  delete one secret key
   list <app> <env>                        list keys only, never values
   render <app> <env> --format dotenv      render decrypted dotenv to stdout

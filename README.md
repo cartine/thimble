@@ -142,6 +142,15 @@ thimble and-get --env DATABASE_URL web-api production DATABASE_URL -- ./scripts/
 Prefer stdin when possible. Environment variables are useful for compatibility,
 but they are easier for child processes and debugging tools to expose.
 
+Thimble refuses `and-get --env` when the child is one of `sh`, `bash`, `zsh`,
+`fish`, `pwsh`, `cmd.exe`, or `powershell` — a shell will export the value to
+its descendants and to anything its scripts run. The same guard applies to
+`docker run` / `podman run` unless the invocation explicitly scopes the value
+with `-e KEY`, `--env=KEY`, or `--env-file=-` (reading from stdin). Pass
+`--allow-shell-env` if you genuinely want the wider exposure (e.g. an
+interactive REPL where you want the child shell to see the secret); the guard
+is opt-out for exactly that reason.
+
 ## Everyday CLI
 
 ```sh
