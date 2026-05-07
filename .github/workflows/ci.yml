@@ -30,7 +30,7 @@ jobs:
       - name: go vet
         run: go vet ./...
       - name: go test
-        run: go test -race -coverprofile=coverage.out ./...
+        run: make test
 
   vuln:
     name: govulncheck
@@ -40,19 +40,28 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: govulncheck
-        run: govulncheck ./...
+        run: make vuln
 
   lint:
-    name: staticcheck + gosec
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: install golangci-lint
+        # `make lint` runs golangci-lint (funlen, lll) + the source-size
+        # checker. Install via a release tarball pinned to the major
+        # version so CI doesn't drift mid-release.
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61.0
+          install-mode: binary
+          args: --version
+      - name: make lint
+        run: make lint
       - name: install staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: install gosec
@@ -81,7 +90,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y age
       - name: integration tests
-        run: go test -tags integration -timeout 60s ./...
+        run: make integration
 
   docker-build:
     # Build the multi-arch image to catch Dockerfile breakage on PRs and

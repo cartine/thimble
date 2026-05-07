@@ -8,11 +8,12 @@ that way.
 ```sh
 git clone https://github.com/cartine/thimble
 cd thimble
-go build ./cmd/thimble
-go test ./...
+make build
+make test
 ```
 
-You also need `age` on `PATH` to run anything beyond unit tests.
+`make help` lists every target. You also need `age` on `PATH` to run
+anything beyond unit tests.
 
 ## Setup verification
 
@@ -60,12 +61,13 @@ Run `make lint` before committing. The standard is enforced by
 ## Tests
 
 ```sh
-go test ./...
+make test          # unit tests with the race detector
+make integration   # tests against a real `age` binary
+make lint          # golangci-lint + source-size checker
+make vuln          # govulncheck against known CVEs
 ```
 
-Integration tests against a real `age` binary land with
-[K-16](tasks/knots/K-16-real-age-integration-test.md). Once they exist,
-run `make integration` for the full surface.
+`make help` prints every target with a one-line description.
 
 ## Pull requests
 
