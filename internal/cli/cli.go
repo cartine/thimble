@@ -37,6 +37,9 @@ type cliConfig struct {
 // name). stdout and stderr are forwarded to subcommands so tests can
 // capture output.
 func Run(args []string, stdout, stderr io.Writer) error {
+	if isVersionFlag(args) {
+		return runVersion(stdout)
+	}
 	cfg, rest, err := parseTopFlags(args, stderr)
 	if err != nil {
 		return err
@@ -44,6 +47,9 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if rest == nil {
 		printUsage(stdout)
 		return nil
+	}
+	if rest[0] == "version" {
+		return runVersion(stdout)
 	}
 	st, err := buildStore(cfg, stderr)
 	if err != nil {
@@ -55,6 +61,20 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	defer stop()
 	st.SetContext(ctx)
 	return dispatch(st, rest, stdout, stderr)
+}
+
+// isVersionFlag returns true when args is a bare --version / -v
+// invocation (handled before flag parsing so ldflags-injected
+// metadata is reachable without any other Thimble setup).
+func isVersionFlag(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	switch args[0] {
+	case "--version", "-version":
+		return len(args) == 1
+	}
+	return false
 }
 
 func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error) {
@@ -165,7 +185,8 @@ Top-level flags (or env):
   --unsafe-allow-identity-mode        allow group/world-readable identity files
 
 Commands:
-  init <app> <env> --recipient age1...    create an encrypted namespace
+  version, --version                     print version, commit, and Go info
+  init <app> <env> --recipient age1...   create an encrypted namespace
   recipient add <app> <env> age1...       grant a recipient and re-encrypt
   recipient remove <app> <env> age1...    remove a recipient and re-encrypt
   create <app> <env> KEY                  create one secret key from pipe or masked prompt
