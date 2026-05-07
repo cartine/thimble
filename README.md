@@ -14,18 +14,31 @@ to decrypt that bundle.
 
 ## Install
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/cartine/thimble/main/scripts/install.sh | sh
-```
-
-Pin or update through the same installer (substitute a real tag from the
-[releases page](https://github.com/cartine/thimble/releases) for `vX.Y.Z`):
+The install URL is pinned to a release tag — never `main` — so a push to
+`main` cannot change the script for in-flight installs. Substitute a real
+tag from the [releases page](https://github.com/cartine/thimble/releases)
+for `vX.Y.Z`:
 
 ```sh
-THIMBLE_VERSION=vX.Y.Z curl -fsSL https://raw.githubusercontent.com/cartine/thimble/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/cartine/thimble/vX.Y.Z/scripts/install.sh | sh
 ```
 
-The install URL itself is pinned to a tag — not `main` — by [K-39](tasks/knots/K-39-install-pin-to-tag.md).
+Or fetch the script as a release asset (the workflow uploads it alongside
+each tarball):
+
+```sh
+curl -fsSL https://github.com/cartine/thimble/releases/latest/download/install.sh | sh
+```
+
+To pin a specific binary version through the same script:
+
+```sh
+THIMBLE_VERSION=vX.Y.Z curl -fsSL https://github.com/cartine/thimble/releases/download/vX.Y.Z/install.sh | sh
+```
+
+The script prints its own SHA-256 to stderr on first line so you can spot-
+check what your shell actually executed against the value published in the
+release notes.
 
 ### Verifying the install
 

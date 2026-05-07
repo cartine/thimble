@@ -56,14 +56,17 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Stage install.sh
+        run: cp scripts/install.sh dist/install.sh
       - name: Checksums
         run: |
           cd dist
-          sha256sum *.tar.gz > checksums.txt
+          sha256sum *.tar.gz install.sh > checksums.txt
       # SLSA build-provenance attestation: signs each tarball + checksums.txt
       # with a Sigstore certificate tied to this workflow run. Verifiable
       # post-release with `gh attestation verify <asset> --repo cartine/thimble`.
@@ -75,9 +78,11 @@ jobs:
         with:
           subject-path: |
             dist/*.tar.gz
+            dist/install.sh
             dist/checksums.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.tar.gz
+            dist/install.sh
             dist/checksums.txt

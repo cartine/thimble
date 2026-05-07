@@ -32,6 +32,42 @@
 
 set -eu
 
+# Print this script's own SHA-256 first so an operator piping it through `sh`
+# can spot-check that the script they ran matches what is published in the
+# release. We compute at runtime to keep the build pipeline simple; macOS
+# ships `shasum -a 256` rather than `sha256sum`, so try both.
+self_sha256() {
+  if [ ! -r "$1" ]; then
+    return 0
+  fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$1" | awk '{print $2}'
+  fi
+}
+# When invoked via `curl … | sh`, $0 is typically the shell name itself
+# (`sh` or `/bin/sh`), and the script body lives only on the inherited
+# stdin pipe — there is no file we can hash. Detect by basename.
+_self_base="$(basename -- "$0" 2>/dev/null || echo)"
+case "$_self_base" in
+  sh|-sh|bash|-bash|zsh|dash|""|*"$0"*)
+    : # piped or unknown invocation, skip the self-hash print.
+    ;;
+  *)
+    if [ -r "$0" ]; then
+      _self="$(self_sha256 "$0" || true)"
+      if [ -n "$_self" ]; then
+        echo "thimble installer SHA-256: $_self" >&2
+      fi
+      unset _self
+    fi
+    ;;
+esac
+unset _self_base
+
 REPO="${THIMBLE_REPO:-cartine/thimble}"
 VERSION="${THIMBLE_VERSION:-latest}"
 INSTALL_DIR="${THIMBLE_INSTALL_DIR:-$HOME/.local/bin}"
