@@ -67,6 +67,25 @@ weakest:
 The installer auto-detects which tools are present and prints what it
 verified. Install `gh` for full provenance.
 
+### Verifying a release rebuilds bit-for-bit
+
+Thimble's release build is deterministic given the source tag and the Go
+toolchain version pinned in `go.mod`. To prove that the binaries on the
+GitHub release match what would come out of building the tag yourself:
+
+```sh
+git fetch --tags
+make verify-release VERSION=vX.Y.Z
+```
+
+`make verify-release` checks out the tag in a temp worktree, rebuilds the
+linux/darwin × amd64/arm64 matrix with `-trimpath -ldflags="-s -w"` and
+the same `-X` ldflag values the workflow embeds, then diffs the resulting
+tarball SHA-256s against the published `checksums.txt`. A mismatch on
+`buildDate` alone will produce a SHA-256 difference; pass
+`THIMBLE_BUILD_DATE=<value-from-release-notes>` to remove it. See
+[scripts/verify-release.sh](scripts/verify-release.sh) for the details.
+
 From a checkout:
 
 ```sh

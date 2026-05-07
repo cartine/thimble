@@ -1,0 +1,50 @@
+name: verify-release
+
+# Reproduce the published release tarballs and diff their SHA-256 hashes
+# against the published checksums.txt. Runs on every release tag (after
+# the release workflow has finished publishing) and on a monthly schedule
+# against the latest release as a long-tail integrity check.
+
+on:
+  release:
+    types: [published]
+  schedule:
+    # First day of each month at 09:00 UTC.
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to verify (e.g. v0.1.0). Leave blank for latest."
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >>"$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            echo "version=${{ github.event.release.tag_name }}" >>"$GITHUB_OUTPUT"
+          else
+            tag="$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest \
+              | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)"
+            echo "version=$tag" >>"$GITHUB_OUTPUT"
+          fi
+      - name: Fetch tags
+        run: git fetch --tags --force
+      - name: Verify release
+        env:
+          THIMBLE_REPO: ${{ github.repository }}
+        run: bash scripts/verify-release.sh "${{ steps.ver.outputs.version }}"

@@ -3,7 +3,7 @@
 # Minimal targets land in K-01. Wider target set lands in K-47
 # (build, test, integration, vuln, release verification, demo).
 
-.PHONY: lint integration
+.PHONY: lint integration verify-release
 
 lint: ## Run Go linter and source-size checker.
 	@command -v golangci-lint >/dev/null 2>&1 || { \
@@ -23,3 +23,10 @@ integration: ## Run integration tests against the real `age` binary.
 	  exit 1; \
 	}
 	go test -tags integration -timeout 60s ./...
+
+verify-release: ## Reproduce a published release and diff SHA-256s. Usage: make verify-release VERSION=vX.Y.Z
+	@if [ -z "$(VERSION)" ]; then \
+	  echo "usage: make verify-release VERSION=vX.Y.Z"; \
+	  exit 2; \
+	fi
+	bash scripts/verify-release.sh "$(VERSION)"
