@@ -11,7 +11,7 @@ Two channels, in order of preference:
    <https://github.com/cartine/thimble/security/advisories/new>. This routes
    directly to maintainers, keeps the discussion private, and produces a CVE
    automatically when published.
-2. **Email** — `security@cartine.me`. PGP fingerprint will be added here once
+2. **Email** — `its@thecartine.me`. PGP fingerprint will be added here once
    the project has one published.
 
 Please include:

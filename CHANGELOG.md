@@ -12,7 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   via the [`kno`](https://github.com/cartine/knots) execution-plan tooling.
 - LICENSE (Apache-2.0) at repo root.
 - Real disclosure policy in SECURITY.md (GitHub Private Vulnerability Reporting
-  + `security@cartine.me`); previous internal review notes preserved at
+  + `its@thecartine.me`); previous internal review notes preserved at
   `docs/security-review.md`.
 - CONTRIBUTING.md with repo layout, coding standards, PR workflow.
 - Source-code size standard enforced by `make lint`: <500 lines/file,
