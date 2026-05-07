@@ -1,7 +1,6 @@
 package main
 
 import (
-	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/store"
+	"github.com/cartine/thimble/internal/web"
 )
 
 func TestNamespacedCRUDAndRender(t *testing.T) {
@@ -114,13 +114,9 @@ func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 		t.Fatalf("set: %v", err)
 	}
 
-	server := &webServer{
-		store:     st,
-		token:     "test-token",
-		templates: template.Must(template.New("ui").Parse(uiTemplate)),
-	}
+	server := web.New(st, "test-token")
 	mux := http.NewServeMux()
-	server.routes(mux)
+	server.Routes(mux)
 
 	unauthorized := httptest.NewRecorder()
 	mux.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodGet, "/", nil))
