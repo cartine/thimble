@@ -253,4 +253,8 @@ See [TAXONOMY.md](TAXONOMY.md) for the project's shared vocabulary
 - CLI listing and the web UI do not display secret values.
 - The web UI is loopback-only by default and token protected.
 
-See [SECURITY.md](SECURITY.md) for the review checklist and residual risks.
+See [SECURITY.md](SECURITY.md) for the disclosure policy.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
