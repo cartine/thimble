@@ -22,11 +22,12 @@ const (
 )
 
 type cliConfig struct {
-	storeDir  string
-	identity  string
-	ageBinary string
-	ageSHA256 string
-	verbose   bool
+	storeDir          string
+	identity          string
+	ageBinary         string
+	ageSHA256         string
+	verbose           bool
+	allowUnsafeIDMode bool
 }
 
 // Run is the CLI entry point. argv is the program's args (no exe
@@ -63,6 +64,8 @@ func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error)
 		"absolute path to the age binary (overrides $PATH lookup)")
 	fs.BoolVar(&cfg.verbose, "verbose", false,
 		"announce the resolved age binary path on first use")
+	fs.BoolVar(&cfg.allowUnsafeIDMode, "unsafe-allow-identity-mode", false,
+		"allow group/world-readable identity files (warns to stderr)")
 	if err := fs.Parse(args); err != nil {
 		return cliConfig{}, nil, err
 	}
@@ -88,6 +91,9 @@ func buildStore(cfg cliConfig, stderr io.Writer) (*store.Store, error) {
 	}
 	if cfg.verbose {
 		tool.SetVerbose(stderr)
+	}
+	if cfg.allowUnsafeIDMode {
+		tool.AllowUnsafeIdentityMode(stderr)
 	}
 	return store.NewWithAge(cfg.storeDir, tool), nil
 }
@@ -148,6 +154,7 @@ Top-level flags (or env):
   --age-binary, $THIMBLE_AGE_BINARY   pin the age binary path
   $THIMBLE_AGE_SHA256                 require this SHA-256 of the age binary
   --verbose                           print the resolved age binary on first use
+  --unsafe-allow-identity-mode        allow group/world-readable identity files
 
 Commands:
   init <app> <env> --recipient age1...    create an encrypted namespace

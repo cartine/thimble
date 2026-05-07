@@ -26,6 +26,12 @@ type Tool struct {
 	identity  string
 	sha256Pin string
 
+	// allowUnsafeIdentityMode disables the 0o077 mode check on the
+	// identity file. K-19 wires this via the
+	// --unsafe-allow-identity-mode CLI flag.
+	allowUnsafeIdentityMode bool
+	unsafeWarn              io.Writer
+
 	// verbose, if non-nil, receives a one-shot "using age binary: <path>"
 	// announcement on first encrypt or decrypt. Wired by the CLI when
 	// --verbose is set.
@@ -48,6 +54,45 @@ func (t *Tool) SetSHA256Pin(pin string) { t.sha256Pin = pin }
 // "thimble: using age binary: <path>" line the first time the Tool
 // invokes the age binary. nil disables the announcement.
 func (t *Tool) SetVerbose(w io.Writer) { t.verbose = w }
+
+// AllowUnsafeIdentityMode disables the K-19 0o077 mode check on the
+// identity file. The supplied writer (typically stderr) receives a
+// one-line warning the first time the file is read.
+func (t *Tool) AllowUnsafeIdentityMode(warn io.Writer) {
+	t.allowUnsafeIdentityMode = true
+	t.unsafeWarn = warn
+}
+
+// CheckIdentityMode verifies that path is mode 0600 (no group or
+// world bits). If allowUnsafe is true the check is skipped and a
+// single warning line is written to warn.
+func CheckIdentityMode(path string, allowUnsafe bool, warn io.Writer) error {
+	if path == "" {
+		return nil
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("identity file %q: %w", path, err)
+	}
+	mode := info.Mode().Perm()
+	if mode&0o077 == 0 {
+		return nil
+	}
+	if allowUnsafe {
+		if warn != nil {
+			fmt.Fprintf(warn,
+				"thimble: warning: identity file %s is mode 0%o; "+
+					"--unsafe-allow-identity-mode in effect\n",
+				path, mode)
+		}
+		return nil
+	}
+	return fmt.Errorf(
+		"identity file %s is mode 0%o; expected 0600. "+
+			"Run `chmod 0600 %s` and retry.",
+		path, mode, path,
+	)
+}
 
 // Resolve looks up binary on PATH (or accepts an absolute path) and, if
 // sha256Pin is non-empty, verifies the file's SHA-256 matches. The
@@ -142,6 +187,11 @@ func (t *Tool) Decrypt(ctx context.Context, path string) (string, error) {
 	t.announceBinary()
 	args := []string{"-d"}
 	if t.identity != "" {
+		if err := CheckIdentityMode(
+			t.identity, t.allowUnsafeIdentityMode, t.unsafeWarn,
+		); err != nil {
+			return "", err
+		}
 		args = append(args, "-i", t.identity)
 	}
 	args = append(args, path)

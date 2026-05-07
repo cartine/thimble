@@ -94,3 +94,47 @@ func prependPath(t *testing.T, dir string) {
 	t.Helper()
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
+
+func TestCheckIdentityMode0600OK(t *testing.T) {
+	id := writeIdentity(t, t.TempDir(), 0o600)
+	if err := age.CheckIdentityMode(id, false, nil); err != nil {
+		t.Fatalf("0600 identity rejected: %v", err)
+	}
+}
+
+func TestCheckIdentityMode0640Rejected(t *testing.T) {
+	id := writeIdentity(t, t.TempDir(), 0o640)
+	err := age.CheckIdentityMode(id, false, nil)
+	if err == nil {
+		t.Fatalf("0640 identity accepted")
+	}
+	if !strings.Contains(err.Error(), "expected 0600") {
+		t.Fatalf("error = %v, want 'expected 0600'", err)
+	}
+}
+
+func TestCheckIdentityModeUnsafeAllowOverridesRejection(t *testing.T) {
+	id := writeIdentity(t, t.TempDir(), 0o640)
+	var warn strings.Builder
+	if err := age.CheckIdentityMode(id, true, &warn); err != nil {
+		t.Fatalf("unsafe-allow rejected 0640: %v", err)
+	}
+	if !strings.Contains(warn.String(), "warning") {
+		t.Fatalf("warn output = %q, expected warning", warn.String())
+	}
+}
+
+func writeIdentity(t *testing.T, dir string, mode os.FileMode) string {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	path := filepath.Join(dir, "id.txt")
+	if err := os.WriteFile(path, []byte("# fake identity\n"), 0o600); err != nil {
+		t.Fatalf("write identity: %v", err)
+	}
+	if err := os.Chmod(path, mode); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	return path
+}

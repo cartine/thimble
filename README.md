@@ -62,6 +62,13 @@ age-keygen -y ~/.config/thimble/identity.txt
 The `age-keygen -y` output is the public recipient. The identity file is private
 key material and should never be committed.
 
+Thimble refuses to use an identity file whose mode allows group or world reads
+(any bit in `0o077`). `age-keygen -o` creates files at `0600` by default, but
+`cp`/`scp`/`mv` can drop permissions; if Thimble rejects yours, run
+`chmod 0600 <path>` and retry. On filesystems that cannot represent that mode
+(some Windows / WSL setups), pass `--unsafe-allow-identity-mode` to bypass the
+check; a warning is logged to stderr each run.
+
 ## Namespaces
 
 Thimble namespaces are `<application>/<environment>`.
