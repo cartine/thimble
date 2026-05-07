@@ -2,6 +2,13 @@
   <img src="assets/thimble-logo.svg" width="92" alt="Thimble logo">
 </p>
 
+<p align="center">
+  <a href="https://github.com/cartine/thimble/actions/workflows/ci.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/cartine/thimble/ci.yml?branch=main&label=build"></a>
+  <a href="https://github.com/cartine/thimble/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/cartine/thimble"></a>
+  <a href="https://pkg.go.dev/github.com/cartine/thimble"><img alt="Go version" src="https://img.shields.io/github/go-mod/go-version/cartine/thimble"></a>
+  <a href="https://opensource.org/licenses/Apache-2.0"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
+</p>
+
 # Thimble
 
 Thimble is a small, file-first secrets manager for teams that want something
