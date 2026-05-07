@@ -344,6 +344,43 @@ recorded in `secrets/.peer-state.json` for `thimble peer status` and
 batch operations; set `THIMBLE_PEER_PUSH=off` to disable globally
 (single-leader mode).
 
+### Health monitoring
+
+Peer health is recorded in a local `secrets/.peer-state.json` file
+(K-57). The file is gitignored — it is local health state, not
+bundle content. Two commands surface it:
+
+```sh
+# Active probe: ssh + rsync against each peer; updates state file.
+thimble peer ping            # all peers, verbose
+thimble peer ping alice      # one peer
+thimble peer ping --quiet    # silent on success; non-zero exit on failure
+```
+
+```sh
+# Passive view: read the state file, no network.
+thimble peer status
+```
+
+`thimble peer ping --quiet` is the cron-friendly form. A typical
+crontab entry runs it every 5 minutes:
+
+```cron
+*/5 * * * * /usr/local/bin/thimble peer ping --quiet >>/var/log/thimble-peer.log 2>&1
+```
+
+`thimble doctor` includes a peers check that turns the state file
+into a status verdict:
+
+- **ok** — every peer's last_seen is under one hour old and
+  last_error is empty.
+- **warn** — one or more peers have a last_seen older than one hour.
+- **fail** — one or more peers have a non-empty last_error from the
+  most recent push or have never been contacted at all.
+
+The doctor check runs after the recipients listing so a flaky peer
+shows up in the same report as a flaky recipient list.
+
 ## Safe Secret Entry
 
 Thimble does not accept secret values as command arguments. Arguments are too

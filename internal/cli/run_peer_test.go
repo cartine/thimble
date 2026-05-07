@@ -216,6 +216,183 @@ func TestRunPeerUsage(t *testing.T) {
 	}
 }
 
+// TestRunPeerPingHappyPath exercises `peer ping <name>` against
+// fakes that succeed.
+func TestRunPeerPingHappyPath(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	if err := os.MkdirAll(cfg.storeDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	out, errBuf := bytesPair()
+	if err := runPeer(cfg, []string{"add", "alice", peerAliceTarget}, out, errBuf); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	dir := setupPingFakes(t, true, `{"apps":{"abc":{"environments":{"production":{"version":42}}}}}`)
+	t.Setenv("THIMBLE_SSH_BINARY", filepath.Join(dir, "ssh"))
+	t.Setenv("THIMBLE_RSYNC_BINARY", filepath.Join(dir, "rsync"))
+	out.Reset()
+	if err := runPeer(cfg, []string{"ping", "alice"}, out, errBuf); err != nil {
+		t.Fatalf("ping: %v", err)
+	}
+	body := out.String()
+	if !strings.Contains(body, "alice  OK") || !strings.Contains(body, "abc/production:42") {
+		t.Fatalf("unexpected output: %q", body)
+	}
+}
+
+// TestRunPeerPingFailureExitsNonZero confirms the command returns
+// an error when any peer fails.
+func TestRunPeerPingFailureExitsNonZero(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	if err := os.MkdirAll(cfg.storeDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	out, errBuf := bytesPair()
+	if err := runPeer(cfg, []string{"add", "alice", peerAliceTarget}, out, errBuf); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	dir := setupPingFakes(t, false, `{}`)
+	t.Setenv("THIMBLE_SSH_BINARY", filepath.Join(dir, "ssh"))
+	t.Setenv("THIMBLE_RSYNC_BINARY", filepath.Join(dir, "rsync"))
+	out.Reset()
+	err := runPeer(cfg, []string{"ping", "alice"}, out, errBuf)
+	if err == nil {
+		t.Fatalf("expected ping failure, got nil")
+	}
+	if !strings.Contains(out.String(), "alice  FAIL") {
+		t.Fatalf("expected FAIL line, got %q", out.String())
+	}
+}
+
+// TestRunPeerPingQuietSuppressesOK exercises --quiet: success
+// produces no stdout but state file is still updated.
+func TestRunPeerPingQuietSuppressesOK(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	if err := os.MkdirAll(cfg.storeDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	out, errBuf := bytesPair()
+	if err := runPeer(cfg, []string{"add", "alice", peerAliceTarget}, out, errBuf); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	dir := setupPingFakes(t, true, `{}`)
+	t.Setenv("THIMBLE_SSH_BINARY", filepath.Join(dir, "ssh"))
+	t.Setenv("THIMBLE_RSYNC_BINARY", filepath.Join(dir, "rsync"))
+	out.Reset()
+	if err := runPeer(cfg, []string{"ping", "alice", "--quiet"}, out, errBuf); err != nil {
+		t.Fatalf("ping --quiet: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("expected silent output, got %q", out.String())
+	}
+}
+
+// TestRunPeerPingMissingName errors with the unknown-peer message.
+func TestRunPeerPingMissingName(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	if err := os.MkdirAll(cfg.storeDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	out, errBuf := bytesPair()
+	err := runPeer(cfg, []string{"ping", "ghost"}, out, errBuf)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("expected not-found, got %v", err)
+	}
+}
+
+// TestRunPeerStatusEmpty reports "no peers contacted yet" cleanly.
+func TestRunPeerStatusEmpty(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	if err := os.MkdirAll(cfg.storeDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	out, errBuf := bytesPair()
+	if err := runPeer(cfg, []string{"add", "alice", peerAliceTarget}, out, errBuf); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	out.Reset()
+	if err := runPeer(cfg, []string{"status"}, out, errBuf); err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	if !strings.Contains(out.String(), "no peers contacted yet") {
+		t.Fatalf("expected hint, got %q", out.String())
+	}
+}
+
+// TestRunPeerStatusEmptyNoPeers reports the "no peers configured" hint.
+func TestRunPeerStatusEmptyNoPeers(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	out, errBuf := bytesPair()
+	if err := runPeer(cfg, []string{"status"}, out, errBuf); err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	if !strings.Contains(out.String(), "no peers configured") {
+		t.Fatalf("expected hint, got %q", out.String())
+	}
+}
+
+// TestRunPeerStatusAfterPing renders the tabular view after a
+// successful ping.
+func TestRunPeerStatusAfterPing(t *testing.T) {
+	cfg, _ := newPeerConfig(t)
+	if err := os.MkdirAll(cfg.storeDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	out, errBuf := bytesPair()
+	if err := runPeer(cfg, []string{"add", "alice", peerAliceTarget}, out, errBuf); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	dir := setupPingFakes(t, true, `{}`)
+	t.Setenv("THIMBLE_SSH_BINARY", filepath.Join(dir, "ssh"))
+	t.Setenv("THIMBLE_RSYNC_BINARY", filepath.Join(dir, "rsync"))
+	if err := runPeer(cfg, []string{"ping", "alice", "--quiet"}, out, errBuf); err != nil {
+		t.Fatalf("ping: %v", err)
+	}
+	out.Reset()
+	if err := runPeer(cfg, []string{"status"}, out, errBuf); err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	body := out.String()
+	if !strings.Contains(body, "alice") || !strings.Contains(body, peerAliceTarget) {
+		t.Fatalf("status missing peer row: %q", body)
+	}
+	if !strings.Contains(body, "last_seen") {
+		t.Fatalf("status missing header: %q", body)
+	}
+}
+
+// setupPingFakes writes a single dir with both ssh and rsync stubs
+// suitable for ping tests.
+func setupPingFakes(t *testing.T, succeed bool, manifest string) string {
+	t.Helper()
+	dir := t.TempDir()
+	var sshScript string
+	if succeed {
+		sshScript = `#!/bin/sh
+exit 0
+`
+	} else {
+		sshScript = `#!/bin/sh
+echo "fake ssh fail" >&2
+exit 255
+`
+	}
+	if err := os.WriteFile(filepath.Join(dir, "ssh"), []byte(sshScript), 0o700); err != nil {
+		t.Fatalf("write ssh: %v", err)
+	}
+	rsyncScript := `#!/bin/sh
+for last do :; done
+cat > "$last" <<'JSON'
+` + manifest + `
+JSON
+exit 0
+`
+	if err := os.WriteFile(filepath.Join(dir, "rsync"), []byte(rsyncScript), 0o700); err != nil {
+		t.Fatalf("write rsync: %v", err)
+	}
+	return dir
+}
+
 // newPeerConfig returns a cliConfig pointing at a fresh temp store
 // dir.  The store dir does not yet exist on disk; callers that need
 // it pre-existing should MkdirAll themselves.

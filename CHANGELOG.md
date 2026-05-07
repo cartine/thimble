@@ -18,14 +18,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- K-55, K-56, K-57: multi-leader file replication via `thimble peer`.
+  - **K-55** introduces a local `secrets/thimble.peers.toml` membership
+    file, the `thimble peer add/remove/list` subcommands for editing
+    it, and `thimble peer join <ssh-target> [--replace]` for
+    bootstrapping a new leader by rsync'ing from an existing one. The
+    peers file is local-only (not distributed via the bundle) and
+    grants only rsync rights — granting decrypt rights is still a
+    quorum-gated `recipient add`. Audit log gains `peer_add` and
+    `peer_remove` ops.
+  - **K-56** runs a best-effort rsync push to every peer after every
+    successful local mutation. Per-peer timeout is 30s
+    (`THIMBLE_PEER_PUSH_TIMEOUT` to override). Failures emit one stderr
+    line per peer and are recorded in `secrets/.peer-state.json` —
+    they do **not** roll back the local mutation. New
+    `--no-peer-push` flag suppresses per-command;
+    `THIMBLE_PEER_PUSH=off` disables globally (single-leader mode).
+  - **K-57** adds heartbeat probing via `thimble peer ping [<name>]
+    [--quiet]` (cron-friendly) and a passive `thimble peer status`
+    table reading `.peer-state.json`. `thimble doctor` gains a peers
+    check that returns ok / warn (last_seen >1h) / fail (last_error
+    set or never contacted) for the peers as a whole. The state file
+    is gitignored.
 - Documented the file-first replication model: Pattern A (store host) as
   the recommended default, Pattern B (object storage — S3/MinIO/GCS) and
   Pattern C (direct host-to-host) as alternatives. Concurrency safety is
   provided by manifest versions (K-21) and append-only audit log merge
   (K-27). thimble.md "Peer-to-peer shape" expanded with design framing;
   CONTRIBUTING.md gains a "Running multi-leader" pointer to the README
-  section. A future trio of knots (K-55..K-57) will add `thimble peer`
-  subcommands as sugar over the same primitives.
+  section.
 - 48-knot hardening rollout tracked in [tasks/knot-plan.md](tasks/knot-plan.md)
   via the [`kno`](https://github.com/cartine/knots) execution-plan tooling.
 - LICENSE (Apache-2.0) at repo root.

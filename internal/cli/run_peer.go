@@ -24,7 +24,9 @@ import (
 // the dispatcher in cli.go stays a flat switch.
 func runPeer(cfg cliConfig, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 1 {
-		return errors.New("usage: thimble peer <add|remove|list|join> ...")
+		return errors.New(
+			"usage: thimble peer <add|remove|list|join|ping|status> ...",
+		)
 	}
 	switch args[0] {
 	case "add":
@@ -35,9 +37,14 @@ func runPeer(cfg cliConfig, args []string, stdout, stderr io.Writer) error {
 		return runPeerList(cfg, args[1:], stdout)
 	case "join":
 		return runPeerJoin(cfg, args[1:], stdout, stderr)
+	case "ping":
+		return runPeerPing(cfg, args[1:], stdout)
+	case "status":
+		return runPeerStatus(cfg, args[1:], stdout)
 	default:
 		return fmt.Errorf(
-			"unknown peer subcommand %q; expected add|remove|list|join", args[0],
+			"unknown peer subcommand %q; expected add|remove|list|join|ping|status",
+			args[0],
 		)
 	}
 }

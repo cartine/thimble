@@ -69,7 +69,7 @@ type Options struct {
 
 // Run executes every diagnostic, in order, and returns the report.
 // The order is fixed and matches the spec: age, identity, store,
-// manifest, bundles, web port, recipients.
+// manifest, bundles, web port, recipients, peers.
 func Run(ctx context.Context, st *store.Store, tool *age.Tool, opts Options) Report {
 	_ = ctx // reserved for future cancellation
 	checks := []CheckResult{
@@ -81,5 +81,6 @@ func Run(ctx context.Context, st *store.Store, tool *age.Tool, opts Options) Rep
 		checkWebPort(opts),
 	}
 	checks = append(checks, checkRecipientsList(st)...)
+	checks = append(checks, checkPeers(st)...)
 	return Report{Checks: checks}
 }

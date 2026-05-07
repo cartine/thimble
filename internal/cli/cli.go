@@ -274,6 +274,9 @@ Commands:
   peer list                               list configured peer leaders
   peer join [--replace] <ssh-target>      bootstrap this leader by rsync'ing
                                           secrets/ from an existing peer
+  peer ping [<name>] [--quiet]            ping one or all peers; updates
+                                          .peer-state.json (cron-friendly)
+  peer status                             tabular view of peer health
 
 Per-mutation flags:
   --no-peer-push                          suppress the K-56 on-mutate broadcast
