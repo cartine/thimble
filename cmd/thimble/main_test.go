@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cartine/thimble/internal/age"
 )
 
 func TestNamespacedCRUDAndRender(t *testing.T) {
@@ -255,7 +257,7 @@ func testStore(t *testing.T) *store {
 	root := t.TempDir()
 	fakeAge := writeFakeAge(t, root)
 	st := newStore(filepath.Join(root, "secrets"), "")
-	st.agePath = fakeAge
+	st.age = age.New(fakeAge, "")
 	st.now = func() time.Time { return time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC) }
 	return st
 }

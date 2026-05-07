@@ -25,6 +25,7 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/dotenv"
 )
 
@@ -59,10 +60,9 @@ type envManifest struct {
 }
 
 type store struct {
-	root     string
-	agePath  string
-	identity string
-	now      func() time.Time
+	root string
+	age  *age.Tool
+	now  func() time.Time
 }
 
 type secretEntry struct {
@@ -404,7 +404,7 @@ func runWeb(st *store, args []string, stdout, stderr io.Writer) error {
 }
 
 func newStore(root, identity string) *store {
-	return &store{root: root, agePath: "age", identity: identity, now: time.Now}
+	return &store{root: root, age: age.New("age", identity), now: time.Now}
 }
 
 func (s *store) Init(app, env string, recipients []string) error {
@@ -675,37 +675,18 @@ func (s *store) encryptAndWrite(meta envManifest, plain string) error {
 	if err := validateRecipients(meta.Recipients); err != nil {
 		return err
 	}
-	var out bytes.Buffer
-	args := []string{"-a"}
-	for _, recipient := range meta.Recipients {
-		args = append(args, "-r", recipient)
+	cipher, err := s.age.Encrypt(context.Background(), meta.Recipients, plain)
+	if err != nil {
+		return err
 	}
-	cmd := exec.CommandContext(context.Background(), s.agePath, args...)
-	cmd.Stdin = strings.NewReader(plain)
-	cmd.Stdout = &out
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("age encrypt failed: %s", redact(stderr.String()))
-	}
-	return atomicWrite(filepath.Join(s.root, filepath.FromSlash(meta.File)), out.Bytes(), 0o600)
+	return atomicWrite(filepath.Join(s.root, filepath.FromSlash(meta.File)), cipher, 0o600)
 }
 
 func (s *store) decrypt(meta envManifest) (string, error) {
-	args := []string{"-d"}
-	if s.identity != "" {
-		args = append(args, "-i", s.identity)
-	}
-	args = append(args, filepath.Join(s.root, filepath.FromSlash(meta.File)))
-	cmd := exec.CommandContext(context.Background(), s.agePath, args...)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("age decrypt failed: %s", redact(stderr.String()))
-	}
-	return out.String(), nil
+	return s.age.Decrypt(
+		context.Background(),
+		filepath.Join(s.root, filepath.FromSlash(meta.File)),
+	)
 }
 
 func atomicWrite(path string, content []byte, mode os.FileMode) error {
@@ -774,7 +755,7 @@ func runSecretProducer(args []string, stderr io.Writer) (string, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = io.MultiWriter(stderr, &errOut)
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("secret producer failed: %s", redact(errOut.String()))
+		return "", fmt.Errorf("secret producer failed: %s", age.Redact(errOut.String()))
 	}
 	value := strings.TrimRight(out.String(), "\r\n")
 	if value == "" {
@@ -852,17 +833,6 @@ func sortedUnique(values []string) []string {
 	}
 	sort.Strings(out)
 	return out
-}
-
-func redact(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return "no details"
-	}
-	if len(s) > 240 {
-		s = s[:240] + "..."
-	}
-	return s
 }
 
 func envOrDefault(name, fallback string) string {
