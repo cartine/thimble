@@ -17,13 +17,20 @@ const sessionCookieName = "thimble_session"
 const sessionMaxAgeSeconds = 3600
 
 // hasValidSession reports whether r carries the session cookie with a
-// constant-time match against the server token.
+// constant-time match against the active server token. On a positive
+// match it pings the idle-rotate watcher (K-33) so the rotation timer
+// resets on every authorized request.
 func (s *Server) hasValidSession(r *http.Request) bool {
 	c, err := r.Cookie(sessionCookieName)
 	if err != nil || c.Value == "" {
 		return false
 	}
-	return subtle.ConstantTimeCompare([]byte(c.Value), []byte(s.token)) == 1
+	current := s.currentToken()
+	if subtle.ConstantTimeCompare([]byte(c.Value), []byte(current)) != 1 {
+		return false
+	}
+	s.markAuthorized()
+	return true
 }
 
 // setSessionCookie writes the authenticated cookie. Secure is set only
@@ -32,7 +39,7 @@ func (s *Server) hasValidSession(r *http.Request) bool {
 func (s *Server) setSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
-		Value:    s.token,
+		Value:    s.currentToken(),
 		Path:     "/",
 		MaxAge:   sessionMaxAgeSeconds,
 		HttpOnly: true,

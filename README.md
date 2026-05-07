@@ -286,6 +286,15 @@ only when `Host` matches `127.0.0.1`, `[::1]`, `localhost`, or the configured
 `--addr`. Use repeatable `--allow-host=foo.local:8787` to add other names for
 non-loopback configurations.
 
+The web token rotates after fifteen minutes of no authorized requests; tune
+the window with `--idle-rotate=10m` (or pass `--idle-rotate=0` to disable
+automatic rotation entirely). On Unix-like systems, `kill -USR1 <pid>` forces
+an immediate rotation — useful when you suspect the token may have leaked
+into a shared terminal or screen recording. Each rotation prints
+`web token rotated; current token printed below:` followed by the new value
+on stdout, and any cookies issued before the rotation stop authorizing
+immediately, so existing browser tabs land back on the login form.
+
 The web UI is **strict-mode only** for secret values: the browser never
 accepts plaintext. Each key shown in the UI is paired with the exact CLI
 command needed to set or update it (e.g. `thimble set api production

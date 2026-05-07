@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/cartine/thimble/internal/store"
 )
@@ -25,12 +26,20 @@ type SecretEntry struct {
 
 // Server bundles the Thimble store, the UI access token, and the
 // parsed HTML template. Construct one with New, then call Routes(mux)
-// to mount handlers.
+// to mount handlers. The token is mutex-guarded (K-33) so rotation
+// can run concurrently with handler reads.
 type Server struct {
 	store     *store.Store
+	mu        sync.RWMutex
 	token     string
 	loopback  bool
 	templates *template.Template
+	// activity is a 1-buffered channel signaling that an authorized
+	// request just landed. RunIdleRotation drains it to reset the
+	// idle timer. Allocated in New so request handlers can publish
+	// without coordinating with the watcher goroutine; if no watcher
+	// is running, the publish is dropped non-blockingly.
+	activity chan struct{}
 }
 
 // New returns a Server backed by st and gated on token. The HTML
@@ -43,7 +52,27 @@ func New(st *store.Store, token string, loopback bool) *Server {
 		token:     token,
 		loopback:  loopback,
 		templates: Template(),
+		activity:  make(chan struct{}, 1),
 	}
+}
+
+// currentToken returns the active token under read-lock. Use this
+// instead of `s.token` everywhere; rotation flips the value under
+// the corresponding write-lock in setToken.
+func (s *Server) currentToken() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.token
+}
+
+// setToken replaces the active token under write-lock. After this
+// returns, every cookie issued against the previous token will fail
+// the constant-time compare in hasValidSession and the operator must
+// re-login with the new value.
+func (s *Server) setToken(token string) {
+	s.mu.Lock()
+	s.token = token
+	s.mu.Unlock()
 }
 
 // Routes registers the UI's handlers on mux.
@@ -105,7 +134,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		provided := r.FormValue("token")
-		if subtle.ConstantTimeCompare([]byte(provided), []byte(s.token)) != 1 {
+		current := s.currentToken()
+		if subtle.ConstantTimeCompare([]byte(provided), []byte(current)) != 1 {
 			w.WriteHeader(http.StatusUnauthorized)
 			s.writeLogin(w, loginData{Error: "invalid token"})
 			return
