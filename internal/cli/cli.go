@@ -1,0 +1,129 @@
+// Package cli is the entry point for the thimble binary. It parses
+// the top-level flags, builds an *store.Store, and dispatches to the
+// per-subcommand handlers in this package. Trust boundary: this is
+// where untrusted argv lands. Subcommand handlers must validate every
+// positional value before forwarding it to internal/store or
+// internal/web.
+package cli
+
+import (
+	"flag"
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/cartine/thimble/internal/store"
+)
+
+const (
+	defaultStoreDir = "secrets"
+	defaultAddr     = "127.0.0.1:8787"
+)
+
+type cliConfig struct {
+	storeDir string
+	identity string
+}
+
+// Run is the CLI entry point. argv is the program's args (no exe
+// name). stdout and stderr are forwarded to subcommands so tests can
+// capture output.
+func Run(args []string, stdout, stderr io.Writer) error {
+	cfg, rest, err := parseTopFlags(args, stderr)
+	if err != nil {
+		return err
+	}
+	if rest == nil {
+		printUsage(stdout)
+		return nil
+	}
+	st := store.New(cfg.storeDir, cfg.identity)
+	return dispatch(st, rest, stdout, stderr)
+}
+
+func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error) {
+	cfg := cliConfig{
+		storeDir: envOrDefault("THIMBLE_STORE", defaultStoreDir),
+		identity: os.Getenv("THIMBLE_AGE_IDENTITY"),
+	}
+	fs := flag.NewFlagSet("thimble", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.StringVar(&cfg.storeDir, "store", cfg.storeDir, "secrets store directory")
+	fs.StringVar(&cfg.identity, "identity", cfg.identity, "age identity file for decrypting")
+	if err := fs.Parse(args); err != nil {
+		return cliConfig{}, nil, err
+	}
+	rest := fs.Args()
+	if len(rest) == 0 {
+		return cfg, nil, nil
+	}
+	return cfg, rest, nil
+}
+
+func dispatch(st *store.Store, args []string, stdout, stderr io.Writer) error {
+	switch args[0] {
+	case "init":
+		return runInit(st, args[1:], stdout, stderr)
+	case "recipient":
+		return runRecipient(st, args[1:], stdout)
+	case "create":
+		return runWrite(st, args[1:], stdout, stderr, false)
+	case "update":
+		return runWrite(st, args[1:], stdout, stderr, true)
+	case "set":
+		return runSet(st, args[1:], stdout, stderr)
+	case "provision":
+		return runProvision(args[1:], stdout, stderr)
+	case "and-set":
+		return runAndSet(st, args[1:], stdout, stderr)
+	case "and-get":
+		return runAndGet(st, args[1:], stdout, stderr)
+	case "delete", "rm":
+		return runDelete(st, args[1:], stdout)
+	case "list", "ls":
+		return runList(st, args[1:], stdout)
+	case "render":
+		return runRender(st, args[1:], stdout, stderr)
+	case "web":
+		return runWeb(st, args[1:], stdout, stderr)
+	case "help", "-h", "--help":
+		printUsage(stdout)
+		return nil
+	default:
+		return fmt.Errorf("unknown command %q", args[0])
+	}
+}
+
+func envOrDefault(name, fallback string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func printUsage(w io.Writer) {
+	fmt.Fprintln(w, usageText)
+}
+
+const usageText = `Thimble keeps app/environment scoped dotenv secrets encrypted with age.
+
+Usage:
+  thimble [--store secrets] [--identity ~/.config/thimble/key.txt] <command>
+
+Commands:
+  init <app> <env> --recipient age1...    create an encrypted namespace
+  recipient add <app> <env> age1...       grant a recipient and re-encrypt
+  recipient remove <app> <env> age1...    remove a recipient and re-encrypt
+  create <app> <env> KEY                  create one secret key from pipe or masked prompt
+  update <app> <env> KEY                  update one existing key from pipe or masked prompt
+  set <app> <env> KEY                     create or update one key from pipe or masked prompt
+  provision [--bytes 32]                  generate a random secret for a pipe
+  and-set <app> <env> KEY -- <command>    set a key from a command's stdout
+  and-get <app> <env> KEY -- <command>    pass a key to a command on stdin
+  delete <app> <env> KEY                  delete one secret key
+  list <app> <env>                        list keys only, never values
+  render <app> <env> --format dotenv      render decrypted dotenv to stdout
+  web [--addr 127.0.0.1:8787]             run the local web UI
+
+Secret values are never accepted as command arguments.`
