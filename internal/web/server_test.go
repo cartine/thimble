@@ -44,8 +44,11 @@ func TestWebUICookieFlowAndRedaction(t *testing.T) {
 	t.Run("authorized session shows redacted UI", func(t *testing.T) {
 		assertAuthorizedView(t, handler, cookie)
 	})
-	t.Run("authorized update persists", func(t *testing.T) {
-		assertAuthorizedUpdate(t, handler, st, cookie)
+	t.Run("strict mode rejects plaintext POST", func(t *testing.T) {
+		assertStrictModeRejection(t, handler, cookie)
+	})
+	t.Run("authorized delete still works", func(t *testing.T) {
+		assertAuthorizedDelete(t, handler, st, cookie)
 	})
 	t.Run("logout clears cookie", func(t *testing.T) {
 		assertLogoutClears(t, handler, cookie)
@@ -127,20 +130,70 @@ func assertAuthorizedView(t *testing.T, mux http.Handler, cookie *http.Cookie) {
 	if strings.Contains(body, "token=") {
 		t.Fatalf("web UI still passes token in URL: %s", body)
 	}
+	// K-34 strict mode: no <input name="value"> field should ever
+	// render. Recipient and namespace fields are unaffected.
+	if strings.Contains(body, `name="value"`) {
+		t.Fatalf("web UI still has a value input: %s", body)
+	}
+	if !strings.Contains(body, "thimble set webapp dev API_KEY") {
+		t.Fatalf("web UI did not surface CLI suggestion: %s", body)
+	}
 }
 
-func assertAuthorizedUpdate(t *testing.T, mux http.Handler, st *store.Store,
+// assertStrictModeRejection covers K-34: any non-empty value posted to
+// /secret with action=create or action=update must return 400 with a
+// CLI suggestion and must never echo the submitted value back.
+func assertStrictModeRejection(t *testing.T, mux http.Handler, cookie *http.Cookie) {
+	t.Helper()
+	for _, action := range []string{"create", "update"} {
+		form := url.Values{
+			"app": {"webapp"}, "env": {"dev"}, "key": {"API_KEY"},
+			"value": {"super-secret-attempt"}, "action": {action},
+		}
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/secret",
+			strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(cookie)
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("%s plaintext status = %d, want 400; body=%q",
+				action, rec.Code, rec.Body.String())
+		}
+		body := rec.Body.String()
+		if !strings.Contains(body, "web UI does not accept secret values") ||
+			!strings.Contains(body, "thimble set webapp dev API_KEY") {
+			t.Fatalf("%s rejection body missing CLI hint: %q", action, body)
+		}
+		if strings.Contains(body, "super-secret-attempt") {
+			t.Fatalf("%s rejection echoed plaintext value: %q", action, body)
+		}
+	}
+}
+
+// assertAuthorizedDelete confirms the strict-mode UI still permits the
+// non-value-bearing operations: deletes and recipients.
+func assertAuthorizedDelete(t *testing.T, mux http.Handler, st *store.Store,
 	cookie *http.Cookie) {
 	t.Helper()
-	if status := postUpdateForm(mux, cookie); status != http.StatusSeeOther {
-		t.Fatalf("update status = %d, want %d", status, http.StatusSeeOther)
+	if err := st.SetSecret("webapp", "dev", "DOOMED", "to-delete"); err != nil {
+		t.Fatalf("seed delete target: %v", err)
 	}
-	rendered, err := st.Render("webapp", "dev")
+	form := url.Values{
+		"app": {"webapp"}, "env": {"dev"}, "key": {"DOOMED"},
+		"action": {"delete"},
+	}
+	if status := postFormStatus(mux, "/secret", form, cookie); status != http.StatusSeeOther {
+		t.Fatalf("delete status = %d, want %d", status, http.StatusSeeOther)
+	}
+	keys, err := st.ListSecrets("webapp", "dev")
 	if err != nil {
-		t.Fatalf("render after web update: %v", err)
+		t.Fatalf("list after delete: %v", err)
 	}
-	if !strings.Contains(rendered, "API_KEY=\"new browser secret\"") {
-		t.Fatalf("web update did not persist: %q", rendered)
+	for _, k := range keys {
+		if k == "DOOMED" {
+			t.Fatalf("delete via web did not remove key: %v", keys)
+		}
 	}
 }
 
@@ -229,16 +282,6 @@ func postFormStatus(mux http.Handler, path string, form url.Values,
 	return rec.Code
 }
 
-func postUpdateForm(mux http.Handler, c *http.Cookie) int {
-	form := url.Values{
-		"app":    {"webapp"},
-		"env":    {"dev"},
-		"key":    {"API_KEY"},
-		"value":  {"new browser secret"},
-		"action": {"update"},
-	}
-	return postFormStatus(mux, "/secret", form, c)
-}
 
 // testRecipientOperator is a real-shape 62-char age recipient (Bech32
 // charset only). Used to satisfy ValidateRecipient under K-20.

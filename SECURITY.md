@@ -66,6 +66,21 @@ In scope: the `thimble` CLI, the local web UI, the release tooling, and the
 install scripts. Out of scope: vulnerabilities in `age`, the Go toolchain, or
 other upstream dependencies — please report those to their respective projects.
 
+### Web UI scope
+
+The web UI is a **redacted viewer plus recipient/key manager**. It can:
+
+- Create namespaces.
+- List keys (never values) per namespace.
+- Add and remove recipients (these are public addresses, not secrets).
+- Delete keys.
+
+It cannot accept secret values. Strict-mode rejection (K-34) returns a 400
+on any POST that carries a non-empty `value` form field; the rejection body
+points the operator at the CLI command. Setting or updating a key is always
+done from the terminal via `thimble set <app> <env> <KEY>` so plaintext
+never touches form bodies, browser autofill, or DevTools.
+
 ## Public Disclosure
 
 We coordinate disclosure. If a fix is available, we publish the advisory and

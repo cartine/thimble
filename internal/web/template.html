@@ -103,30 +103,20 @@
       </div>
       <section class="tip">
         <strong>Safe entry</strong>
-        <span>Use the CLI masked prompt or pipe for high-risk values. The browser stores updates but never shows existing secret values back to you.</span>
+        <span>The web UI is a redacted viewer. To set or update a value, run the suggested CLI command. The browser never sees plaintext.</span>
       </section>
-      <form class="row" action="/secret" method="post">
-        <input type="hidden" name="app" value="{{.Selected.App}}">
-        <input type="hidden" name="env" value="{{.Selected.Env}}">
-        <input type="hidden" name="action" value="create">
-        <input name="key" placeholder="NEW_KEY" autocomplete="off" required>
-        <input name="value" placeholder="secret value" type="password" required>
-        <button>Create</button>
-      </form>
       <table>
-        <thead><tr><th>Key</th><th>Value</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Key</th><th>Set value (CLI)</th><th>Delete</th></tr></thead>
         <tbody>
           {{range .Selected.Keys}}
           <tr>
             <td><code>{{.Key}}</code></td>
-            <td class="muted">redacted</td>
+            <td><code>thimble set {{$.Selected.App}} {{$.Selected.Env}} {{.Key}}</code></td>
             <td>
               <form class="row" action="/secret" method="post">
                 <input type="hidden" name="app" value="{{$.Selected.App}}">
                 <input type="hidden" name="env" value="{{$.Selected.Env}}">
                 <input type="hidden" name="key" value="{{.Key}}">
-                <input name="value" placeholder="new value" type="password">
-                <button class="secondary" name="action" value="update">Update</button>
                 <button class="danger" name="action" value="delete">Delete</button>
               </form>
             </td>
@@ -134,6 +124,10 @@
           {{end}}
         </tbody>
       </table>
+      <section class="tip">
+        <strong>Add a new key</strong>
+        <span>Run <code>thimble set {{.Selected.App}} {{.Selected.Env}} NEW_KEY</code> in your terminal. Thimble masks the prompt and pipes plaintext only into the encrypted bundle.</span>
+      </section>
       <section class="stack">
         <h2>Recipients</h2>
         <p class="field-note">Recipient changes re-encrypt this bundle. Keep at least one offline recovery recipient before removing an operator.</p>

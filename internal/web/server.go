@@ -158,6 +158,10 @@ func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
 		s.redirectErr(w, r, err)
 		return
 	}
+	if msg, ok := strictPlaintextReject(r); ok {
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
 	if err := s.runSecretAction(r); err != nil {
 		s.redirectErr(w, r, err)
 		return
@@ -165,13 +169,44 @@ func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
 	s.redirectNotice(w, r, "secret changed")
 }
 
+// strictPlaintextReject implements K-34: web UI never accepts secret
+// values. If a create/update arrives with a non-empty `value` form
+// field, return a 400 message that points the operator at the CLI
+// command — without echoing the submitted value.
+func strictPlaintextReject(r *http.Request) (string, bool) {
+	action := r.FormValue("action")
+	if action != "create" && action != "update" {
+		return "", false
+	}
+	if r.FormValue("value") == "" {
+		return "", false
+	}
+	app := safeArg(r.FormValue("app"))
+	env := safeArg(r.FormValue("env"))
+	key := safeArg(r.FormValue("key"))
+	cmd := "thimble set " + app + " " + env + " " + key
+	return "web UI does not accept secret values; use the CLI:\n  " + cmd, true
+}
+
+// safeArg returns a placeholder when an app/env/key form field is
+// missing, so the suggested CLI command is still copy-pasteable.
+func safeArg(v string) string {
+	if v == "" {
+		return "<missing>"
+	}
+	return v
+}
+
 func (s *Server) runSecretAction(r *http.Request) error {
 	app, env, key := r.FormValue("app"), r.FormValue("env"), r.FormValue("key")
 	switch r.FormValue("action") {
-	case "create":
-		return s.store.CreateSecret(app, env, key, r.FormValue("value"))
-	case "update":
-		return s.store.UpdateSecret(app, env, key, r.FormValue("value"))
+	case "create", "update":
+		// K-34: web UI is strict-mode. The CLI is the only path that
+		// accepts plaintext values. Any non-empty value would have
+		// been rejected upstream by strictPlaintextReject; we treat
+		// this branch as a no-op to keep the form valid for the
+		// "delete" case.
+		return errors.New("web UI cannot create or update values; use the CLI")
 	case "delete":
 		return s.store.DeleteSecret(app, env, key)
 	default:

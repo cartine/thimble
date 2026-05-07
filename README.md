@@ -277,14 +277,21 @@ thimble web
 
 The UI binds to `127.0.0.1:8787` by default and prints a one-time token. The
 first visit serves a paste-token form; on submit the server sets an HttpOnly,
-SameSite=Strict session cookie. The UI can create namespaces, manage redacted
-keys, and add or remove recipients. Binding to a non-loopback address requires
+SameSite=Strict session cookie. The UI can create namespaces, manage recipients,
+and delete or list redacted keys. Binding to a non-loopback address requires
 `--token` or `THIMBLE_WEB_TOKEN`.
 
 A Host-header allowlist guards against DNS rebinding: requests are accepted
 only when `Host` matches `127.0.0.1`, `[::1]`, `localhost`, or the configured
 `--addr`. Use repeatable `--allow-host=foo.local:8787` to add other names for
 non-loopback configurations.
+
+The web UI is **strict-mode only** for secret values: the browser never
+accepts plaintext. Each key shown in the UI is paired with the exact CLI
+command needed to set or update it (e.g. `thimble set api production
+DB_URL`). Form bodies, browser autofill, refresh-resubmit, and DevTools
+network panels are all out of scope for typing secrets — the CLI's masked
+prompt or a pipe is the only path.
 
 The browser UI is an operator convenience. Existing values are never displayed;
 use `render` or `and-get` only when a deployment or command really needs the
