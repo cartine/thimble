@@ -163,10 +163,12 @@ thimble delete web-api production OLD_TOKEN
 
 thimble list web-api production
 thimble render web-api production --format dotenv
+thimble verify web-api production
 ```
 
 `list` shows keys only. `render` is the deliberate escape hatch for deployment
-or local debugging, so treat its stdout as secret material.
+or local debugging, so treat its stdout as secret material. `verify` recomputes
+the bundle's SHA-256 against the manifest and shows the recipient list.
 
 ## Real-Life Flow
 
@@ -252,6 +254,13 @@ Peer safety rules:
 - Keep at least one offline recovery recipient.
 - Verify new recipients outside the git diff before granting access.
 - Review recipient-only diffs as carefully as secret changes.
+- Review `bundle_sha256` changes alongside ciphertext changes — a recipient-only
+  diff that also bumps the SHA is the canonical re-encrypt; one without the
+  other is a red flag.
+
+Run `thimble verify <app> <env>` to recompute the on-disk bundle's SHA-256 and
+print the match verdict alongside the recipient list. Use it on a fresh clone
+to confirm nothing has been swapped under you.
 
 ## Web UI
 

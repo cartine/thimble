@@ -60,6 +60,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	)
 	defer stop()
 	st.SetContext(ctx)
+	st.SetNoticeWriter(stderr)
 	return dispatch(st, rest, stdout, stderr)
 }
 
@@ -150,6 +151,8 @@ func dispatch(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		return runList(st, args[1:], stdout)
 	case "render":
 		return runRender(st, args[1:], stdout, stderr)
+	case "verify":
+		return runVerify(st, args[1:], stdout, stderr)
 	case "web":
 		return runWeb(st, args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -202,6 +205,7 @@ Commands:
   delete <app> <env> KEY                  delete one secret key
   list <app> <env>                        list keys only, never values
   render <app> <env> --format dotenv      render decrypted dotenv to stdout
+  verify <app> <env>                      print bundle SHA + recipient list
   web [--addr 127.0.0.1:8787]             run the local web UI
 
 Secret values are never accepted as command arguments.`

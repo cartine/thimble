@@ -25,14 +25,18 @@ type AppManifest struct {
 // EnvManifest describes one (application, environment) namespace: its
 // bundle file, its recipients, its timestamps, and a monotonic Version
 // counter. Version is bumped on every successful save and is the basis
-// for the K-21 optimistic-concurrency check on rewriteEnv.
+// for the K-21 optimistic-concurrency check on rewriteEnv. K-22 binds
+// the manifest to the on-disk ciphertext via BundleSHA256: every write
+// stores sha256(ciphertext) and every read recomputes and rejects on
+// mismatch.
 type EnvManifest struct {
-	Format     string   `json:"format"`
-	File       string   `json:"file"`
-	Recipients []string `json:"recipients"`
-	CreatedAt  string   `json:"created_at"`
-	UpdatedAt  string   `json:"updated_at"`
-	Version    uint64   `json:"version,omitempty"`
+	Format       string   `json:"format"`
+	File         string   `json:"file"`
+	Recipients   []string `json:"recipients"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+	Version      uint64   `json:"version,omitempty"`
+	BundleSHA256 string   `json:"bundle_sha256,omitempty"`
 }
 
 // NamespaceView is a flattened (app, env) view of the manifest used by

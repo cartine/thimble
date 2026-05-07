@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"sort"
 	"time"
@@ -25,6 +26,7 @@ type Store struct {
 	age     *age.Tool
 	now     func() time.Time
 	baseCtx context.Context
+	notice  io.Writer
 }
 
 // New returns a Store rooted at root that decrypts with identity. The
@@ -68,6 +70,19 @@ func (s *Store) SetAge(t *age.Tool) { s.age = t }
 // deterministic.
 func (s *Store) SetClock(now func() time.Time) { s.now = now }
 
+// SetNoticeWriter installs a writer for one-time advisory notices
+// (e.g. K-22's "BundleSHA256 was empty; populated to ..." upgrade
+// line). The CLI wires stderr through here. nil silences notices.
+func (s *Store) SetNoticeWriter(w io.Writer) { s.notice = w }
+
+// notify writes an advisory line to the notice writer if one is set.
+func (s *Store) notify(format string, args ...interface{}) {
+	if s.notice == nil {
+		return
+	}
+	fmt.Fprintf(s.notice, format+"\n", args...)
+}
+
 // Init creates a new namespace with an initial recipient list. It
 // fails if the namespace already exists. Held under an exclusive
 // flock so two operators racing Init cannot trample each other.
@@ -106,7 +121,7 @@ func (s *Store) Init(app, env string, recipients []string) error {
 		UpdatedAt:  now,
 		Version:    1,
 	}
-	if err := s.encryptAndWrite(envMeta, ""); err != nil {
+	if err := s.encryptAndWrite(&envMeta, ""); err != nil {
 		return err
 	}
 	m.Apps[app].Environments[env] = envMeta
@@ -293,13 +308,14 @@ func (s *Store) Find(app, env string) (EnvManifest, error) {
 }
 
 // ReadEnv decrypts (app, env) and returns its parsed key/value map
-// alongside the manifest record.
+// alongside the manifest record. The K-22 SHA verification fires on
+// every decrypt so a tampered bundle is rejected before age runs.
 func (s *Store) ReadEnv(app, env string) (map[string]string, EnvManifest, error) {
 	meta, err := s.Find(app, env)
 	if err != nil {
 		return nil, EnvManifest{}, err
 	}
-	plain, err := s.decrypt(meta)
+	plain, _, err := s.decrypt(app, env, meta)
 	if err != nil {
 		return nil, EnvManifest{}, err
 	}
@@ -313,7 +329,9 @@ func (s *Store) ReadEnv(app, env string) (map[string]string, EnvManifest, error)
 // rewriteEnv applies edit to the (app, env) namespace under K-21
 // optimistic concurrency. It loads the manifest unlocked, runs edit,
 // then re-acquires an exclusive flock to verify the on-disk Version
-// has not changed before encrypting and saving.
+// has not changed before encrypting and saving. K-22: a missing
+// stored BundleSHA256 (older manifest) is upgraded silently here;
+// commitEnv emits the upgrade notice once the new SHA lands.
 func (s *Store) rewriteEnv(
 	app, env string,
 	edit func(*EnvManifest, map[string]string) error,
@@ -329,7 +347,8 @@ func (s *Store) rewriteEnv(
 		return err
 	}
 	loadedVersion := meta.Version
-	plain, err := s.decrypt(meta)
+	priorSHA := meta.BundleSHA256
+	plain, _, err := s.decrypt(app, env, meta)
 	if err != nil {
 		return err
 	}
@@ -342,7 +361,9 @@ func (s *Store) rewriteEnv(
 	}
 	meta.UpdatedAt = s.now().UTC().Format(time.RFC3339)
 	meta.Version = loadedVersion + 1
-	return s.commitEnv(app, env, m, meta, loadedVersion, dotenv.Encode(values))
+	return s.commitEnv(
+		app, env, m, meta, loadedVersion, priorSHA, dotenv.Encode(values),
+	)
 }
 
 // loadEnvForEdit reads the manifest under a shared lock and returns
@@ -371,10 +392,14 @@ func (s *Store) loadEnvForEdit(app, env string) (Manifest, EnvManifest, error) {
 
 // commitEnv re-reads the manifest under an exclusive lock, refuses if
 // the on-disk Version has advanced past loadedVersion, and otherwise
-// writes the new ciphertext and bumped manifest atomically.
+// writes the new ciphertext and bumped manifest atomically. K-22: if
+// priorSHA was empty (older manifest), the freshly populated
+// BundleSHA256 is announced via the notice writer once the write
+// succeeds.
 func (s *Store) commitEnv(
 	app, env string,
-	m Manifest, meta EnvManifest, loadedVersion uint64, plain string,
+	m Manifest, meta EnvManifest, loadedVersion uint64,
+	priorSHA, plain string,
 ) error {
 	lock, err := lockExclusive(s.root)
 	if err != nil {
@@ -388,8 +413,14 @@ func (s *Store) commitEnv(
 	if cur, ok := envFrom(disk, app, env); ok && cur.Version != loadedVersion {
 		return fmt.Errorf("another writer changed %s/%s; rerun", app, env)
 	}
-	if err := s.encryptAndWrite(meta, plain); err != nil {
+	if err := s.encryptAndWrite(&meta, plain); err != nil {
 		return err
+	}
+	if priorSHA == "" && meta.BundleSHA256 != "" {
+		s.notify(
+			"bundle %s/%s: BundleSHA256 was empty; populated to %s",
+			app, env, meta.BundleSHA256,
+		)
 	}
 	mergeInto(&m, disk, app, env, meta)
 	return s.saveManifest(m)
@@ -424,33 +455,3 @@ func mergeInto(m *Manifest, disk Manifest, app, env string, meta EnvManifest) {
 	m.Apps[app] = appMeta
 }
 
-func (s *Store) encryptAndWrite(meta EnvManifest, plain string) error {
-	if err := ValidateRecipients(meta.Recipients); err != nil {
-		return err
-	}
-	cipher, err := s.age.Encrypt(s.context(), meta.Recipients, plain)
-	if err != nil {
-		return err
-	}
-	return atomicWrite(
-		filepath.Join(s.root, filepath.FromSlash(meta.File)),
-		cipher,
-		0o600,
-	)
-}
-
-func (s *Store) decrypt(meta EnvManifest) (string, error) {
-	return s.age.Decrypt(
-		s.context(),
-		filepath.Join(s.root, filepath.FromSlash(meta.File)),
-	)
-}
-
-// context returns the base context for an age invocation, falling
-// back to context.Background() if SetContext was never called.
-func (s *Store) context() context.Context {
-	if s.baseCtx == nil {
-		return context.Background()
-	}
-	return s.baseCtx
-}

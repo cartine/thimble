@@ -7,6 +7,7 @@
 package store_test
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -77,6 +78,42 @@ func TestRealAgeLifecycle(t *testing.T) {
 	}
 	if err := st.RemoveRecipient("svc", "prod", pubA); err == nil {
 		t.Fatalf("RemoveRecipient on last recipient must error")
+	}
+}
+
+// TestRealAgeBundleSHA256Mismatch covers K-22 against real age: a
+// post-write tamper on the ciphertext must cause the next decrypt
+// to be rejected with the SHA-mismatch error before age runs.
+func TestRealAgeBundleSHA256Mismatch(t *testing.T) {
+	requireBinaries(t, "age", "age-keygen")
+
+	root := t.TempDir()
+	idPath, pubA := generateIdentity(t, filepath.Join(root, "id-a.txt"))
+
+	st := store.New(filepath.Join(root, "secrets"), idPath)
+	st.SetAge(age.New("age", idPath))
+
+	if err := st.Init("svc", "prod", []string{pubA}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := st.SetSecret("svc", "prod", "API_TOKEN", "value"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	bundlePath := filepath.Join(root, "secrets", "svc", "prod.env.age")
+	b, err := os.ReadFile(bundlePath) // #nosec G304 -- test-only path.
+	if err != nil {
+		t.Fatalf("read bundle: %v", err)
+	}
+	b = append(b, 'X')
+	if err := os.WriteFile(bundlePath, b, 0o600); err != nil {
+		t.Fatalf("tamper write: %v", err)
+	}
+	_, err = st.Render("svc", "prod")
+	if err == nil {
+		t.Fatalf("Render after tamper succeeded; want SHA-256 mismatch")
+	}
+	if !strings.Contains(err.Error(), "SHA-256 mismatch") {
+		t.Fatalf("error %q missing SHA-256 mismatch text", err)
 	}
 }
 
