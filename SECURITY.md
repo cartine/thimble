@@ -1,51 +1,61 @@
-# Security Review
+# Security Policy
 
-This implementation is approved for the intended small-team, file-first Thimble
-slice when used with `age` and normal operator hygiene.
+## Reporting a Vulnerability
 
-## Approved Controls
+If you've found a vulnerability in Thimble, please report it privately so we
+can fix it before public disclosure.
 
-- No custom cryptography. Thimble shells out to the audited `age` binary.
-- Secrets are scoped by application and environment.
-- Plaintext is kept in memory for the active command and is not written to a
-  working-tree temp file.
-- Encrypted bundles and metadata are written with atomic rename.
-- Files are created with restrictive modes: store directories `0700`, files
-  `0600`.
-- Listing and web UI views expose keys and metadata only, not values.
-- Secret values are rejected when supplied as command arguments.
-- CLI create, update, and set read from a pipe or a masked terminal prompt.
-- `provision` refuses weak generated values and is designed for piping into
-  storage flows.
-- `and-set` captures a command's stdout and stores it without echoing the value.
-- `and-get` passes a value to a child command on stdin by default; environment
-  variable exposure is explicit with `--env`.
-- Web UI requires a token. Non-loopback binds are rejected unless a token is
-  explicitly supplied.
-- Secret names, app names, environment names, and recipients are validated before
-  touching the filesystem or invoking `age`.
-- Recipient changes re-encrypt the bundle so metadata and ciphertext remain in
-  sync.
-- Peer setup is recipient-based: peers exchange encrypted bundles and verified
-  public recipients, never private age identities.
+Two channels, in order of preference:
 
-## Residual Risks
+1. **GitHub Private Vulnerability Reporting** — open a draft advisory at
+   <https://github.com/cartine/thimble/security/advisories/new>. This routes
+   directly to maintainers, keeps the discussion private, and produces a CVE
+   automatically when published.
+2. **Email** — `security@cartine.me`. PGP fingerprint will be added here once
+   the project has one published.
 
-- Explicit `and-get --env` use can expose values through child process
-  environments. Prefer stdin where tools allow it.
-- The web UI is an operator tool, not a multi-user hosted service. Use it on
-  loopback or behind a trusted tunnel.
-- Decryption requires an authorized age identity. A compromised operator machine
-  or deploy host can read any secret that identity can decrypt.
-- Removing a recipient does not invalidate plaintext or encrypted copies they
-  already obtained. Rotate high-risk values after access removal.
-- This does not yet provide audit logs, policy approval workflows, or automatic
-  rotation.
+Please include:
 
-## Security Agent Verdict
+- A description of the issue and its impact.
+- Steps to reproduce, ideally with a minimal proof of concept.
+- The version (`thimble --version`) you reproduced against, if applicable.
+- Whether you intend to disclose publicly and on what timeline.
 
-Approved for the requested implementation slice: basic CRUD tooling,
-application/environment namespaces, peer-capable encrypted bundle sync, safe
-secret entry, a local web UI, and release-script install and update. The
-implementation follows the `thimble.md` non-goal of not implementing
-cryptography and keeps remaining risks explicit.
+## Response SLA
+
+We aim to:
+
+- **Acknowledge** receipt within **3 business days**.
+- **Triage** (severity assessment, CVE if warranted) within **7 business days**.
+- **Patch** critical issues in `main` within **30 calendar days** of confirmation,
+  shorter for actively exploited issues.
+- **Credit** reporters publicly in release notes unless asked otherwise.
+
+## Supported Versions
+
+| Version    | Supported          |
+|------------|--------------------|
+| `main`     | ✓ (rolling)        |
+| `0.x`      | ✓ (latest minor)   |
+| `< 0.x-1`  | ✗                  |
+
+We are pre-1.0. Until 1.0, only the latest `0.x` minor receives security fixes.
+After 1.0, the policy will widen to the current major and one prior minor.
+
+## Threat Model
+
+A short threat model lives in the [README](README.md#threat-model). Internal
+review notes from the initial implementation are at
+[docs/security-review.md](docs/security-review.md).
+
+## Scope
+
+In scope: the `thimble` CLI, the local web UI, the release tooling, and the
+install scripts. Out of scope: vulnerabilities in `age`, the Go toolchain, or
+other upstream dependencies — please report those to their respective projects.
+
+## Public Disclosure
+
+We coordinate disclosure. If a fix is available, we publish the advisory and
+release notes simultaneously. If no fix is available within 90 days, we work
+with the reporter on a mutually agreeable disclosure timeline.
