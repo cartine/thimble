@@ -92,11 +92,17 @@ install script, or the release pipeline, please:
 
 ## Releases
 
-Cut by maintainers via [K-48](tasks/knots/K-48-tag-release-automation.md)'s
-`make tag-release VERSION=…` once that target lands. Until then, releases
-are tagged manually and the existing GitHub Actions workflow at
-[.github/workflows/release.yml](.github/workflows/release.yml) builds the
-artifacts.
+Cut a release with `make tag-release VERSION=patch` (or `minor`,
+`major`, or an explicit `vX.Y.Z`). The target wraps
+[`scripts/tag-release.sh`](scripts/tag-release.sh): it bumps the
+version, rewrites the `[Unreleased]` block in `CHANGELOG.md`, tags
+the commit, pushes, watches the release workflow with
+`gh run watch`, then verifies each artifact's SHA-256 against the
+published `checksums.txt` and runs `gh attestation verify` (K-40).
+Pass `DRY_RUN=1` to see the full plan without side effects.
+
+The same flow is also available as the `/release` agent skill — see
+[.claude/skills/release/SKILL.md](.claude/skills/release/SKILL.md).
 
 ## Reporting bugs
 

@@ -60,9 +60,13 @@ demo: ## Print instructions for recording assets/demo.cast.
 	@echo "Run: asciinema rec assets/demo.cast bash scripts/demo.sh"
 	@echo "Then commit assets/demo.cast to capture the recording."
 
-tag-release: ## Bump version, tag, push, and watch the release. Usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]
+tag-release: ## Bump version, tag, push, watch release. Usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]
 	@if [ -z "$(VERSION)" ]; then \
 	  echo "usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]"; \
 	  exit 2; \
 	fi
-	bash scripts/tag-release.sh "$(VERSION)"
+	@if [ -n "$(DRY_RUN)" ]; then \
+	  bash scripts/tag-release.sh "$(VERSION)" --dry-run; \
+	else \
+	  bash scripts/tag-release.sh "$(VERSION)"; \
+	fi
