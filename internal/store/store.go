@@ -28,6 +28,7 @@ type Store struct {
 	baseCtx context.Context
 	notice  io.Writer
 	audit   *auditState
+	faults  faultHooks
 }
 
 // New returns a Store rooted at root that decrypts with identity. The
@@ -184,77 +185,31 @@ func (s *Store) RemoveRecipient(app, env, recipient string) error {
 }
 
 // CreateSecret adds key to (app, env), failing if it already exists.
+// Origin defaults to OriginSet; callers that want to record a more
+// specific origin should use CreateSecretWithOrigin (K-37).
 func (s *Store) CreateSecret(app, env, key, value string) error {
-	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		if _, ok := values[key]; ok {
-			return fmt.Errorf("%s already exists; use update or set", key)
-		}
-		values[key] = value
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	s.recordEvent(auditOpCreate, app, env, key)
-	return nil
+	return s.CreateSecretWithOrigin(app, env, key, value, OriginSet)
 }
 
 // UpdateSecret overwrites an existing key in (app, env), failing if
-// the key is missing.
+// the key is missing. Origin defaults to OriginSet; callers that want
+// a more specific origin should use UpdateSecretWithOrigin (K-37).
 func (s *Store) UpdateSecret(app, env, key, value string) error {
-	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		if _, ok := values[key]; !ok {
-			return fmt.Errorf("%s does not exist; use create or set", key)
-		}
-		values[key] = value
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	s.recordEvent(auditOpUpdate, app, env, key)
-	return nil
+	return s.UpdateSecretWithOrigin(app, env, key, value, OriginSet)
 }
 
-// SetSecret creates or updates key in (app, env). Idempotent.
+// SetSecret creates or updates key in (app, env). Idempotent. Origin
+// defaults to OriginSet; see SetSecretWithOrigin (K-37) for explicit
+// origin labeling used by `--origin=provision` and `and-set`.
 func (s *Store) SetSecret(app, env, key, value string) error {
-	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		values[key] = value
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	s.recordEvent(auditOpSet, app, env, key)
-	return nil
+	return s.SetSecretWithOrigin(app, env, key, value, OriginSet)
 }
 
 // DeleteSecret removes key from (app, env), failing if missing.
+// Routes through DeleteSecretWithOrigin (K-37) so the origins file
+// is updated under the same exclusive flock as the manifest.
 func (s *Store) DeleteSecret(app, env, key string) error {
-	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		if _, ok := values[key]; !ok {
-			return fmt.Errorf("%s does not exist", key)
-		}
-		delete(values, key)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	s.recordEvent(auditOpDelete, app, env, key)
-	return nil
+	return s.DeleteSecretWithOrigin(app, env, key)
 }
 
 // ListSecrets returns the sorted keys present in (app, env). It never

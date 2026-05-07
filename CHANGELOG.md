@@ -28,6 +28,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   no longer escrow plaintext access via a one-line manifest diff. New
   CLI surface: `recipient sign-add`, `recipient add --bootstrap`,
   `recipient list`. Protocol spec at `docs/recipient-quorum.md`.
+- K-37: `recipient remove --rotate` flow. Each value in a namespace
+  now has an `origin` label (`provision`, `and-set`, or `set`)
+  recorded in a sibling `<env>.origins.json` plaintext file. Running
+  `thimble recipient remove --rotate <app> <env> age1...` regenerates
+  every `provision`-origin value atomically alongside the recipient
+  drop, and surfaces every other key as "manual rotate needed" so the
+  operator knows what still needs out-of-band attention.
+  `--rotate-randoms-only` is the silent variant for scripts. Hidden
+  `--origin <source>` flag on `set`/`create`/`update` lets the
+  upstream pipeline tag the source of a value (default `set`);
+  `and-set` always tags `and-set` automatically. Recommended
+  pipeline: `thimble provision | thimble set --origin=provision
+  <app> <env> KEY` so the value is recorded as auto-rotatable. The
+  rotation is atomic: the manifest, bundle, and `.origins.json`
+  either all advance or all roll back to the pre-rotation state.
 
 ## [0.1.0] — pending
 

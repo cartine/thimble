@@ -208,7 +208,12 @@ Commands:
                                           escape valid only at <2 recipients)
   recipient sign-add <app> <env> age1...  produce one operator signature
                                           (requires THIMBLE_AGE_IDENTITY)
-  recipient remove <app> <env> age1...    remove a recipient and re-encrypt
+  recipient remove [--rotate|--rotate-randoms-only] <app> <env> age1...
+                                          remove a recipient and re-encrypt
+                                          (--rotate regenerates every value
+                                          provisioned by 'thimble provision';
+                                          --rotate-randoms-only is the silent
+                                          variant for scripts)
   recipient list <app> <env>              list recipients with thumbprints
   create <app> <env> KEY                  create one secret key from pipe or masked prompt
   update <app> <env> KEY                  update one existing key from pipe or masked prompt

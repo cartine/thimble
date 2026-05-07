@@ -61,7 +61,9 @@ func runAndSet(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if err := st.SetSecret(app, env, key, value); err != nil {
+	if err := st.SetSecretWithOrigin(
+		app, env, key, value, store.OriginAndSet,
+	); err != nil {
 		return err
 	}
 	fmt.Fprintf(stdout, "saved %s in %s/%s from command output\n", key, app, env)

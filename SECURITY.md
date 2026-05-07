@@ -70,6 +70,22 @@ review notes from the initial implementation are at
   out-of-band review of recipient diffs and the K-27 audit log.
   Protocol detail: [docs/recipient-quorum.md](docs/recipient-quorum.md).
 
+- **Removing a recipient does not invalidate plaintext or encrypted
+  copies they already obtained.** Once a peer has decrypted a bundle
+  the plaintext can outlive the recipient list. K-37 makes rotation
+  the easy default: `thimble recipient remove --rotate <app> <env>
+  age1...` regenerates every value whose origin is `provision`
+  (high-entropy random tokens produced by `thimble provision`)
+  atomically alongside the recipient drop, and surfaces every other
+  key as "manual rotate needed" so the operator knows what to re-set
+  out of band. The new value lands under the same exclusive flock
+  as the recipient list, so a concurrent reader either sees the old
+  bundle or the fully-rotated bundle, never a torn state. The
+  removed peer's already-decrypted plaintext remains a residual risk
+  — anything the peer copied before removal is out of Thimble's
+  control — but the post-rotation bundle is unreadable to them and
+  the new values are unknown to them.
+
 ## Scope
 
 In scope: the `thimble` CLI, the local web UI, the release tooling, and the
