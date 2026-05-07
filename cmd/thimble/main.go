@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,9 +16,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -27,42 +23,17 @@ import (
 
 	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/dotenv"
+	"github.com/cartine/thimble/internal/store"
 )
 
 const (
 	defaultStoreDir = "secrets"
 	defaultAddr     = "127.0.0.1:8787"
-	manifestName    = "thimble.json"
 )
-
-var namePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
 type cliConfig struct {
 	storeDir string
 	identity string
-}
-
-type manifest struct {
-	Version int                    `json:"version"`
-	Apps    map[string]appManifest `json:"apps"`
-}
-
-type appManifest struct {
-	Environments map[string]envManifest `json:"environments"`
-}
-
-type envManifest struct {
-	Format     string   `json:"format"`
-	File       string   `json:"file"`
-	Recipients []string `json:"recipients"`
-	CreatedAt  string   `json:"created_at"`
-	UpdatedAt  string   `json:"updated_at"`
-}
-
-type store struct {
-	root string
-	age  *age.Tool
-	now  func() time.Time
 }
 
 type secretEntry struct {
@@ -153,7 +124,7 @@ Commands:
 Secret values are never accepted as command arguments.`)
 }
 
-func runInit(st *store, args []string, stdout, stderr io.Writer) error {
+func runInit(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	var recipients []string
 	var positional []string
 	for i := 0; i < len(args); i++ {
@@ -187,7 +158,7 @@ func runInit(st *store, args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-func runRecipient(st *store, args []string, stdout, stderr io.Writer) error {
+func runRecipient(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	if len(args) != 4 {
 		return errors.New("usage: thimble recipient <add|remove> <app> <env> <age-recipient>")
 	}
@@ -209,7 +180,7 @@ func runRecipient(st *store, args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-func runWrite(st *store, args []string, stdout, stderr io.Writer, requireExisting bool) error {
+func runWrite(st *store.Store, args []string, stdout, stderr io.Writer, requireExisting bool) error {
 	if len(args) > 3 {
 		return errors.New("do not pass secret values as arguments; pipe stdin or use the masked prompt")
 	}
@@ -236,7 +207,7 @@ func runWrite(st *store, args []string, stdout, stderr io.Writer, requireExistin
 	return nil
 }
 
-func runSet(st *store, args []string, stdout, stderr io.Writer) error {
+func runSet(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	if len(args) > 3 {
 		return errors.New("do not pass secret values as arguments; pipe stdin or use the masked prompt")
 	}
@@ -280,7 +251,7 @@ func runProvision(args []string, stdout, stderr io.Writer) error {
 	return err
 }
 
-func runAndSet(st *store, args []string, stdout, stderr io.Writer) error {
+func runAndSet(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 5 {
 		return errors.New("usage: thimble and-set <app> <env> <KEY> -- <command> [args...]")
 	}
@@ -300,7 +271,7 @@ func runAndSet(st *store, args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-func runAndGet(st *store, args []string, stdout, stderr io.Writer) error {
+func runAndGet(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("and-get", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	envVar := fs.String("env", "", "also expose the secret as this environment variable")
@@ -316,7 +287,7 @@ func runAndGet(st *store, args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	values, _, err := st.readEnv(app, env)
+	values, _, err := st.ReadEnv(app, env)
 	if err != nil {
 		return err
 	}
@@ -327,7 +298,7 @@ func runAndGet(st *store, args []string, stdout, stderr io.Writer) error {
 	return runSecretConsumer(cmdArgs, value, *envVar, stdout, stderr)
 }
 
-func runDelete(st *store, args []string, stdout io.Writer) error {
+func runDelete(st *store.Store, args []string, stdout io.Writer) error {
 	if len(args) != 3 {
 		return errors.New("usage: thimble delete <app> <env> <KEY>")
 	}
@@ -339,7 +310,7 @@ func runDelete(st *store, args []string, stdout io.Writer) error {
 	return nil
 }
 
-func runList(st *store, args []string, stdout io.Writer) error {
+func runList(st *store.Store, args []string, stdout io.Writer) error {
 	if len(args) != 2 {
 		return errors.New("usage: thimble list <app> <env>")
 	}
@@ -353,7 +324,7 @@ func runList(st *store, args []string, stdout io.Writer) error {
 	return nil
 }
 
-func runRender(st *store, args []string, stdout, stderr io.Writer) error {
+func runRender(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("render", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	format := fs.String("format", "dotenv", "output format; only dotenv is supported")
@@ -374,7 +345,7 @@ func runRender(st *store, args []string, stdout, stderr io.Writer) error {
 	return err
 }
 
-func runWeb(st *store, args []string, stdout, stderr io.Writer) error {
+func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("web", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	addr := fs.String("addr", defaultAddr, "listen address")
@@ -403,314 +374,8 @@ func runWeb(st *store, args []string, stdout, stderr io.Writer) error {
 	return httpServer.ListenAndServe()
 }
 
-func newStore(root, identity string) *store {
-	return &store{root: root, age: age.New("age", identity), now: time.Now}
-}
-
-func (s *store) Init(app, env string, recipients []string) error {
-	if err := validateName("app", app); err != nil {
-		return err
-	}
-	if err := validateName("environment", env); err != nil {
-		return err
-	}
-	if err := validateRecipients(recipients); err != nil {
-		return err
-	}
-	m, err := s.loadManifest()
-	if err != nil {
-		return err
-	}
-	if _, ok := m.Apps[app]; !ok {
-		m.Apps[app] = appManifest{Environments: map[string]envManifest{}}
-	}
-	if _, ok := m.Apps[app].Environments[env]; ok {
-		return fmt.Errorf("%s/%s already exists", app, env)
-	}
-	now := s.now().UTC().Format(time.RFC3339)
-	envMeta := envManifest{
-		Format:     "dotenv",
-		File:       filepath.ToSlash(filepath.Join(app, env+".env.age")),
-		Recipients: sortedUnique(recipients),
-		CreatedAt:  now,
-		UpdatedAt:  now,
-	}
-	if err := s.encryptAndWrite(envMeta, ""); err != nil {
-		return err
-	}
-	m.Apps[app].Environments[env] = envMeta
-	return s.saveManifest(m)
-}
-
-func (s *store) AddRecipient(app, env, recipient string) error {
-	if err := validateRecipient(recipient); err != nil {
-		return err
-	}
-	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		meta.Recipients = sortedUnique(append(meta.Recipients, recipient))
-		return nil
-	})
-}
-
-func (s *store) RemoveRecipient(app, env, recipient string) error {
-	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		next := meta.Recipients[:0]
-		for _, existing := range meta.Recipients {
-			if existing != recipient {
-				next = append(next, existing)
-			}
-		}
-		if len(next) == len(meta.Recipients) {
-			return fmt.Errorf("recipient not found")
-		}
-		if len(next) == 0 {
-			return errors.New("cannot remove the last recipient")
-		}
-		meta.Recipients = sortedUnique(next)
-		return nil
-	})
-}
-
-func (s *store) CreateSecret(app, env, key, value string) error {
-	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		if _, ok := values[key]; ok {
-			return fmt.Errorf("%s already exists; use update or set", key)
-		}
-		values[key] = value
-		return nil
-	})
-}
-
-func (s *store) UpdateSecret(app, env, key, value string) error {
-	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		if _, ok := values[key]; !ok {
-			return fmt.Errorf("%s does not exist; use create or set", key)
-		}
-		values[key] = value
-		return nil
-	})
-}
-
-func (s *store) SetSecret(app, env, key, value string) error {
-	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		values[key] = value
-		return nil
-	})
-}
-
-func (s *store) DeleteSecret(app, env, key string) error {
-	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := dotenv.ValidateKey(key); err != nil {
-			return err
-		}
-		if _, ok := values[key]; !ok {
-			return fmt.Errorf("%s does not exist", key)
-		}
-		delete(values, key)
-		return nil
-	})
-}
-
-func (s *store) ListSecrets(app, env string) ([]string, error) {
-	values, _, err := s.readEnv(app, env)
-	if err != nil {
-		return nil, err
-	}
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys, nil
-}
-
-func (s *store) Render(app, env string) (string, error) {
-	values, _, err := s.readEnv(app, env)
-	if err != nil {
-		return "", err
-	}
-	return dotenv.Encode(values), nil
-}
-
-func (s *store) ListNamespaces() ([]namespaceView, error) {
-	m, err := s.loadManifest()
-	if err != nil {
-		return nil, err
-	}
-	var views []namespaceView
-	for app, appMeta := range m.Apps {
-		for env, envMeta := range appMeta.Environments {
-			views = append(views, namespaceView{
-				App:        app,
-				Env:        env,
-				Recipients: len(envMeta.Recipients),
-				UpdatedAt:  envMeta.UpdatedAt,
-			})
-		}
-	}
-	sort.Slice(views, func(i, j int) bool {
-		if views[i].App == views[j].App {
-			return views[i].Env < views[j].Env
-		}
-		return views[i].App < views[j].App
-	})
-	return views, nil
-}
-
-func (s *store) readEnv(app, env string) (map[string]string, envManifest, error) {
-	meta, err := s.findEnv(app, env)
-	if err != nil {
-		return nil, envManifest{}, err
-	}
-	plain, err := s.decrypt(meta)
-	if err != nil {
-		return nil, envManifest{}, err
-	}
-	values, err := dotenv.Parse(plain)
-	if err != nil {
-		return nil, envManifest{}, err
-	}
-	return values, meta, nil
-}
-
-func (s *store) rewriteEnv(app, env string, edit func(*envManifest, map[string]string) error) error {
-	if err := validateName("app", app); err != nil {
-		return err
-	}
-	if err := validateName("environment", env); err != nil {
-		return err
-	}
-	m, err := s.loadManifest()
-	if err != nil {
-		return err
-	}
-	appMeta, ok := m.Apps[app]
-	if !ok {
-		return fmt.Errorf("%s/%s is not initialized", app, env)
-	}
-	meta, ok := appMeta.Environments[env]
-	if !ok {
-		return fmt.Errorf("%s/%s is not initialized", app, env)
-	}
-	plain, err := s.decrypt(meta)
-	if err != nil {
-		return err
-	}
-	values, err := dotenv.Parse(plain)
-	if err != nil {
-		return err
-	}
-	if err := edit(&meta, values); err != nil {
-		return err
-	}
-	meta.UpdatedAt = s.now().UTC().Format(time.RFC3339)
-	if err := s.encryptAndWrite(meta, dotenv.Encode(values)); err != nil {
-		return err
-	}
-	appMeta.Environments[env] = meta
-	m.Apps[app] = appMeta
-	return s.saveManifest(m)
-}
-
-func (s *store) findEnv(app, env string) (envManifest, error) {
-	if err := validateName("app", app); err != nil {
-		return envManifest{}, err
-	}
-	if err := validateName("environment", env); err != nil {
-		return envManifest{}, err
-	}
-	m, err := s.loadManifest()
-	if err != nil {
-		return envManifest{}, err
-	}
-	appMeta, ok := m.Apps[app]
-	if !ok {
-		return envManifest{}, fmt.Errorf("%s/%s is not initialized", app, env)
-	}
-	meta, ok := appMeta.Environments[env]
-	if !ok {
-		return envManifest{}, fmt.Errorf("%s/%s is not initialized", app, env)
-	}
-	return meta, nil
-}
-
-func (s *store) loadManifest() (manifest, error) {
-	m := manifest{Version: 1, Apps: map[string]appManifest{}}
-	path := filepath.Join(s.root, manifestName)
-	b, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return m, nil
-	}
-	if err != nil {
-		return m, err
-	}
-	if err := json.Unmarshal(b, &m); err != nil {
-		return m, err
-	}
-	if m.Apps == nil {
-		m.Apps = map[string]appManifest{}
-	}
-	return m, nil
-}
-
-func (s *store) saveManifest(m manifest) error {
-	b, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return err
-	}
-	b = append(b, '\n')
-	return atomicWrite(filepath.Join(s.root, manifestName), b, 0o600)
-}
-
-func (s *store) encryptAndWrite(meta envManifest, plain string) error {
-	if err := validateRecipients(meta.Recipients); err != nil {
-		return err
-	}
-	cipher, err := s.age.Encrypt(context.Background(), meta.Recipients, plain)
-	if err != nil {
-		return err
-	}
-	return atomicWrite(filepath.Join(s.root, filepath.FromSlash(meta.File)), cipher, 0o600)
-}
-
-func (s *store) decrypt(meta envManifest) (string, error) {
-	return s.age.Decrypt(
-		context.Background(),
-		filepath.Join(s.root, filepath.FromSlash(meta.File)),
-	)
-}
-
-func atomicWrite(path string, content []byte, mode os.FileMode) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
-	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".tmp-*")
-	if err != nil {
-		return err
-	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName)
-	if err := tmp.Chmod(mode); err != nil {
-		tmp.Close()
-		return err
-	}
-	if _, err := tmp.Write(content); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmpName, path)
+func newStore(root, identity string) *store.Store {
+	return store.New(root, identity)
 }
 
 func secretInput(key string, stderr io.Writer) (string, error) {
@@ -789,52 +454,6 @@ func writerIsTerminal(w io.Writer) bool {
 	return ok && term.IsTerminal(int(file.Fd()))
 }
 
-func validateName(kind, name string) error {
-	if !namePattern.MatchString(name) {
-		return fmt.Errorf("invalid %s %q; use letters, digits, dot, underscore, or dash", kind, name)
-	}
-	if strings.Contains(name, "..") {
-		return fmt.Errorf("invalid %s %q", kind, name)
-	}
-	return nil
-}
-
-func validateRecipients(recipients []string) error {
-	if len(recipients) == 0 {
-		return errors.New("at least one recipient is required")
-	}
-	for _, recipient := range recipients {
-		if err := validateRecipient(recipient); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func validateRecipient(recipient string) error {
-	if strings.TrimSpace(recipient) != recipient || recipient == "" {
-		return errors.New("recipient cannot be empty or padded")
-	}
-	if strings.ContainsAny(recipient, "\r\n\t ") {
-		return errors.New("recipient cannot contain whitespace")
-	}
-	return nil
-}
-
-func sortedUnique(values []string) []string {
-	seen := map[string]bool{}
-	var out []string
-	for _, value := range values {
-		if value == "" || seen[value] {
-			continue
-		}
-		seen[value] = true
-		out = append(out, value)
-	}
-	sort.Strings(out)
-	return out
-}
-
 func envOrDefault(name, fallback string) string {
 	value := os.Getenv(name)
 	if value == "" {
@@ -871,15 +490,8 @@ func (m *multiFlag) Set(value string) error {
 	return nil
 }
 
-type namespaceView struct {
-	App        string
-	Env        string
-	Recipients int
-	UpdatedAt  string
-}
-
 type webServer struct {
-	store     *store
+	store     *store.Store
 	token     string
 	templates *template.Template
 }
@@ -888,7 +500,7 @@ type pageData struct {
 	Token      string
 	Error      string
 	Notice     string
-	Namespaces []namespaceView
+	Namespaces []store.NamespaceView
 	Selected   *selectedNamespace
 }
 
@@ -1038,14 +650,14 @@ func (s *webServer) render(w http.ResponseWriter, r *http.Request, data pageData
 	}
 }
 
-func (s *webServer) selected(app, env string) ([]secretEntry, envManifest, error) {
+func (s *webServer) selected(app, env string) ([]secretEntry, store.EnvManifest, error) {
 	keys, err := s.store.ListSecrets(app, env)
 	if err != nil {
-		return nil, envManifest{}, err
+		return nil, store.EnvManifest{}, err
 	}
-	meta, err := s.store.findEnv(app, env)
+	meta, err := s.store.Find(app, env)
 	if err != nil {
-		return nil, envManifest{}, err
+		return nil, store.EnvManifest{}, err
 	}
 	entries := make([]secretEntry, 0, len(keys))
 	for _, key := range keys {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cartine/thimble/internal/age"
+	"github.com/cartine/thimble/internal/store"
 )
 
 func TestNamespacedCRUDAndRender(t *testing.T) {
@@ -46,7 +47,7 @@ func TestNamespacedCRUDAndRender(t *testing.T) {
 		t.Fatalf("rendered dotenv missing updated value: %q", rendered)
 	}
 
-	ciphertext, err := os.ReadFile(filepath.Join(st.root, "web-api", "production.env.age"))
+	ciphertext, err := os.ReadFile(filepath.Join(st.Root(), "web-api", "production.env.age"))
 	if err != nil {
 		t.Fatalf("read ciphertext: %v", err)
 	}
@@ -78,7 +79,7 @@ func TestRecipientsRewriteBundle(t *testing.T) {
 	if err := st.AddRecipient("api", "prod", "age1bob"); err != nil {
 		t.Fatalf("add recipient: %v", err)
 	}
-	meta, err := st.findEnv("api", "prod")
+	meta, err := st.Find("api", "prod")
 	if err != nil {
 		t.Fatalf("find env: %v", err)
 	}
@@ -88,7 +89,7 @@ func TestRecipientsRewriteBundle(t *testing.T) {
 	if err := st.RemoveRecipient("api", "prod", "age1alice"); err != nil {
 		t.Fatalf("remove recipient: %v", err)
 	}
-	meta, err = st.findEnv("api", "prod")
+	meta, err = st.Find("api", "prod")
 	if err != nil {
 		t.Fatalf("find env after remove: %v", err)
 	}
@@ -252,13 +253,13 @@ func TestProvisionRequiresStrongTokenAndWritesToPipe(t *testing.T) {
 	}
 }
 
-func testStore(t *testing.T) *store {
+func testStore(t *testing.T) *store.Store {
 	t.Helper()
 	root := t.TempDir()
 	fakeAge := writeFakeAge(t, root)
 	st := newStore(filepath.Join(root, "secrets"), "")
-	st.age = age.New(fakeAge, "")
-	st.now = func() time.Time { return time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC) }
+	st.SetAge(age.New(fakeAge, ""))
+	st.SetClock(func() time.Time { return time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC) })
 	return st
 }
 
