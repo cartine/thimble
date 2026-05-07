@@ -1,2 +1,7 @@
 /thimble
 secrets/
+/.claude/**
+!/.claude/
+!/.claude/skills/
+!/.claude/skills/**
+/.knots/
