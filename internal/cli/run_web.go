@@ -51,6 +51,7 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+	printWebBanner(stdout)
 	fmt.Fprintf(stdout, "Thimble web UI: http://%s/\n", *addr)
 	fmt.Fprintf(stdout, "Token: %s\n", *token)
 	return httpServer.ListenAndServe()
@@ -91,6 +92,15 @@ func (s *stringList) String() string {
 func (s *stringList) Set(v string) error {
 	*s = append(*s, v)
 	return nil
+}
+
+// printWebBanner is K-35: a three-line warning that the web UI is
+// scoped for single-operator local use. Printed before the URL so the
+// banner cannot be missed when the URL is the visible affordance.
+func printWebBanner(stdout io.Writer) {
+	fmt.Fprintln(stdout, "Thimble web is a SINGLE-OPERATOR LOCAL TOOL.")
+	fmt.Fprintln(stdout, "For shared/production workflows, use the CLI.")
+	fmt.Fprintln(stdout, "Token is a session cookie; press Ctrl+C to stop.")
 }
 
 func randomToken() (string, error) {

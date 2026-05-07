@@ -38,6 +38,7 @@
     .error { border-color:#e0a287; background:#fff3ed; }
     .pill { display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; }
     .field-note { margin:4px 0 0; color:var(--muted); font-size:12px; }
+    .scope-banner { margin:0 0 4px; padding:8px 10px; background:#fbf6e9; border:1px solid #e7d39a; border-radius:6px; color:#5e4910; font-size:12px; }
     @media (max-width: 820px) { main { grid-template-columns:1fr; padding:14px; } header { padding:14px; } }
   </style>
 </head>
@@ -67,6 +68,7 @@
   <aside class="stack">
     {{if .Notice}}<section class="notice">{{.Notice}}</section>{{end}}
     {{if .Error}}<section class="error">{{.Error}}</section>{{end}}
+    <p class="muted scope-banner">single-operator local tool · use CLI for shared/production</p>
     <section class="stack">
       <h2>Namespaces</h2>
       <ul>

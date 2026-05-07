@@ -138,6 +138,11 @@ func assertAuthorizedView(t *testing.T, mux http.Handler, cookie *http.Cookie) {
 	if !strings.Contains(body, "thimble set webapp dev API_KEY") {
 		t.Fatalf("web UI did not surface CLI suggestion: %s", body)
 	}
+	// K-35 in-page banner above the namespace list.
+	if !strings.Contains(body,
+		"single-operator local tool · use CLI for shared/production") {
+		t.Fatalf("web UI missing K-35 scope banner: %s", body)
+	}
 }
 
 // assertStrictModeRejection covers K-34: any non-empty value posted to
