@@ -50,28 +50,6 @@ func parseInitArgs(args []string) (recipients, positional []string, err error) {
 	return recipients, positional, nil
 }
 
-func runRecipient(st *store.Store, args []string, stdout io.Writer) error {
-	if len(args) != 4 {
-		return errors.New("usage: thimble recipient <add|remove> <app> <env> <age-recipient>")
-	}
-	action, app, env, recipient := args[0], args[1], args[2], args[3]
-	switch action {
-	case "add":
-		if err := st.AddRecipient(app, env, recipient); err != nil {
-			return err
-		}
-		fmt.Fprintf(stdout, "added recipient to %s/%s\n", app, env)
-	case "remove":
-		if err := st.RemoveRecipient(app, env, recipient); err != nil {
-			return err
-		}
-		fmt.Fprintf(stdout, "removed recipient from %s/%s\n", app, env)
-	default:
-		return errors.New("usage: thimble recipient <add|remove> <app> <env> <age-recipient>")
-	}
-	return nil
-}
-
 // runWrite covers both `create` (requireExisting=false) and `update`
 // (requireExisting=true). The third positional may not be a value;
 // secret values arrive on stdin or via the masked prompt.

@@ -234,13 +234,52 @@ Adding a peer securely:
 2. The peer shares only the public recipient.
 3. An existing operator verifies that recipient out of band, such as in a call
    or an already trusted channel.
-4. The operator runs:
+4. **If `secrets/recipients.signed.toml` is present**, the addition is
+   gated by an M-of-N quorum. The flow is:
+
+   ```sh
+   # Maintainer (phase 1: prepare).
+   thimble recipient add web-api production age1peer...
+
+   # Each operator (phase 2: sign).
+   thimble recipient sign-add web-api production age1peer...
+
+   # Maintainer (phase 3: commit).
+   thimble recipient add web-api production age1peer...
+   ```
+
+   The first `recipient add` writes per-operator challenge files into
+   `secrets/.pending-recipient-adds/`. After M operators have run
+   `sign-add` against their own identities, the second `recipient add`
+   verifies the signatures and commits. See
+   [docs/recipient-quorum.md](docs/recipient-quorum.md) for the
+   protocol detail.
+
+   When the policy file is absent, the gate is off and a single
+   operator can add directly:
 
    ```sh
    thimble recipient add web-api production age1peer...
    ```
 
 5. The encrypted bundle and `thimble.json` are committed and synced.
+
+Bootstrapping a namespace before the policy is enforceable (≤1 recipient):
+
+```sh
+thimble recipient add --bootstrap web-api production age1peer...
+```
+
+`--bootstrap` is rejected once the namespace already has 2+ recipients —
+it exists only so the chicken-and-egg of namespace creation does not
+require pre-existing operators.
+
+Listing recipients with their opaque thumbprints (useful for cross-
+referencing audit log entries):
+
+```sh
+thimble recipient list web-api production
+```
 
 Removing a peer:
 
@@ -322,7 +361,7 @@ PR workflow. Run `make lint` before committing.
 | Threat | Mitigation |
 |---|---|
 | Lost laptop with an identity file | Recipients in encrypted bundles + `age` ChaCha20 — bundles in git remain unreadable to a finder. Rotate after loss. |
-| Repo write-access attacker smuggling a recipient | Recipient validation + (post-K-36) quorum-signed recipient list. Today: review recipient diffs out of band. |
+| Repo write-access attacker smuggling a recipient | Quorum-signed recipient list — when `secrets/recipients.signed.toml` is present, M of N existing operators must produce signatures over the addition before it commits. See [docs/recipient-quorum.md](docs/recipient-quorum.md). |
 | Network MITM during install | `scripts/install.sh` verifies SHA-256 against the published checksums file (mandatory after K-38). |
 | Sigstore-style provenance attacks on releases | `gh attestation verify` + cosign verification (post-K-40). |
 | Accidental argv leak via shell history / `ps` | CLI rejects secret values as command arguments. Use the masked prompt, pipes, `provision`, or `and-set`. |

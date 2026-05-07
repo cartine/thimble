@@ -60,6 +60,16 @@ review notes from the initial implementation are at
   K-18 is the gap; K-29 (`thimble doctor`) will surface the resolved path
   and SHA-256 on demand.
 
+- **Single-operator recipient additions when no quorum policy is
+  configured.** When `secrets/recipients.signed.toml` is absent, any
+  operator with merge access to the consumer repo can grant a new
+  recipient via a one-line manifest diff. K-36 ships the structural
+  fix as **opt-in**: drop a policy file listing M-of-N operators and
+  every recipient add must be signed by M of them before the bundle
+  re-encrypts. Without the policy file, the only mitigations are
+  out-of-band review of recipient diffs and the K-27 audit log.
+  Protocol detail: [docs/recipient-quorum.md](docs/recipient-quorum.md).
+
 ## Scope
 
 In scope: the `thimble` CLI, the local web UI, the release tooling, and the

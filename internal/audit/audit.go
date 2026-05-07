@@ -40,6 +40,11 @@ const LogFileName = ".thimble-audit.log"
 // thumbprint (sha256(public-recipient)[:16] hex), never the
 // recipient string itself; Subject is the secret key for secret ops
 // or the recipient for recipient ops; values are NEVER recorded.
+// Signers is populated only by recipient_add when a K-36 quorum
+// gate produced the addition: it lists the operator thumbprints
+// whose signatures were collected. Bootstrap is true when an add
+// took the K-36 bootstrap path (≤1 existing recipient, no quorum
+// gate active for the namespace).
 type Event struct {
 	Timestamp time.Time `json:"ts"`
 	Operator  string    `json:"operator"`
@@ -47,6 +52,8 @@ type Event struct {
 	App       string    `json:"app"`
 	Env       string    `json:"env"`
 	Subject   string    `json:"subject,omitempty"`
+	Signers   []string  `json:"signers,omitempty"`
+	Bootstrap bool      `json:"bootstrap,omitempty"`
 }
 
 // Logger appends Events to a single audit log file. The zero value

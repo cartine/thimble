@@ -21,6 +21,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - TAXONOMY.md defining the canonical vocabulary; CLAUDE.md and AGENTS.md at
   repo root.
 - Threat model section in README.
+- K-36: quorum-signed recipient list. Optional
+  `secrets/recipients.signed.toml` declares M-of-N operators; when
+  present, `thimble recipient add` enforces a three-phase prepare /
+  sign-add / commit protocol so a single compromised maintainer can
+  no longer escrow plaintext access via a one-line manifest diff. New
+  CLI surface: `recipient sign-add`, `recipient add --bootstrap`,
+  `recipient list`. Protocol spec at `docs/recipient-quorum.md`.
 
 ## [0.1.0] — pending
 

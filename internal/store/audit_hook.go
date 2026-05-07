@@ -88,14 +88,26 @@ func (s *Store) operatorThumbprint() string {
 // logger's warn writer and the function returns nil so the caller
 // never aborts the user's mutation (K-27 #3).
 func (s *Store) recordEvent(op, app, env, subject string) {
+	s.recordEventWithSigners(op, app, env, subject, nil, false)
+}
+
+// recordEventWithSigners is the K-36 variant that captures the
+// signing operator thumbprints (for recipient_add) and the bootstrap
+// flag. Other ops should keep using recordEvent; the extra fields
+// are omitempty so the JSON line stays short.
+func (s *Store) recordEventWithSigners(
+	op, app, env, subject string, signers []string, bootstrap bool,
+) {
 	if s.audit == nil || s.audit.logger == nil {
 		return
 	}
 	_ = s.audit.logger.Append(audit.Event{
-		Operator: s.operatorThumbprint(),
-		Op:       op,
-		App:      app,
-		Env:      env,
-		Subject:  subject,
+		Operator:  s.operatorThumbprint(),
+		Op:        op,
+		App:       app,
+		Env:       env,
+		Subject:   subject,
+		Signers:   signers,
+		Bootstrap: bootstrap,
 	})
 }

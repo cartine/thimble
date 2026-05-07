@@ -139,7 +139,7 @@ func dispatch(
 	case "init":
 		return runInit(st, args[1:], stdout, stderr)
 	case "recipient":
-		return runRecipient(st, args[1:], stdout)
+		return runRecipientV2(st, args[1:], stdout, stderr)
 	case "create":
 		return runWrite(st, args[1:], stdout, stderr, false)
 	case "update":
@@ -201,8 +201,15 @@ Top-level flags (or env):
 Commands:
   version, --version                     print version, commit, and Go info
   init <app> <env> --recipient age1...   create an encrypted namespace
-  recipient add <app> <env> age1...       grant a recipient and re-encrypt
+  recipient add [--bootstrap] <app> <env> age1...
+                                          grant a recipient (quorum-gated when
+                                          recipients.signed.toml is present;
+                                          --bootstrap is the chicken-and-egg
+                                          escape valid only at <2 recipients)
+  recipient sign-add <app> <env> age1...  produce one operator signature
+                                          (requires THIMBLE_AGE_IDENTITY)
   recipient remove <app> <env> age1...    remove a recipient and re-encrypt
+  recipient list <app> <env>              list recipients with thumbprints
   create <app> <env> KEY                  create one secret key from pipe or masked prompt
   update <app> <env> KEY                  update one existing key from pipe or masked prompt
   set <app> <env> KEY                     create or update one key from pipe or masked prompt
