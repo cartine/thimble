@@ -164,11 +164,15 @@ thimble delete web-api production OLD_TOKEN
 thimble list web-api production
 thimble render web-api production --format dotenv
 thimble verify web-api production
+thimble audit web-api production
 ```
 
 `list` shows keys only. `render` is the deliberate escape hatch for deployment
 or local debugging, so treat its stdout as secret material. `verify` recomputes
-the bundle's SHA-256 against the manifest and shows the recipient list.
+the bundle's SHA-256 against the manifest and shows the recipient list. `audit`
+prints the local append-only ledger of mutating ops for the namespace; entries
+record an opaque operator thumbprint, never the recipient string or any
+secret value.
 
 ## Real-Life Flow
 

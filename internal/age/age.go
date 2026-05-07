@@ -59,6 +59,16 @@ func New(binary, identity string) *Tool {
 // binary must match. An empty pin disables verification.
 func (t *Tool) SetSHA256Pin(pin string) { t.sha256Pin = pin }
 
+// Identity returns the identity file path the Tool was constructed
+// with (empty if none). K-27 reads this to derive an opaque operator
+// thumbprint for the audit log.
+func (t *Tool) Identity() string { return t.identity }
+
+// Binary returns the configured age binary path. K-29 (`thimble
+// doctor`) reads this so it can print the trust anchor without
+// re-resolving PATH.
+func (t *Tool) Binary() string { return t.binary }
+
 // SetVerbose installs a writer that receives a single
 // "thimble: using age binary: <path>" line the first time the Tool
 // invokes the age binary. nil disables the announcement.

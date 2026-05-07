@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/cartine/thimble/internal/age"
+	"github.com/cartine/thimble/internal/audit"
 	"github.com/cartine/thimble/internal/store"
 )
 
@@ -61,6 +62,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	defer stop()
 	st.SetContext(ctx)
 	st.SetNoticeWriter(stderr)
+	st.SetAuditLogger(audit.New(cfg.storeDir, stderr))
 	return dispatch(st, rest, stdout, stderr)
 }
 
@@ -153,6 +155,8 @@ func dispatch(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		return runRender(st, args[1:], stdout, stderr)
 	case "verify":
 		return runVerify(st, args[1:], stdout, stderr)
+	case "audit":
+		return runAudit(st, args[1:], stdout, stderr)
 	case "web":
 		return runWeb(st, args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -206,6 +210,7 @@ Commands:
   list <app> <env>                        list keys only, never values
   render <app> <env> --format dotenv      render decrypted dotenv to stdout
   verify <app> <env>                      print bundle SHA + recipient list
+  audit [--limit N] <app> <env>           print audit log entries for namespace
   web [--addr 127.0.0.1:8787]             run the local web UI
 
 Secret values are never accepted as command arguments.`

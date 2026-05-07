@@ -27,6 +27,7 @@ type Store struct {
 	now     func() time.Time
 	baseCtx context.Context
 	notice  io.Writer
+	audit   *auditState
 }
 
 // New returns a Store rooted at root that decrypts with identity. The
@@ -125,31 +126,41 @@ func (s *Store) Init(app, env string, recipients []string) error {
 		return err
 	}
 	m.Apps[app].Environments[env] = envMeta
-	return s.saveManifest(m)
+	if err := s.saveManifest(m); err != nil {
+		return err
+	}
+	s.recordEvent(auditOpInit, app, env, "")
+	return nil
 }
 
 // AddRecipient grants recipient access to (app, env) and re-encrypts
-// the bundle to the updated recipient list.
+// the bundle to the updated recipient list. The audit log records
+// the recipient by thumbprint, never the full string (K-27).
 func (s *Store) AddRecipient(app, env, recipient string) error {
 	cleaned, err := CleanRecipient(recipient)
 	if err != nil {
 		return err
 	}
-	return s.rewriteEnv(app, env, func(meta *EnvManifest, _ map[string]string) error {
+	err = s.rewriteEnv(app, env, func(meta *EnvManifest, _ map[string]string) error {
 		meta.Recipients = sortedUnique(append(meta.Recipients, cleaned))
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.recordEvent(auditOpRecipientAdd, app, env, recipientThumbprint(cleaned))
+	return nil
 }
 
 // RemoveRecipient drops recipient from (app, env) and re-encrypts.
 // Refuses to remove the last recipient. The lookup is normalized so
-// trailing newlines are tolerated.
+// trailing newlines are tolerated. Audited by recipient thumbprint.
 func (s *Store) RemoveRecipient(app, env, recipient string) error {
 	cleaned, err := CleanRecipient(recipient)
 	if err != nil {
 		return err
 	}
-	return s.rewriteEnv(app, env, func(meta *EnvManifest, _ map[string]string) error {
+	err = s.rewriteEnv(app, env, func(meta *EnvManifest, _ map[string]string) error {
 		next := meta.Recipients[:0]
 		for _, existing := range meta.Recipients {
 			if existing != cleaned {
@@ -165,11 +176,16 @@ func (s *Store) RemoveRecipient(app, env, recipient string) error {
 		meta.Recipients = sortedUnique(next)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.recordEvent(auditOpRecipientRemove, app, env, recipientThumbprint(cleaned))
+	return nil
 }
 
 // CreateSecret adds key to (app, env), failing if it already exists.
 func (s *Store) CreateSecret(app, env, key, value string) error {
-	return s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
+	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
 		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
@@ -179,12 +195,17 @@ func (s *Store) CreateSecret(app, env, key, value string) error {
 		values[key] = value
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.recordEvent(auditOpCreate, app, env, key)
+	return nil
 }
 
 // UpdateSecret overwrites an existing key in (app, env), failing if
 // the key is missing.
 func (s *Store) UpdateSecret(app, env, key, value string) error {
-	return s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
+	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
 		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
@@ -194,22 +215,32 @@ func (s *Store) UpdateSecret(app, env, key, value string) error {
 		values[key] = value
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.recordEvent(auditOpUpdate, app, env, key)
+	return nil
 }
 
 // SetSecret creates or updates key in (app, env). Idempotent.
 func (s *Store) SetSecret(app, env, key, value string) error {
-	return s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
+	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
 		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
 		values[key] = value
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.recordEvent(auditOpSet, app, env, key)
+	return nil
 }
 
 // DeleteSecret removes key from (app, env), failing if missing.
 func (s *Store) DeleteSecret(app, env, key string) error {
-	return s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
+	err := s.rewriteEnv(app, env, func(_ *EnvManifest, values map[string]string) error {
 		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
@@ -219,6 +250,11 @@ func (s *Store) DeleteSecret(app, env, key string) error {
 		delete(values, key)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.recordEvent(auditOpDelete, app, env, key)
+	return nil
 }
 
 // ListSecrets returns the sorted keys present in (app, env). It never
