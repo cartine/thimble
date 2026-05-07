@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -25,6 +24,8 @@ import (
 	"time"
 
 	"golang.org/x/term"
+
+	"github.com/cartine/thimble/internal/dotenv"
 )
 
 const (
@@ -33,7 +34,6 @@ const (
 	manifestName    = "thimble.json"
 )
 
-var keyPattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 var namePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
 type cliConfig struct {
@@ -473,7 +473,7 @@ func (s *store) RemoveRecipient(app, env, recipient string) error {
 
 func (s *store) CreateSecret(app, env, key, value string) error {
 	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := validateKey(key); err != nil {
+		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
 		if _, ok := values[key]; ok {
@@ -486,7 +486,7 @@ func (s *store) CreateSecret(app, env, key, value string) error {
 
 func (s *store) UpdateSecret(app, env, key, value string) error {
 	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := validateKey(key); err != nil {
+		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
 		if _, ok := values[key]; !ok {
@@ -499,7 +499,7 @@ func (s *store) UpdateSecret(app, env, key, value string) error {
 
 func (s *store) SetSecret(app, env, key, value string) error {
 	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := validateKey(key); err != nil {
+		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
 		values[key] = value
@@ -509,7 +509,7 @@ func (s *store) SetSecret(app, env, key, value string) error {
 
 func (s *store) DeleteSecret(app, env, key string) error {
 	return s.rewriteEnv(app, env, func(meta *envManifest, values map[string]string) error {
-		if err := validateKey(key); err != nil {
+		if err := dotenv.ValidateKey(key); err != nil {
 			return err
 		}
 		if _, ok := values[key]; !ok {
@@ -538,7 +538,7 @@ func (s *store) Render(app, env string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return encodeDotenv(values), nil
+	return dotenv.Encode(values), nil
 }
 
 func (s *store) ListNamespaces() ([]namespaceView, error) {
@@ -575,7 +575,7 @@ func (s *store) readEnv(app, env string) (map[string]string, envManifest, error)
 	if err != nil {
 		return nil, envManifest{}, err
 	}
-	values, err := parseDotenv(plain)
+	values, err := dotenv.Parse(plain)
 	if err != nil {
 		return nil, envManifest{}, err
 	}
@@ -605,7 +605,7 @@ func (s *store) rewriteEnv(app, env string, edit func(*envManifest, map[string]s
 	if err != nil {
 		return err
 	}
-	values, err := parseDotenv(plain)
+	values, err := dotenv.Parse(plain)
 	if err != nil {
 		return err
 	}
@@ -613,7 +613,7 @@ func (s *store) rewriteEnv(app, env string, edit func(*envManifest, map[string]s
 		return err
 	}
 	meta.UpdatedAt = s.now().UTC().Format(time.RFC3339)
-	if err := s.encryptAndWrite(meta, encodeDotenv(values)); err != nil {
+	if err := s.encryptAndWrite(meta, dotenv.Encode(values)); err != nil {
 		return err
 	}
 	appMeta.Environments[env] = meta
@@ -732,115 +732,6 @@ func atomicWrite(path string, content []byte, mode os.FileMode) error {
 	return os.Rename(tmpName, path)
 }
 
-func parseDotenv(input string) (map[string]string, error) {
-	values := map[string]string{}
-	scanner := bufio.NewScanner(strings.NewReader(input))
-	lineNo := 0
-	for scanner.Scan() {
-		lineNo++
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid dotenv line %d", lineNo)
-		}
-		key := strings.TrimSpace(parts[0])
-		if err := validateKey(key); err != nil {
-			return nil, fmt.Errorf("line %d: %w", lineNo, err)
-		}
-		value, err := parseDotenvValue(strings.TrimSpace(parts[1]))
-		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", lineNo, err)
-		}
-		values[key] = value
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return values, nil
-}
-
-func parseDotenvValue(value string) (string, error) {
-	if value == "" {
-		return "", nil
-	}
-	if value[0] != '"' {
-		if strings.ContainsAny(value, "\r\n") {
-			return "", errors.New("unquoted multiline values are not supported")
-		}
-		return value, nil
-	}
-	var out strings.Builder
-	escaped := false
-	for i := 1; i < len(value); i++ {
-		ch := value[i]
-		if escaped {
-			switch ch {
-			case 'n':
-				out.WriteByte('\n')
-			case 'r':
-				out.WriteByte('\r')
-			case 't':
-				out.WriteByte('\t')
-			case '\\', '"':
-				out.WriteByte(ch)
-			default:
-				out.WriteByte(ch)
-			}
-			escaped = false
-			continue
-		}
-		if ch == '\\' {
-			escaped = true
-			continue
-		}
-		if ch == '"' {
-			if strings.TrimSpace(value[i+1:]) != "" {
-				return "", errors.New("trailing content after quoted value")
-			}
-			return out.String(), nil
-		}
-		out.WriteByte(ch)
-	}
-	return "", errors.New("unterminated quoted value")
-}
-
-func encodeDotenv(values map[string]string) string {
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	var out strings.Builder
-	for _, key := range keys {
-		out.WriteString(key)
-		out.WriteByte('=')
-		out.WriteString(quoteDotenvValue(values[key]))
-		out.WriteByte('\n')
-	}
-	return out.String()
-}
-
-func quoteDotenvValue(value string) string {
-	if value == "" {
-		return `""`
-	}
-	safe := true
-	for _, r := range value {
-		if !(r == '_' || r == '-' || r == '.' || r == '/' || r == ':' || r == '@' || r == '%' || r == '+' || r == ',' || r == '=' || r == '~' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')) {
-			safe = false
-			break
-		}
-	}
-	if safe {
-		return value
-	}
-	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`, "\t", `\t`)
-	return `"` + replacer.Replace(value) + `"`
-}
-
 func secretInput(key string, stderr io.Writer) (string, error) {
 	if stdinIsTerminal() {
 		fmt.Fprintf(stderr, "Secret value for %s: ", key)
@@ -894,7 +785,7 @@ func runSecretProducer(args []string, stderr io.Writer) (string, error) {
 
 func runSecretConsumer(args []string, value, envVar string, stdout, stderr io.Writer) error {
 	if envVar != "" {
-		if err := validateKey(envVar); err != nil {
+		if err := dotenv.ValidateKey(envVar); err != nil {
 			return fmt.Errorf("invalid --env name: %w", err)
 		}
 	}
@@ -923,13 +814,6 @@ func validateName(kind, name string) error {
 	}
 	if strings.Contains(name, "..") {
 		return fmt.Errorf("invalid %s %q", kind, name)
-	}
-	return nil
-}
-
-func validateKey(key string) error {
-	if !keyPattern.MatchString(key) {
-		return fmt.Errorf("invalid key %q; use dotenv-style uppercase names", key)
 	}
 	return nil
 }
