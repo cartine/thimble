@@ -230,6 +230,13 @@ The browser UI is an operator convenience. Existing values are never displayed;
 use `render` or `and-get` only when a deployment or command really needs the
 plaintext.
 
+## Contributing
+
+Run `make lint` before submitting changes. Source files must stay within the
+project size budget: <500 lines/file, <100 lines/function, <100 columns/line.
+Details in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). A fuller
+`CONTRIBUTING.md` lands with [K-07](tasks/knots/K-07-contributing.md).
+
 ## Security Position
 
 - Encryption and decryption are delegated to `age`.
