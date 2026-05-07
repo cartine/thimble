@@ -239,6 +239,35 @@ PR workflow. Run `make lint` before committing.
 [TAXONOMY.md](TAXONOMY.md) defines the project's shared vocabulary
 (application, environment, namespace, recipient, identity, bundle, …).
 
+## Threat Model
+
+**In scope** — these are what Thimble is built to defend against:
+
+| Threat | Mitigation |
+|---|---|
+| Lost laptop with an identity file | Recipients in encrypted bundles + `age` ChaCha20 — bundles in git remain unreadable to a finder. Rotate after loss. |
+| Repo write-access attacker smuggling a recipient | Recipient validation + (post-K-36) quorum-signed recipient list. Today: review recipient diffs out of band. |
+| Network MITM during install | `scripts/install.sh` verifies SHA-256 against the published checksums file (mandatory after K-38). |
+| Sigstore-style provenance attacks on releases | `gh attestation verify` + cosign verification (post-K-40). |
+| Accidental argv leak via shell history / `ps` | CLI rejects secret values as command arguments. Use the masked prompt, pipes, `provision`, or `and-set`. |
+| Terminal scrollback / screen-share exposure | `provision` refuses TTY output without `--show`; `list`/web UI never display values. |
+| Web UI surface (DNS rebinding, token leak) | Loopback-only by default; token-authenticated; cookie auth + Host-header allowlist (post-K-30 / K-31). |
+| Concurrent operator edits silently dropping a key | Manifest version + flock (post-K-21). |
+
+**Out of scope** — Thimble cannot defend against:
+
+| Threat | Why not |
+|---|---|
+| Root on the deploy host | The application has to read the secret to run. Anything root can read, root can read. |
+| Compromise of the `age` binary on `PATH` | Mitigated by pinning (K-18); but if the trust anchor itself is wrong, all bets are off. |
+| Malicious operator with a valid identity | They can decrypt anything that identity can decrypt. Mitigation: rotate values and remove the recipient. |
+| Side-channel attacks on the TTY (key timing, EM emanation, …) | We don't model these. |
+| Cryptographic break of `age` | We don't model this. Rely on `age`'s threat model for the primitives. |
+
+For the active hardening rollout closing each of these gaps, see
+[tasks/knot-plan.md](tasks/knot-plan.md). Disclosure: see
+[SECURITY.md](SECURITY.md).
+
 ## Security Position
 
 - Encryption and decryption are delegated to `age`.
