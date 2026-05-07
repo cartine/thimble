@@ -33,6 +33,8 @@ From a checkout:
 go build ./cmd/thimble
 ```
 
+Run `thimble doctor` after install to verify your setup.
+
 ## Requirements
 
 - `age` on `PATH`.
@@ -165,6 +167,7 @@ thimble list web-api production
 thimble render web-api production --format dotenv
 thimble verify web-api production
 thimble audit web-api production
+thimble doctor
 ```
 
 `list` shows keys only. `render` is the deliberate escape hatch for deployment

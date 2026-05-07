@@ -52,7 +52,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if rest[0] == "version" {
 		return runVersion(stdout)
 	}
-	st, err := buildStore(cfg, stderr)
+	st, tool, err := buildStoreAndTool(cfg, stderr)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	st.SetContext(ctx)
 	st.SetNoticeWriter(stderr)
 	st.SetAuditLogger(audit.New(cfg.storeDir, stderr))
-	return dispatch(st, rest, stdout, stderr)
+	return dispatch(ctx, st, tool, cfg, rest, stdout, stderr)
 }
 
 // isVersionFlag returns true when args is a bare --version / -v
@@ -107,14 +107,16 @@ func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error)
 	return cfg, rest, nil
 }
 
-// buildStore resolves the age binary path (and optional SHA-256 pin)
-// once per command, then constructs a Store backed by an age.Tool with
-// that path. Verbose mode wires stderr through so the trust anchor is
-// visible at first use.
-func buildStore(cfg cliConfig, stderr io.Writer) (*store.Store, error) {
+// buildStoreAndTool resolves the age binary path (and optional
+// SHA-256 pin) once per command and returns both the Store backed by
+// an age.Tool with that path and the Tool itself. Verbose mode wires
+// stderr through so the trust anchor is visible at first use. K-29
+// (`thimble doctor`) consumes the returned Tool to print the trust
+// anchor without re-resolving PATH.
+func buildStoreAndTool(cfg cliConfig, stderr io.Writer) (*store.Store, *age.Tool, error) {
 	resolved, err := age.Resolve(cfg.ageBinary, cfg.ageSHA256)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tool := age.New(resolved, cfg.identity)
 	if cfg.ageSHA256 != "" {
@@ -126,10 +128,13 @@ func buildStore(cfg cliConfig, stderr io.Writer) (*store.Store, error) {
 	if cfg.allowUnsafeIDMode {
 		tool.AllowUnsafeIdentityMode(stderr)
 	}
-	return store.NewWithAge(cfg.storeDir, tool), nil
+	return store.NewWithAge(cfg.storeDir, tool), tool, nil
 }
 
-func dispatch(st *store.Store, args []string, stdout, stderr io.Writer) error {
+func dispatch(
+	ctx context.Context, st *store.Store, tool *age.Tool, cfg cliConfig,
+	args []string, stdout, stderr io.Writer,
+) error {
 	switch args[0] {
 	case "init":
 		return runInit(st, args[1:], stdout, stderr)
@@ -157,6 +162,8 @@ func dispatch(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		return runVerify(st, args[1:], stdout, stderr)
 	case "audit":
 		return runAudit(st, args[1:], stdout, stderr)
+	case "doctor":
+		return runDoctor(ctx, st, tool, args[1:], stdout, stderr, cfg)
 	case "web":
 		return runWeb(st, args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -211,6 +218,7 @@ Commands:
   render <app> <env> --format dotenv      render decrypted dotenv to stdout
   verify <app> <env>                      print bundle SHA + recipient list
   audit [--limit N] <app> <env>           print audit log entries for namespace
+  doctor [--json] [--addr ...]            run setup/health diagnostics
   web [--addr 127.0.0.1:8787]             run the local web UI
 
 Secret values are never accepted as command arguments.`

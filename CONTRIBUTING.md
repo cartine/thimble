@@ -14,6 +14,18 @@ go test ./...
 
 You also need `age` on `PATH` to run anything beyond unit tests.
 
+## Setup verification
+
+Run `thimble doctor` after install to confirm your environment is sane. It
+checks the resolved `age` binary path/version/SHA-256, the optional
+`THIMBLE_AGE_SHA256` pin, the identity file (presence and 0600 mode), the
+secrets store directory (presence, 0700 mode, writeability), the manifest
+(parseable, all bundles present), per-namespace bundle SHA-256 (matches the
+manifest's `bundle_sha256`, K-22), the default web port `127.0.0.1:8787`, and
+the recipient list per namespace (count, type prefix, opaque thumbprint).
+Non-zero exit if anything fails. `--json` emits machine-readable output for
+scripts.
+
 ## Repository layout
 
 ```
