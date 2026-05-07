@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -62,6 +64,18 @@ jobs:
         run: |
           cd dist
           sha256sum *.tar.gz > checksums.txt
+      # SLSA build-provenance attestation: signs each tarball + checksums.txt
+      # with a Sigstore certificate tied to this workflow run. Verifiable
+      # post-release with `gh attestation verify <asset> --repo cartine/thimble`.
+      # TODO: layer cosign sign-blob keyless on top once we want a path that
+      # does not require a github CLI install — left out of v0 to keep the
+      # surface minimal.
+      - name: Attest tarballs
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/checksums.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: |

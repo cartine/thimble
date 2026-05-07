@@ -27,9 +27,32 @@ THIMBLE_VERSION=vX.Y.Z curl -fsSL https://raw.githubusercontent.com/cartine/thim
 
 The install URL itself is pinned to a tag — not `main` — by [K-39](tasks/knots/K-39-install-pin-to-tag.md).
 
-The installer downloads `checksums.txt` and refuses to install on a missing
-file, missing entry, or hash mismatch. Set `THIMBLE_INSTALL_NO_VERIFY=1` only
-in genuine emergencies; it prints a multi-line warning before proceeding.
+### Verifying the install
+
+The installer applies three verification layers, in order from strongest to
+weakest:
+
+1. **SLSA build provenance via `gh attestation verify`** (if the GitHub CLI
+   is installed). Each release tarball and `checksums.txt` are signed by
+   GitHub's `actions/attest-build-provenance` step in the release workflow,
+   tying the artifact to the exact workflow run and source commit.
+
+   ```sh
+   gh attestation verify thimble_X.Y.Z_linux_amd64.tar.gz \
+     --repo cartine/thimble
+   ```
+
+2. **`cosign verify-blob`** if a `*.bundle` is published alongside the tarball
+   and `cosign` is installed. Currently a forward hook — the v0 release path
+   ships GitHub attestation only.
+
+3. **SHA-256 against `checksums.txt`** — mandatory baseline. The installer
+   refuses to install on a missing checksum file, a missing entry, or a hash
+   mismatch. Set `THIMBLE_INSTALL_NO_VERIFY=1` only in genuine emergencies;
+   it prints a multi-line warning before proceeding.
+
+The installer auto-detects which tools are present and prints what it
+verified. Install `gh` for full provenance.
 
 From a checkout:
 
