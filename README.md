@@ -273,6 +273,39 @@ This is niche — it doesn't scale past a handful of hosts and there's no
 canonical truth if two leaders push concurrently. Use Pattern A or B
 once you have more than one operator.
 
+### Onboarding a new leader
+
+Multiple operators can run leaders in parallel. Membership is just a
+TOML file: each leader keeps its own `secrets/thimble.peers.toml`
+listing the other leaders it knows about. There is no service
+discovery, no daemon, and no shared registry — peers are addresses
+typed in by an operator who already trusts them.
+
+Bring up a new leader from an existing one:
+
+```sh
+# 1. On the new leader, configure ssh access to an existing peer.
+ssh-copy-id alice@store-host
+
+# 2. Bootstrap by rsync'ing secrets/ from the existing peer.
+thimble peer join alice@store-host:/srv/abc-secrets
+
+# 3. Tell this leader about the others (and tell them about you).
+thimble peer add alice-laptop alice@laptop.local:/srv/abc-secrets
+thimble peer add bob-laptop bob@bob-laptop.local:/srv/abc-secrets
+
+# 4. (On each existing leader) tell them you exist.
+ssh alice 'cd /srv/abc-secrets && thimble peer add new-laptop new@new.local:/srv/abc-secrets'
+```
+
+`thimble peer list` prints the configured peers. `thimble peer
+remove <name>` deletes one. The peers list is local-only — Thimble
+does not distribute it, so each operator manages their own copy.
+
+Adding a peer grants only **rsync rights**; granting decrypt access
+is still a `thimble recipient add` against the namespace and is
+quorum-gated when `recipients.signed.toml` is present (K-36).
+
 ### Concurrency safety
 
 Two protections make concurrent writes safe regardless of transport:
@@ -297,13 +330,6 @@ Concretely: if A and B both run `thimble set web-api production
 DATABASE_URL` against the same starting manifest, exactly one push
 succeeds. The other operator pulls, sees the new version, re-runs `set`
 against the fresh manifest, and pushes. Both audit-log entries survive.
-
-### Roadmap
-
-A future trio of knots (K-55, K-56, K-57) will add `thimble peer`
-subcommands for membership, on-mutate broadcast, and heartbeats — sugar
-over the same primitives, not a replacement. The rsync-by-hand workflow
-above is the canonical model and will keep working unchanged.
 
 ## Safe Secret Entry
 

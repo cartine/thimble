@@ -29,6 +29,12 @@ const (
 	OpDelete          = "delete"
 	OpSet             = "set"
 	OpAndSet          = "and_set"
+	// K-55 peer membership operations. The Subject field carries the
+	// peer Name (the human handle), never the rsync target — paths
+	// can carry context. Adding a peer grants only rsync rights;
+	// granting decrypt rights still requires recipient_add.
+	OpPeerAdd    = "peer_add"
+	OpPeerRemove = "peer_remove"
 )
 
 // LogFileName is the on-disk filename of the audit log relative to

@@ -166,6 +166,8 @@ func dispatch(
 		return runDoctor(ctx, st, tool, args[1:], stdout, stderr, cfg)
 	case "web":
 		return runWeb(st, args[1:], stdout, stderr)
+	case "peer":
+		return runPeer(cfg, args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return nil
@@ -235,5 +237,10 @@ Commands:
                                           run the local web UI
                                           (--allow-host is repeatable;
                                            default Hosts cover loopback + --addr)
+  peer add <name> <ssh-target>            add a leader to the peers list
+  peer remove <name>                      remove a leader from the peers list
+  peer list                               list configured peer leaders
+  peer join [--replace] <ssh-target>      bootstrap this leader by rsync'ing
+                                          secrets/ from an existing peer
 
 Secret values are never accepted as command arguments.`

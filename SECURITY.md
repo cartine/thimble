@@ -87,6 +87,16 @@ review notes from the initial implementation are at
   control — but the post-rotation bundle is unreadable to them and
   the new values are unknown to them.
 
+- **Peer membership is NOT quorum-gated.** The K-55
+  `secrets/thimble.peers.toml` file is local to each operator and any
+  operator with write access can edit it. Adding a peer grants only
+  rsync rights (the ability to copy ciphertext bundles) — it does
+  **not** grant decrypt rights. Granting decrypt access is still a
+  recipient addition (`thimble recipient add`), which IS gated by the
+  K-36 quorum policy. A malicious operator who adds themselves to
+  peers.toml gains the ability to pull encrypted material but cannot
+  read it without a quorum-approved recipient grant.
+
 ## Scope
 
 In scope: the `thimble` CLI, the local web UI, the release tooling, and the
