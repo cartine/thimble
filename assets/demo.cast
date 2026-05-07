@@ -1,0 +1,13 @@
+# placeholder — record locally and overwrite
+# regenerate via `make demo`
+#
+# This file is intentionally empty. To produce a real recording:
+#
+#   1. Build the binary so the demo script can find it:
+#        go build -o thimble ./cmd/thimble
+#   2. Record:
+#        asciinema rec assets/demo.cast bash scripts/demo.sh
+#   3. Commit the recording.
+#
+# A real .cast is a JSON-Lines stream beginning with a header object
+# (asciicast v2). Asciinema overwrites this comment on first record.

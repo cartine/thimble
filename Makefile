@@ -3,7 +3,7 @@
 # Minimal targets land in K-01. Wider target set lands in K-47
 # (build, test, integration, vuln, release verification, demo).
 
-.PHONY: lint integration verify-release
+.PHONY: lint integration verify-release demo
 
 lint: ## Run Go linter and source-size checker.
 	@command -v golangci-lint >/dev/null 2>&1 || { \
@@ -30,3 +30,7 @@ verify-release: ## Reproduce a published release and diff SHA-256s. Usage: make 
 	  exit 2; \
 	fi
 	bash scripts/verify-release.sh "$(VERSION)"
+
+demo: ## Print instructions for recording assets/demo.cast.
+	@echo "Run: asciinema rec assets/demo.cast bash scripts/demo.sh"
+	@echo "Then commit assets/demo.cast to capture the recording."
