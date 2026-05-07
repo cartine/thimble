@@ -8,23 +8,104 @@ package age
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 // Tool wraps invocations of the `age` binary. The zero value is not
 // usable; construct one via New.
 type Tool struct {
-	binary   string
-	identity string
+	binary    string
+	identity  string
+	sha256Pin string
+
+	// verbose, if non-nil, receives a one-shot "using age binary: <path>"
+	// announcement on first encrypt or decrypt. Wired by the CLI when
+	// --verbose is set.
+	verboseMu     sync.Mutex
+	verbose       io.Writer
+	verboseLogged bool
 }
 
 // New returns a Tool that invokes binary (e.g. "age") and decrypts with
 // identity (an age identity file path; empty disables -i).
 func New(binary, identity string) *Tool {
 	return &Tool{binary: binary, identity: identity}
+}
+
+// SetSHA256Pin records an optional hex-encoded SHA-256 that the resolved
+// binary must match. An empty pin disables verification.
+func (t *Tool) SetSHA256Pin(pin string) { t.sha256Pin = pin }
+
+// SetVerbose installs a writer that receives a single
+// "thimble: using age binary: <path>" line the first time the Tool
+// invokes the age binary. nil disables the announcement.
+func (t *Tool) SetVerbose(w io.Writer) { t.verbose = w }
+
+// Resolve looks up binary on PATH (or accepts an absolute path) and, if
+// sha256Pin is non-empty, verifies the file's SHA-256 matches. The
+// resolved absolute path is returned. K-29 (`thimble doctor`) will
+// consume Resolve's output to surface the trust anchor on demand.
+func Resolve(binary, sha256Pin string) (string, error) {
+	if binary == "" {
+		binary = "age"
+	}
+	resolved, err := exec.LookPath(binary)
+	if err != nil {
+		return "", fmt.Errorf("age binary %q not found on PATH: %w", binary, err)
+	}
+	if sha256Pin == "" {
+		return resolved, nil
+	}
+	want := strings.ToLower(strings.TrimSpace(sha256Pin))
+	got, err := fileSHA256(resolved)
+	if err != nil {
+		return "", fmt.Errorf("hashing age binary %q: %w", resolved, err)
+	}
+	if got != want {
+		return "", fmt.Errorf(
+			"age binary %q sha256 = %s; THIMBLE_AGE_SHA256 = %s; refusing to run",
+			resolved, got, want,
+		)
+	}
+	return resolved, nil
+}
+
+func fileSHA256(path string) (string, error) {
+	// #nosec G304 -- path is the resolved age binary; the caller is
+	// pinning it on purpose.
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// announceBinary writes the "using age binary" notice exactly once. It
+// is a no-op when SetVerbose has not been called.
+func (t *Tool) announceBinary() {
+	if t.verbose == nil {
+		return
+	}
+	t.verboseMu.Lock()
+	defer t.verboseMu.Unlock()
+	if t.verboseLogged {
+		return
+	}
+	t.verboseLogged = true
+	fmt.Fprintf(t.verbose, "thimble: using age binary: %s\n", t.binary)
 }
 
 // Encrypt encrypts plain into ASCII-armored age ciphertext addressed to
@@ -34,13 +115,15 @@ func (t *Tool) Encrypt(ctx context.Context, recipients []string, plain string) (
 	if len(recipients) == 0 {
 		return nil, errors.New("at least one recipient is required")
 	}
+	t.announceBinary()
 	args := []string{"-a"}
 	for _, recipient := range recipients {
 		args = append(args, "-r", recipient)
 	}
 	// #nosec G204 -- t.binary is the trusted age binary configured at
 	// startup; recipients are validated by store.ValidateRecipient before
-	// reaching here. K-18 will pin the binary path absolutely.
+	// reaching here. Resolve() pins the absolute path with optional
+	// SHA-256 verification (K-18).
 	cmd := exec.CommandContext(ctx, t.binary, args...)
 	cmd.Stdin = strings.NewReader(plain)
 	var stdout, stderr bytes.Buffer
@@ -56,6 +139,7 @@ func (t *Tool) Encrypt(ctx context.Context, recipients []string, plain string) (
 // identity (if any). It returns the plaintext as a string with stderr
 // redacted on error.
 func (t *Tool) Decrypt(ctx context.Context, path string) (string, error) {
+	t.announceBinary()
 	args := []string{"-d"}
 	if t.identity != "" {
 		args = append(args, "-i", t.identity)
@@ -63,7 +147,8 @@ func (t *Tool) Decrypt(ctx context.Context, path string) (string, error) {
 	args = append(args, path)
 	// #nosec G204 -- t.binary is the trusted age binary configured at
 	// startup; path is a manifest-controlled file inside the store root.
-	// K-18 will pin the binary path absolutely.
+	// Resolve() pins the absolute path with optional SHA-256
+	// verification (K-18).
 	cmd := exec.CommandContext(ctx, t.binary, args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/store"
 )
 
@@ -21,8 +22,11 @@ const (
 )
 
 type cliConfig struct {
-	storeDir string
-	identity string
+	storeDir  string
+	identity  string
+	ageBinary string
+	ageSHA256 string
+	verbose   bool
 }
 
 // Run is the CLI entry point. argv is the program's args (no exe
@@ -37,19 +41,28 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stdout)
 		return nil
 	}
-	st := store.New(cfg.storeDir, cfg.identity)
+	st, err := buildStore(cfg, stderr)
+	if err != nil {
+		return err
+	}
 	return dispatch(st, rest, stdout, stderr)
 }
 
 func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error) {
 	cfg := cliConfig{
-		storeDir: envOrDefault("THIMBLE_STORE", defaultStoreDir),
-		identity: os.Getenv("THIMBLE_AGE_IDENTITY"),
+		storeDir:  envOrDefault("THIMBLE_STORE", defaultStoreDir),
+		identity:  os.Getenv("THIMBLE_AGE_IDENTITY"),
+		ageBinary: os.Getenv("THIMBLE_AGE_BINARY"),
+		ageSHA256: os.Getenv("THIMBLE_AGE_SHA256"),
 	}
 	fs := flag.NewFlagSet("thimble", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.StringVar(&cfg.storeDir, "store", cfg.storeDir, "secrets store directory")
 	fs.StringVar(&cfg.identity, "identity", cfg.identity, "age identity file for decrypting")
+	fs.StringVar(&cfg.ageBinary, "age-binary", cfg.ageBinary,
+		"absolute path to the age binary (overrides $PATH lookup)")
+	fs.BoolVar(&cfg.verbose, "verbose", false,
+		"announce the resolved age binary path on first use")
 	if err := fs.Parse(args); err != nil {
 		return cliConfig{}, nil, err
 	}
@@ -58,6 +71,25 @@ func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error)
 		return cfg, nil, nil
 	}
 	return cfg, rest, nil
+}
+
+// buildStore resolves the age binary path (and optional SHA-256 pin)
+// once per command, then constructs a Store backed by an age.Tool with
+// that path. Verbose mode wires stderr through so the trust anchor is
+// visible at first use.
+func buildStore(cfg cliConfig, stderr io.Writer) (*store.Store, error) {
+	resolved, err := age.Resolve(cfg.ageBinary, cfg.ageSHA256)
+	if err != nil {
+		return nil, err
+	}
+	tool := age.New(resolved, cfg.identity)
+	if cfg.ageSHA256 != "" {
+		tool.SetSHA256Pin(cfg.ageSHA256)
+	}
+	if cfg.verbose {
+		tool.SetVerbose(stderr)
+	}
+	return store.NewWithAge(cfg.storeDir, tool), nil
 }
 
 func dispatch(st *store.Store, args []string, stdout, stderr io.Writer) error {
@@ -109,7 +141,13 @@ func printUsage(w io.Writer) {
 const usageText = `Thimble keeps app/environment scoped dotenv secrets encrypted with age.
 
 Usage:
-  thimble [--store secrets] [--identity ~/.config/thimble/key.txt] <command>
+  thimble [--store secrets] [--identity ~/.config/thimble/key.txt]
+          [--age-binary /path/to/age] [--verbose] <command>
+
+Top-level flags (or env):
+  --age-binary, $THIMBLE_AGE_BINARY   pin the age binary path
+  $THIMBLE_AGE_SHA256                 require this SHA-256 of the age binary
+  --verbose                           print the resolved age binary on first use
 
 Commands:
   init <app> <env> --recipient age1...    create an encrypted namespace

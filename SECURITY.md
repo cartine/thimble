@@ -48,6 +48,18 @@ A short threat model lives in the [README](README.md#threat-model). Internal
 review notes from the initial implementation are at
 [docs/security-review.md](docs/security-review.md).
 
+### Residual risks
+
+- **Compromise of the `age` binary on `PATH`.** Thimble shells out to `age`
+  for every encrypt/decrypt. If pinning is not used, a malicious binary
+  earlier in the path can intercept plaintext during encrypt and capture
+  the identity-file path during decrypt, with zero indication. Mitigate
+  per-invocation with `--age-binary=/path/to/age` (or
+  `THIMBLE_AGE_BINARY=...`) and, when you have a known-good build, set
+  `THIMBLE_AGE_SHA256=<hex>` so a mismatch aborts before the binary runs.
+  K-18 is the gap; K-29 (`thimble doctor`) will surface the resolved path
+  and SHA-256 on demand.
+
 ## Scope
 
 In scope: the `thimble` CLI, the local web UI, the release tooling, and the

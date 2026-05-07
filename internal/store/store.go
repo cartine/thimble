@@ -27,9 +27,18 @@ type Store struct {
 }
 
 // New returns a Store rooted at root that decrypts with identity. The
-// age binary name defaults to "age".
+// age binary name defaults to "age" and is resolved through PATH on
+// first use; callers that need to pin a specific binary or SHA-256
+// should call NewWithAge.
 func New(root, identity string) *Store {
 	return &Store{root: root, age: age.New("age", identity), now: time.Now}
+}
+
+// NewWithAge returns a Store that uses tool for all encrypt/decrypt
+// operations. Construct tool via age.New / age.Resolve so the binary
+// path is pinned at startup (K-18).
+func NewWithAge(root string, tool *age.Tool) *Store {
+	return &Store{root: root, age: tool, now: time.Now}
 }
 
 // Root returns the directory the Store reads and writes.

@@ -40,6 +40,18 @@ go build ./cmd/thimble
 - `THIMBLE_AGE_IDENTITY=/path/to/identity.txt` or `--identity` when rendering,
   updating, or running the web UI against an existing namespace.
 
+> **The `age` binary is a runtime trust boundary.** Thimble shells out to
+> whichever `age` resolves on `PATH`. A malicious binary earlier in the path
+> would silently capture plaintext on encrypt and the identity-file path on
+> decrypt. Pin it explicitly to defend against this:
+>
+> - `--age-binary=/usr/local/bin/age` (or `THIMBLE_AGE_BINARY=...`) to skip
+>   `PATH` lookup and use an absolute path.
+> - `THIMBLE_AGE_SHA256=<hex>` to require the resolved binary to match a
+>   known SHA-256 before each invocation.
+> - `thimble --verbose` prints the resolved path once on first encrypt or
+>   decrypt; useful for confirming what your shell actually picked up.
+
 Generate an identity with:
 
 ```sh
