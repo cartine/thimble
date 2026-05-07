@@ -27,6 +27,10 @@ THIMBLE_VERSION=vX.Y.Z curl -fsSL https://raw.githubusercontent.com/cartine/thim
 
 The install URL itself is pinned to a tag — not `main` — by [K-39](tasks/knots/K-39-install-pin-to-tag.md).
 
+The installer downloads `checksums.txt` and refuses to install on a missing
+file, missing entry, or hash mismatch. Set `THIMBLE_INSTALL_NO_VERIFY=1` only
+in genuine emergencies; it prints a multi-line warning before proceeding.
+
 From a checkout:
 
 ```sh
