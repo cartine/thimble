@@ -69,6 +69,18 @@ make vuln          # govulncheck against known CVEs
 
 `make help` prints every target with a one-line description.
 
+## Running multi-leader
+
+When you contribute to a feature that touches replication, concurrency,
+or transport assumptions, the model to keep in mind is the one
+documented in the README's
+[Storing and Syncing](README.md#storing-and-syncing) section. The short
+version: bundles are encrypted files, transport is interchangeable
+(rsync over ssh against a store host is the recommended default), and
+concurrent writes are made safe by the K-21 manifest version + flock and
+the K-27 append-only audit log. New behaviour should respect those
+invariants — Thimble has no always-on server and is not gaining one.
+
 ## Pull requests
 
 - One logical change per PR. Refactors and behavior changes go in

@@ -18,6 +18,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Documented the file-first replication model: Pattern A (store host) as
+  the recommended default, Pattern B (object storage — S3/MinIO/GCS) and
+  Pattern C (direct host-to-host) as alternatives. Concurrency safety is
+  provided by manifest versions (K-21) and append-only audit log merge
+  (K-27). thimble.md "Peer-to-peer shape" expanded with design framing;
+  CONTRIBUTING.md gains a "Running multi-leader" pointer to the README
+  section. A future trio of knots (K-55..K-57) will add `thimble peer`
+  subcommands as sugar over the same primitives.
 - 48-knot hardening rollout tracked in [tasks/knot-plan.md](tasks/knot-plan.md)
   via the [`kno`](https://github.com/cartine/knots) execution-plan tooling.
 - LICENSE (Apache-2.0) at repo root.

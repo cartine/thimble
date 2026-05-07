@@ -212,6 +212,99 @@ current value was set: `provision` (random, safe to auto-rotate), `and-set`
 (masked prompt or piped operator input). It exists to drive the
 `recipient remove --rotate` flow and contains no secret material.
 
+## Storing and Syncing
+
+Thimble's durable object is the encrypted bundle on disk. Moving bundles
+between operators and deploy hosts is a separate concern; any byte-faithful
+file transport works. Three patterns cover the common cases.
+
+### Pattern A — store host (recommended default)
+
+A single host with sshd and a writeable directory is the canonical sync
+point. Operators rsync to it, deploy hosts rsync from it. No service, no
+Thimble server — just a box you already trust to hold encrypted material:
+
+```text
+operator-A    \                       /  deploy-prod
+operator-B  ---->  store-host:/srv  ---->  deploy-stage
+operator-C    /                       \  backup-host
+```
+
+```sh
+# From any operator laptop after a mutating command.
+rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
+
+# On a deploy host before render.
+rsync -av store-host:/srv/abc-secrets/ /etc/thimble/
+```
+
+The store host can be the smallest VPS that runs sshd. The bundles are
+encrypted, but treat the host as sensitive anyway — anyone who can write
+to `/srv/abc-secrets/` can mount the K-22 swap-an-old-bundle attack on
+peers who pull next.
+
+### Pattern B — object storage (S3, MinIO, GCS, R2)
+
+Bundles are encrypted at rest, so the bucket itself can be public. Bucket
+policy controls who can write; the recipient list inside the bundle
+controls who can decrypt. Useful when you already operate object storage
+and want a managed, replicated, versioned backing store:
+
+```sh
+aws s3 sync ./secrets/ s3://abc-secrets/ --delete
+aws s3 sync s3://abc-secrets/ /etc/thimble/
+```
+
+S3 versioning gives you point-in-time recovery for free; the K-22
+`bundle_sha256` check makes silent rollback detectable.
+
+### Pattern C — direct host-to-host
+
+For a single leader and a small fleet, scp/rsync from the leader to each
+host directly works fine and adds no infrastructure:
+
+```sh
+for host in deploy-1 deploy-2 deploy-3; do
+  rsync -av ./secrets/ "$host:/etc/thimble/"
+done
+```
+
+This is niche — it doesn't scale past a handful of hosts and there's no
+canonical truth if two leaders push concurrently. Use Pattern A or B
+once you have more than one operator.
+
+### Concurrency safety
+
+Two protections make concurrent writes safe regardless of transport:
+
+- **K-21 — manifest version + flock.** Every mutating command takes an
+  exclusive lock on `secrets/thimble.json` and bumps a monotonic
+  version. If operator A and operator B both render their changes from
+  the same starting version, the second one to push lands on a store
+  whose manifest has already moved forward. The next pull-and-mutate on
+  B's side sees the version mismatch and refuses to overwrite — B must
+  re-pull, replay the change against the new manifest, and push again.
+  Concurrent writes are detected, never silently dropped.
+
+- **K-27 — append-only audit log.** Each mutating event is a JSONL line
+  with a UUID. The log is append-only, so merging two divergent copies
+  is union-by-event-ID — idempotent, order-independent, and free of
+  conflicts. After a network partition where two operators each made
+  edits, copying both audit logs into the store produces the same
+  history regardless of order.
+
+Concretely: if A and B both run `thimble set web-api production
+DATABASE_URL` against the same starting manifest, exactly one push
+succeeds. The other operator pulls, sees the new version, re-runs `set`
+against the fresh manifest, and pushes. Both audit-log entries survive.
+
+### Roadmap
+
+A future trio of knots (K-55, K-56, K-57) will add `thimble peer`
+subcommands for membership, on-mutate broadcast, and heartbeats — sugar
+over the same primitives, not a replacement. The rsync-by-hand workflow
+above is the canonical model and will keep working unchanged.
+
 ## Safe Secret Entry
 
 Thimble does not accept secret values as command arguments. Arguments are too
