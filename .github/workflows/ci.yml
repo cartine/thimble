@@ -82,3 +82,21 @@ jobs:
           sudo apt-get install -y age
       - name: integration tests
         run: go test -tags integration -timeout 60s ./...
+
+  docker-build:
+    # Build the multi-arch image to catch Dockerfile breakage on PRs and
+    # pushes to main. Push-on-tag happens in the release workflow.
+    name: docker build (no push)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: build linux/amd64 + linux/arm64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: thimble:ci

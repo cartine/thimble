@@ -67,6 +67,31 @@ weakest:
 The installer auto-detects which tools are present and prints what it
 verified. Install `gh` for full provenance.
 
+### Docker
+
+Each release also publishes a multi-arch image to GHCR with `thimble`,
+`age`, and `age-keygen` baked in. The image is signed by the same
+`actions/attest-build-provenance` step that signs the release tarballs.
+
+```sh
+docker pull ghcr.io/cartine/thimble:vX.Y.Z   # or :latest
+
+# Render a bundle from the host CWD, mounted into the container.
+docker run --rm \
+  -v "$PWD:/work" -w /work \
+  -e THIMBLE_AGE_IDENTITY=/work/identity.txt \
+  ghcr.io/cartine/thimble:latest \
+  render web-api production --format dotenv
+
+# List recipients for a namespace.
+docker run --rm -v "$PWD:/work" -w /work \
+  ghcr.io/cartine/thimble:latest list web-api production
+```
+
+The image runs as a non-root user (`distroless/static:nonroot`) so any
+file it writes is owned by the host user with UID 65532 unless you pass
+`--user $(id -u):$(id -g)`.
+
 ### Verifying a release rebuilds bit-for-bit
 
 Thimble's release build is deterministic given the source tag and the Go
