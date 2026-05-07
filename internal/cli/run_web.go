@@ -27,8 +27,9 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	if fs.NArg() != 0 {
 		return errors.New("usage: thimble web [--addr 127.0.0.1:8787]")
 	}
+	loopback := isLoopbackAddr(*addr)
 	if *token == "" {
-		if !isLoopbackAddr(*addr) {
+		if !loopback {
 			return errors.New("non-loopback web UI requires --token or THIMBLE_WEB_TOKEN")
 		}
 		generated, err := randomToken()
@@ -37,11 +38,12 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		}
 		*token = generated
 	}
-	server := web.New(st, *token)
+	server := web.New(st, *token, loopback)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	httpServer := &http.Server{Addr: *addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	fmt.Fprintf(stdout, "Thimble web UI: http://%s/?token=%s\n", *addr, *token)
+	fmt.Fprintf(stdout, "Thimble web UI: http://%s/\n", *addr)
+	fmt.Fprintf(stdout, "Token: %s\n", *token)
 	return httpServer.ListenAndServe()
 }
 

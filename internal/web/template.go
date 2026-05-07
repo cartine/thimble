@@ -8,8 +8,10 @@ import (
 //go:embed template.html
 var uiTemplate string
 
-// Template parses the embedded HTML template once. The web Server holds
-// the result; callers should not need to invoke this directly.
+// Template parses the embedded HTML template once. The file defines
+// two named templates: "ui" (the authenticated dashboard) and "login"
+// (the one-field token paste form). Callers should not need to invoke
+// this directly; the Server constructed via New holds the result.
 func Template() *template.Template {
-	return template.Must(template.New("ui").Parse(uiTemplate))
+	return template.Must(template.New("thimble").Parse(uiTemplate))
 }

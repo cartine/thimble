@@ -15,7 +15,7 @@ import (
 	"github.com/cartine/thimble/internal/web"
 )
 
-func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
+func TestWebUICookieFlowAndRedaction(t *testing.T) {
 	st := newTestStore(t)
 	if err := st.Init("webapp", "dev", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
@@ -24,15 +24,86 @@ func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 		t.Fatalf("set: %v", err)
 	}
 
-	server := web.New(st, "test-token")
+	server := web.New(st, "test-token", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 
-	if got := getStatus(mux, "/"); got != http.StatusUnauthorized {
-		t.Fatalf("unauthorized status = %d, want %d", got, http.StatusUnauthorized)
-	}
+	t.Run("missing cookie redirects or 401s", func(t *testing.T) {
+		assertMissingCookieResponses(t, mux)
+	})
+	t.Run("wrong token rejected", func(t *testing.T) {
+		assertWrongTokenRejected(t, mux)
+	})
+	cookie := loginAndExtractCookie(t, mux, "test-token")
+	t.Run("correct token sets cookie attributes", func(t *testing.T) {
+		assertCookieAttrs(t, cookie, false)
+	})
+	t.Run("authorized session shows redacted UI", func(t *testing.T) {
+		assertAuthorizedView(t, mux, cookie)
+	})
+	t.Run("authorized update persists", func(t *testing.T) {
+		assertAuthorizedUpdate(t, mux, st, cookie)
+	})
+	t.Run("logout clears cookie", func(t *testing.T) {
+		assertLogoutClears(t, mux, cookie)
+	})
+}
 
-	body, status := getBody(mux, "/?token=test-token&app=webapp&env=dev")
+func assertMissingCookieResponses(t *testing.T, mux http.Handler) {
+	t.Helper()
+	if got := getStatus(mux, "/"); got != http.StatusSeeOther {
+		t.Fatalf("missing-cookie / status = %d, want %d", got, http.StatusSeeOther)
+	}
+	form := url.Values{
+		"app": {"webapp"}, "env": {"dev"}, "key": {"k"},
+		"value": {"v"}, "action": {"create"},
+	}
+	if got := postFormStatus(mux, "/secret", form, nil); got != http.StatusUnauthorized {
+		t.Fatalf("missing-cookie /secret status = %d, want %d", got, http.StatusUnauthorized)
+	}
+}
+
+func assertWrongTokenRejected(t *testing.T, mux http.Handler) {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	wrong := url.Values{"token": {"nope"}}
+	req := httptest.NewRequest(http.MethodPost, "/login",
+		strings.NewReader(wrong.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong token status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+	if !strings.Contains(rec.Body.String(), "invalid token") {
+		t.Fatalf("wrong token body missing form/error: %s", rec.Body.String())
+	}
+}
+
+func assertCookieAttrs(t *testing.T, cookie *http.Cookie, wantSecure bool) {
+	t.Helper()
+	if cookie.Name != "thimble_session" {
+		t.Fatalf("cookie name = %q, want thimble_session", cookie.Name)
+	}
+	if !cookie.HttpOnly {
+		t.Fatalf("cookie HttpOnly false")
+	}
+	if cookie.SameSite != http.SameSiteStrictMode {
+		t.Fatalf("cookie SameSite = %v, want Strict", cookie.SameSite)
+	}
+	if cookie.Path != "/" {
+		t.Fatalf("cookie Path = %q, want /", cookie.Path)
+	}
+	if cookie.MaxAge != 3600 {
+		t.Fatalf("cookie MaxAge = %d, want 3600", cookie.MaxAge)
+	}
+	if cookie.Secure != wantSecure {
+		t.Fatalf("cookie Secure = %v, want %v", cookie.Secure, wantSecure)
+	}
+}
+
+func assertAuthorizedView(t *testing.T, mux http.Handler, cookie *http.Cookie) {
+	t.Helper()
+	body, status := getBodyWithCookie(mux, "/?app=webapp&env=dev", cookie)
 	if status != http.StatusOK {
 		t.Fatalf("authorized status = %d body=%s", status, body)
 	}
@@ -46,8 +117,15 @@ func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 	if strings.Contains(body, "browser secret") {
 		t.Fatalf("web UI leaked secret value")
 	}
+	if strings.Contains(body, "token=") {
+		t.Fatalf("web UI still passes token in URL: %s", body)
+	}
+}
 
-	if status := postUpdateForm(mux); status != http.StatusSeeOther {
+func assertAuthorizedUpdate(t *testing.T, mux http.Handler, st *store.Store,
+	cookie *http.Cookie) {
+	t.Helper()
+	if status := postUpdateForm(mux, cookie); status != http.StatusSeeOther {
 		t.Fatalf("update status = %d, want %d", status, http.StatusSeeOther)
 	}
 	rendered, err := st.Render("webapp", "dev")
@@ -59,34 +137,100 @@ func TestWebUIRequiresTokenAndRedactsValues(t *testing.T) {
 	}
 }
 
+func assertLogoutClears(t *testing.T, mux http.Handler, cookie *http.Cookie) {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	logoutReq := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	logoutReq.AddCookie(cookie)
+	mux.ServeHTTP(rec, logoutReq)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("logout status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	cleared := findSessionCookie(rec.Result().Cookies())
+	if cleared == nil {
+		t.Fatalf("logout did not Set-Cookie thimble_session")
+	}
+	if cleared.Value != "" || cleared.MaxAge >= 0 {
+		t.Fatalf("logout cookie not cleared: value=%q maxage=%d",
+			cleared.Value, cleared.MaxAge)
+	}
+}
+
+func TestWebUINonLoopbackSetsSecureCookie(t *testing.T) {
+	st := newTestStore(t)
+	server := web.New(st, "test-token", false)
+	mux := http.NewServeMux()
+	server.Routes(mux)
+
+	cookie := loginAndExtractCookie(t, mux, "test-token")
+	assertCookieAttrs(t, cookie, true)
+}
+
+func loginAndExtractCookie(t *testing.T, mux http.Handler, token string) *http.Cookie {
+	t.Helper()
+	form := url.Values{"token": {token}}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/login",
+		strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("login status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	c := findSessionCookie(rec.Result().Cookies())
+	if c == nil {
+		t.Fatalf("login did not Set-Cookie thimble_session")
+	}
+	return c
+}
+
+func findSessionCookie(cookies []*http.Cookie) *http.Cookie {
+	for _, c := range cookies {
+		if c.Name == "thimble_session" {
+			return c
+		}
+	}
+	return nil
+}
+
 func getStatus(mux http.Handler, target string) int {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
 	return rec.Code
 }
 
-func getBody(mux http.Handler, target string) (string, int) {
+func getBodyWithCookie(mux http.Handler, target string, c *http.Cookie) (string, int) {
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	if c != nil {
+		req.AddCookie(c)
+	}
+	mux.ServeHTTP(rec, req)
 	return rec.Body.String(), rec.Code
 }
 
-func postUpdateForm(mux http.Handler) int {
+func postFormStatus(mux http.Handler, path string, form url.Values,
+	c *http.Cookie) int {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, path,
+		strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if c != nil {
+		req.AddCookie(c)
+	}
+	mux.ServeHTTP(rec, req)
+	return rec.Code
+}
+
+func postUpdateForm(mux http.Handler, c *http.Cookie) int {
 	form := url.Values{
-		"token":  {"test-token"},
 		"app":    {"webapp"},
 		"env":    {"dev"},
 		"key":    {"API_KEY"},
 		"value":  {"new browser secret"},
 		"action": {"update"},
 	}
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(
-		http.MethodPost, "/secret", strings.NewReader(form.Encode()),
-	)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	mux.ServeHTTP(rec, req)
-	return rec.Code
+	return postFormStatus(mux, "/secret", form, c)
 }
 
 // testRecipientOperator is a real-shape 62-char age recipient (Bech32

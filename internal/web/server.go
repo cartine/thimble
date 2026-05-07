@@ -1,8 +1,8 @@
 // Package web serves the local Thimble UI. Trust boundary: this is
 // the only package that listens on a network socket; it accepts only
 // loopback by default, gates every handler on a constant-time token
-// check, and never echoes existing secret values back to the
-// operator's browser.
+// check carried in an HttpOnly session cookie (K-30), and never echoes
+// existing secret values back to the operator's browser.
 package web
 
 import (
@@ -29,29 +29,42 @@ type SecretEntry struct {
 type Server struct {
 	store     *store.Store
 	token     string
+	loopback  bool
 	templates *template.Template
 }
 
 // New returns a Server backed by st and gated on token. The HTML
-// template is embedded; callers do not pass one in.
-func New(st *store.Store, token string) *Server {
-	return &Server{store: st, token: token, templates: Template()}
+// template is embedded; callers do not pass one in. The loopback bool
+// drives the Secure attribute on the session cookie: true when bound
+// to 127.0.0.1/::1/localhost (where browsers reject Secure on HTTP).
+func New(st *store.Store, token string, loopback bool) *Server {
+	return &Server{
+		store:     st,
+		token:     token,
+		loopback:  loopback,
+		templates: Template(),
+	}
 }
 
 // Routes registers the UI's handlers on mux.
 func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/", s.handleIndex)
+	mux.HandleFunc("/login", s.handleLogin)
+	mux.HandleFunc("/logout", s.handleLogout)
 	mux.HandleFunc("/namespace", s.handleNamespace)
 	mux.HandleFunc("/secret", s.handleSecret)
 	mux.HandleFunc("/recipient", s.handleRecipient)
 }
 
 type pageData struct {
-	Token      string
 	Error      string
 	Notice     string
 	Namespaces []store.NamespaceView
 	Selected   *selectedNamespace
+}
+
+type loginData struct {
+	Error string
 }
 
 type selectedNamespace struct {
@@ -62,8 +75,8 @@ type selectedNamespace struct {
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	if !s.authorized(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if !s.hasValidSession(r) {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	if r.Method != http.MethodGet {
@@ -71,15 +84,47 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writePage(w, r, pageData{
-		Token:  s.token,
 		Notice: r.URL.Query().Get("notice"),
 		Error:  r.URL.Query().Get("error"),
 	})
 }
 
+// handleLogin renders the one-field token form on GET and validates a
+// posted token on POST. Constant-time compare gates the cookie set.
+func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if s.hasValidSession(r) {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		s.writeLogin(w, loginData{})
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			s.writeLogin(w, loginData{Error: "invalid form"})
+			return
+		}
+		provided := r.FormValue("token")
+		if subtle.ConstantTimeCompare([]byte(provided), []byte(s.token)) != 1 {
+			w.WriteHeader(http.StatusUnauthorized)
+			s.writeLogin(w, loginData{Error: "invalid token"})
+			return
+		}
+		s.setSessionCookie(w)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleLogout clears the session cookie and redirects back to /login.
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	s.clearSessionCookie(w)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
 func (s *Server) handleNamespace(w http.ResponseWriter, r *http.Request) {
-	if !s.authorized(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if !s.requireSession(w, r) {
 		return
 	}
 	if r.Method != http.MethodPost {
@@ -102,8 +147,7 @@ func (s *Server) handleNamespace(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
-	if !s.authorized(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if !s.requireSession(w, r) {
 		return
 	}
 	if r.Method != http.MethodPost {
@@ -136,8 +180,7 @@ func (s *Server) runSecretAction(r *http.Request) error {
 }
 
 func (s *Server) handleRecipient(w http.ResponseWriter, r *http.Request) {
-	if !s.authorized(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if !s.requireSession(w, r) {
 		return
 	}
 	if r.Method != http.MethodPost {
@@ -167,16 +210,15 @@ func (s *Server) runRecipientAction(r *http.Request) error {
 	}
 }
 
-func (s *Server) authorized(r *http.Request) bool {
-	provided := r.URL.Query().Get("token")
-	if provided == "" {
-		provided = strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+// requireSession denies state-changing routes that lack a valid
+// session cookie with 401 (rather than redirect-to-login). Returns
+// true when the request may proceed.
+func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) bool {
+	if s.hasValidSession(r) {
+		return true
 	}
-	if provided == "" && r.Method == http.MethodPost {
-		_ = r.ParseForm()
-		provided = r.FormValue("token")
-	}
-	return subtle.ConstantTimeCompare([]byte(provided), []byte(s.token)) == 1
+	http.Error(w, "unauthorized", http.StatusUnauthorized)
+	return false
 }
 
 // writePage renders the HTML page. Renamed from `render` so that the
@@ -204,8 +246,16 @@ func (s *Server) writePage(w http.ResponseWriter, r *http.Request, data pageData
 		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.templates.Execute(w, data); err != nil {
+	if err := s.templates.ExecuteTemplate(w, "ui", data); err != nil {
 		log.Printf("writePage: %v", err)
+	}
+}
+
+// writeLogin renders the standalone login page.
+func (s *Server) writeLogin(w http.ResponseWriter, data loginData) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.templates.ExecuteTemplate(w, "login", data); err != nil {
+		log.Printf("writeLogin: %v", err)
 	}
 }
 
@@ -233,9 +283,10 @@ func (s *Server) redirectErr(w http.ResponseWriter, r *http.Request, err error) 
 	redirectWith(w, r, "error", err.Error())
 }
 
+// redirectWith preserves the namespace selection but never propagates
+// the token: the session cookie carries auth.
 func redirectWith(w http.ResponseWriter, r *http.Request, key, value string) {
 	q := r.URL.Query()
-	q.Set("token", r.FormValue("token"))
 	q.Set(key, value)
 	if app, env := r.FormValue("app"), r.FormValue("env"); app != "" && env != "" {
 		q.Set("app", app)
