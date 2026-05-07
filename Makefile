@@ -37,10 +37,16 @@ integration: ## Run integration tests against the real `age` binary.
 	$(GO) test -tags integration -timeout 60s ./...
 
 lint: ## Run golangci-lint and the source-size checker.
-	@command -v golangci-lint >/dev/null 2>&1 || { \
-	  echo "golangci-lint not found; install from https://golangci-lint.run"; \
-	  exit 1; \
-	}
+	@# Install golangci-lint v2 with the active toolchain so it can lint a
+	@# matching-version Go target. v1 binaries built against older Go can
+	@# refuse to run when the project's toolchain is newer.
+	@command -v golangci-lint >/dev/null 2>&1 || \
+	  $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	@version=$$(golangci-lint version --short 2>/dev/null || echo 0.0.0); \
+	  major=$${version%%.*}; \
+	  if [ "$$major" -lt 2 ] 2>/dev/null; then \
+	    $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest; \
+	  fi
 	golangci-lint run
 	bash scripts/check_file_sizes.sh
 

@@ -53,11 +53,12 @@ jobs:
           go-version-file: go.mod
       - name: install golangci-lint
         # `make lint` runs golangci-lint (funlen, lll) + the source-size
-        # checker. Install via a release tarball pinned to the major
-        # version so CI doesn't drift mid-release.
+        # checker. v2 is required because go.mod declares
+        # `toolchain go1.26.2` and v1 binaries built against older Go
+        # refuse to lint a newer-toolchain target.
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61.0
+          version: v2.12.2
           install-mode: binary
           args: --version
       - name: make lint

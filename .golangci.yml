@@ -1,17 +1,18 @@
+version: "2"
 run:
   timeout: 3m
-issues:
-  exclude-dirs:
-    - .knots
-    - tasks
 linters:
-  disable-all: true
+  default: none
   enable:
     - funlen
     - lll
-linters-settings:
-  funlen:
-    lines: 99
-    statements: -1
-  lll:
-    line-length: 100
+  exclusions:
+    paths:
+      - .knots
+      - tasks
+  settings:
+    funlen:
+      lines: 99
+      statements: -1
+    lll:
+      line-length: 100

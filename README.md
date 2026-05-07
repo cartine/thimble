@@ -109,7 +109,7 @@ docker run --rm \
   -v "$PWD:/work" -w /work \
   -e THIMBLE_AGE_IDENTITY=/work/identity.txt \
   ghcr.io/cartine/thimble:latest \
-  render web-api production --format dotenv
+  render web-api production
 
 # List recipients for a namespace.
 docker run --rm -v "$PWD:/work" -w /work \
@@ -290,7 +290,7 @@ thimble update web-api production DATABASE_URL
 thimble delete web-api production OLD_TOKEN
 
 thimble list web-api production
-thimble render web-api production --format dotenv
+thimble render web-api production
 thimble verify web-api production
 thimble audit web-api production
 thimble doctor
@@ -337,7 +337,7 @@ Imagine a small service deployed by one operator and one deploy host.
 
    ```sh
    THIMBLE_AGE_IDENTITY=/etc/thimble/identity.txt \
-     thimble render web-api production --format dotenv > /run/web-api.env
+     thimble render web-api production > /run/web-api.env
    chmod 0600 /run/web-api.env
    ```
 
