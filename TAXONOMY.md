@@ -145,12 +145,14 @@ plaintext only briefly (in memory during one command).
 - `SECURITY.md:11-12`
 
 ### store <!-- auto -->
-⚠ overloaded:
+Two senses, now disambiguated by package qualifier (K-04 / K-12):
 - (1) The on-disk secrets directory (default `secrets/`). Configured by
-  `--store` or `THIMBLE_STORE`. `cmd/thimble/main.go:31`,
-  `cmd/thimble/main.go:82`.
-- (2) The Go type wrapping disk operations: `store struct`,
-  `cmd/thimble/main.go:61-66`.
+  `--store` or `THIMBLE_STORE`. `internal/cli/cli.go:18`,
+  `internal/cli/cli.go:46`.
+- (2) The Go type wrapping disk operations: `store.Store` in
+  `internal/store/store.go`. The package qualifier `store.` is what
+  resolves the historic ambiguity — bare `store` in code now always
+  refers to the package, not the directory or the verb.
 Prefer **store directory** for (1) when context is ambiguous.
 
 ### token <!-- auto -->
@@ -243,10 +245,12 @@ the last recipient.
 ### render <!-- auto -->
 Decrypt a namespace and emit dotenv to stdout. The deliberate
 plaintext escape hatch.
-- `cmd/thimble/main.go:356-375` — `runRender`
-- `cmd/thimble/main.go:536-542` — `(*store).Render`
-- ⚠ overloaded: also a `webServer.render` method that draws the HTML
-  page (`cmd/thimble/main.go:1165-1185`).
+- `internal/cli/run_secret.go` — `runRender`
+- `internal/store/store.go` — `(*Store).Render`
+- The historic three-way collision (CLI verb `render`,
+  `(*store).Render`, `webServer.render`) was resolved in K-12: the
+  HTML page writer is now `web.Server.writePage`, leaving `render` as
+  a single-meaning name in code.
 
 ### set <!-- auto -->
 CLI verb that creates or updates a key. Idempotent.
@@ -298,9 +302,15 @@ The README's umbrella for the no-argv-values rule and its tooling
 - `README.md:71-115`
 
 ### "trust boundary" <!-- auto -->
-⚠ stale — used in design discussion (K-12 description, this taxonomy)
-but not yet codified in code or comments. Will become concrete after
-the K-12 package split.
+Concrete after K-12. Each `internal/*` package now carries a doc
+comment naming its trust boundary:
+- `internal/age` — only outside-of-cmd plaintext-handling package; only
+  package that exec()s the `age` binary.
+- `internal/store` — only writer of the secrets directory.
+- `internal/web` — only network-listener.
+- `internal/cli` — only place where untrusted argv lands; validates
+  before forwarding to store/web.
+- `internal/dotenv` — pure parser/encoder; never touches FS or shell.
 
 ---
 
@@ -324,8 +334,12 @@ the K-12 package split.
 
 Terms needing human attention. Resolve and remove.
 
-- ⚠ overloaded: **store** (directory vs Go type vs verb).
-- ⚠ overloaded: **render** (CLI verb vs HTML template render).
+- Resolved in K-12: **store** (Go type now `store.Store`, package
+  qualifier disambiguates from `--store` flag and English verb).
+- Resolved in K-12: **render** (HTML page writer is now
+  `web.Server.writePage`; `render` is single-meaning in code).
+- Resolved in K-12: **trust boundary** (each `internal/*` package
+  carries a doc comment naming its trust boundary).
 - ⚠ overloaded: **key** (secret name vs private key material).
 - ⚠ overloaded: **environment** vs short form `env` (which is also `--env`).
 - ⚠ ambiguous: **set** (CLI verb that absorbs create+update; some prose
@@ -333,8 +347,6 @@ Terms needing human attention. Resolve and remove.
 - ⚠ overloaded: **peer** vs **deploy host** in deployment-flow prose.
 - ⚠ stale: **audit log** is in SECURITY.md residual risks but not
   implemented; lands with K-27.
-- ⚠ stale: **trust boundary** is in design discussion only; lands with
-  K-12.
 - ⚠ divergence: thimble.md early sections use `thimble.toml` and a
   flat per-environment layout; the implementation uses
   `thimble.json` and `application/environment` namespaces. README is
