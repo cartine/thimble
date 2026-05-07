@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e735-7a31-a651-5f2de1903adf",
+  "occurred_at": "2026-05-07T06:18:58.736616Z",
+  "knot_id": "thimble-fd95",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nStop browsers from caching pages that contain key listings, recipient\naddresses, or token-bearing redirect URLs. Cheap defense against the\n\"someone walks up to my unlocked laptop\" case.\n\nVerification:\n1. Every response from `internal/web` carries `Cache-Control: no-store, no-cache, must-revalidate` and `Pragma: no-cache`.\n2. Verified by integration test (existing `TestWebUIRequiresTokenAndRedactsValues` extended).\n\nConstraints:\n- Knot ref: K-32; wave/step 5.3; effort S; risk low\n- Files: internal/web/\n- Depends on: K-12\n- Notes: Trivial middleware. Land it the same PR as K-31 if convenient."
+  }
+}

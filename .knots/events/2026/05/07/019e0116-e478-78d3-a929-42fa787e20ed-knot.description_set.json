@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e478-78d3-a929-42fa787e20ed",
+  "occurred_at": "2026-05-07T06:18:58.034534Z",
+  "knot_id": "thimble-8a63",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nRefuse to use a `THIMBLE_AGE_IDENTITY` file that is group/world readable.\nCatches the most common operator mistake on the most sensitive file Thimble\ntouches.\n\nVerification:\n1. Before invoking `age -i`, Thimble `Stat`s the identity file.\n2. If `mode & 0o077 != 0`, abort with: \"identity file <path> is mode 0NNN; expected 0600. Run `chmod 0600 <path>` and retry.\"\n3. `--unsafe-allow-identity-mode` flag exists for environments where mode cannot be set (e.g. some Windows / WSL setups), and using it logs a warning to stderr.\n4. Test covers: 0600 OK, 0640 rejected, flag overrides rejection.\n\nConstraints:\n- Knot ref: K-19; wave/step 4.2; effort S; risk med\n- Files: internal/age/\n- Depends on: K-12\n- Notes: `age-keygen -o` defaults to 0600, so this is mostly defending against people\ncopying identities around with `cp`/`scp`/`mv` and dropping permissions."
+  }
+}

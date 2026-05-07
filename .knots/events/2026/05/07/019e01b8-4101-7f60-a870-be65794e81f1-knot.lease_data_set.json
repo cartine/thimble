@@ -1,0 +1,20 @@
+{
+  "event_id": "019e01b8-4101-7f60-a870-be65794e81f1",
+  "occurred_at": "2026-05-07T09:15:13.025183Z",
+  "knot_id": "thimble-0dd7",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "",
+        "agent_type": "",
+        "model": "",
+        "model_version": "",
+        "provider": ""
+      },
+      "lease_type": "agent",
+      "nickname": "claim-thimble-0510",
+      "timeout_seconds": 600
+    }
+  }
+}

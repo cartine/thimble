@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01b8-f8ad-77c2-9633-1ed31cb9e6cb",
+  "occurred_at": "2026-05-07T09:16:00.045877Z",
+  "knot_id": "thimble-ae92",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Plan: 1) Create internal/audit/audit.go with Logger and Event types; Append(event) method writing one JSON line to <store>/.thimble-audit.log, mode 0640, O_APPEND|O_WRONLY|O_CREATE. 2) Operator thumbprint helper: parse identity public key via age-keygen -y, compute sha256(recipient)[:16] hex; cache on Store. If no identity, use 'unknown'. 3) Wire Logger calls from Store mutating ops: Init, AddRecipient, RemoveRecipient, CreateSecret, UpdateSecret, SetSecret, DeleteSecret. and-set already calls SetSecret so it inherits. 4) On audit IO failure: emit stderr warning 'audit append failed: <err>; mutation succeeded' and continue. 5) Add internal/cli/run_audit.go: load .thimble-audit.log, filter by app/env, tabular print, --limit flag default 50. 6) printUsage update. 7) Tests: init+set+delete+recipient produces N lines with correct fields; file mode 0640; thumbprint != recipient string.",
+    "datetime": "2026-05-07T09:16:00.045877Z",
+    "entry_id": "019e01b8-f8ad-77c2-9633-1ec24660d7d3",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

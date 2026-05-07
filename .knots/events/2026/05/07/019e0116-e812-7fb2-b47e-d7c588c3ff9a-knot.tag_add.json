@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e812-7fb2-b47e-d7c588c3ff9a",
+  "occurred_at": "2026-05-07T06:18:58.94566Z",
+  "knot_id": "thimble-f550",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "risk-high"
+  }
+}

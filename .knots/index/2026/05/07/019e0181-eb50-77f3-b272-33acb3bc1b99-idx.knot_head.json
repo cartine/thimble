@@ -1,0 +1,37 @@
+{
+  "event_id": "019e0181-eb50-77f3-b272-33acb3bc1b99",
+  "occurred_at": "2026-05-07T08:15:52.144497Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-35f3",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Split main.go into packages",
+    "type": "work",
+    "updated_at": "2026-05-07T08:15:52.144497Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0181-dcb1-7671-87c2-4d850fc0a026"
+  }
+}

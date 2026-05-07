@@ -1,0 +1,37 @@
+{
+  "event_id": "019e01d7-5cf1-73e3-8ecb-40d1b892df6a",
+  "occurred_at": "2026-05-07T09:49:11.793161Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-04a0",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Plaintext-input policy on web UI",
+    "type": "work",
+    "updated_at": "2026-05-07T09:49:11.793161Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e01d7-5cb8-7431-a3d5-178bfcf49434"
+  }
+}

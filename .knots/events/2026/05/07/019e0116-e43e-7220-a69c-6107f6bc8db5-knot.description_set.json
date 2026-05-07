@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e43e-7220-a69c-6107f6bc8db5",
+  "occurred_at": "2026-05-07T06:18:57.977088Z",
+  "knot_id": "thimble-1378",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\n`s.agePath = \"age\"` resolves through `$PATH`. A malicious binary earlier in\nthe path silently captures plaintext during encrypt and the identity-file\npath during decrypt — every Thimble user's secrets, on that machine, with\nzero indication.\n\nVerification:\n1. `--age-binary=/path/to/age` flag and `THIMBLE_AGE_BINARY` env var supported.\n2. On startup, Thimble resolves the binary path via `exec.LookPath` and prints it once on `--verbose` or first-use of any decrypt/encrypt command.\n3. Optional SHA-256 pin: `THIMBLE_AGE_SHA256` is checked before exec; mismatch aborts with a clear error.\n4. README \"Requirements\" section is updated to call this out as a trust boundary; SECURITY.md threat model lists it as a residual risk if pinning is not used.\n5. `thimble doctor` (K-29) reports the resolved path and SHA-256.\n\nConstraints:\n- Knot ref: K-18; wave/step 4.1; effort M; risk high (single biggest runtime trust gap)\n- Files: internal/age/, internal/cli/, README.md, SECURITY.md\n- Depends on: K-12\n- Notes: Don't make the SHA pin mandatory — that breaks installs across distros. Make\nit loud-default and trivial to enable."
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e016d-5600-7fc1-afd6-b8ce67110d21",
+  "occurred_at": "2026-05-07T07:53:23.200167Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-e6d7",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add CHANGELOG.md (Keep-a-Changelog)",
+    "type": "work",
+    "updated_at": "2026-05-07T07:53:23.200167Z",
+    "workflow_id": "work_sdlc"
+  }
+}

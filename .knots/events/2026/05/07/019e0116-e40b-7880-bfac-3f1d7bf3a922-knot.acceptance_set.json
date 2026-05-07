@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e40b-7880-bfac-3f1d7bf3a922",
+  "occurred_at": "2026-05-07T06:18:57.92104Z",
+  "knot_id": "thimble-b3c1",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `.github/dependabot.yml` covers `gomod` (weekly) and `github-actions` (weekly).\n2. Auto-merge is *not* enabled for `gomod`. (We want the gate, not the auto.)\n3. A label policy exists so security updates land with `security` label."
+  }
+}

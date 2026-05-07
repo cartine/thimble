@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0211-83dd-7022-ad0f-5fac5d168755",
+  "occurred_at": "2026-05-07T10:52:42.845116Z",
+  "knot_id": "thimble-3e12",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:claude/elastic-clarke-9c0ed3"
+  }
+}

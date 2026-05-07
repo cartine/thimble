@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e10a-7f01-9564-f1ceb8f99bc4",
+  "occurred_at": "2026-05-07T06:18:57.1531Z",
+  "knot_id": "thimble-9ad5",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. README.md, SECURITY.md, and thimble.md all use canonical terminology from TAXONOMY.md exclusively.\n2. The skill's diff is reviewed and committed; no new content added — only rewording for term alignment.\n3. Any contradictions the skill could not auto-resolve are listed in `tasks/reports/K-03-doc-align-conflicts.md` for human resolution.\n4. A grep for legacy synonyms (e.g. \"store\", \"vault\", \"envfile\") returns no hits except inside fenced code blocks where removal would break the example."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e79d-74d0-98c4-570928be1dff",
+  "occurred_at": "2026-05-07T06:18:58.840984Z",
+  "knot_id": "thimble-04a0",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nThe web UI's `<input type=\"password\">` accepts plaintext in form bodies — a\ndirect contradiction of the otherwise-strict CLI rule of never accepting\nvalues via path-visible mechanisms. Form bodies live in browser autofill,\npage-cache, refresh-resubmit, DevTools network panel.\n\nVerification:\n1. **Strict mode (default)**: Web UI removes the value field entirely. The UI becomes purely a *redacted* viewer + recipient/key manager. To set a value, the operator must run a CLI command. The page shows the exact shell command to copy: `thimble set <app> <env> <KEY>`.\n2. **Convenience mode**: Web UI keeps the value field but adds a clearly styled \"low-risk only\" banner, sets `autocomplete=\"off\"` and `data-1p-ignore` (1Password), and never echoes the value back even on validation failure. Acceptance:\n3. The choice is documented in README and SECURITY.md.\n4. Tests confirm: in strict mode, POST to `/secret` with action `create` or `update` and a non-empty `value` returns 400 with a pointer at the CLI.\n\nConstraints:\n- Knot ref: K-34; wave/step 5.5; effort M; risk med\n- Files: internal/web/\n- Depends on: K-12\n- Notes: Strong default recommendation: strict mode. The UI's job is \"let me see\nnamespaces and manage recipients,\" not \"type secrets into a textarea.\""
+  }
+}

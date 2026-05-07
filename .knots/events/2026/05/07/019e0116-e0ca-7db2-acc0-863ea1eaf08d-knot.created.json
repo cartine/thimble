@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e0ca-7db2-acc0-863ea1eaf08d",
+  "occurred_at": "2026-05-07T06:18:57.098561Z",
+  "knot_id": "thimble-ddde",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nExtract the canonical Thimble vocabulary — `app`, `environment`, `namespace`,\n`recipient`, `bundle`, `manifest`, `identity`, `render`, `provision`, `set`,\n`and-set`, `and-get`, `peer`, `operator`, `deploy host`, `recovery recipient`\n— into a single `TAXONOMY.md`. Surface terminology drift between\n[README.md](README.md), [SECURITY.md](SECURITY.md), [thimble.md](thimble.md),\nand [cmd/thimble/main.go](cmd/thimble/main.go) so later waves can resolve it.\n\nVerification:\n1. `TAXONOMY.md` exists at repo root with: nouns, verbs, phrases, and per-term definition + canonical synonym (e.g. \"namespace = `<app>/<env>`\").\n2. The skill's drift report is committed at `tasks/reports/K-02-taxonomy.md` listing every term that is used inconsistently across docs and code.\n3. No source/doc edits yet; this knot only catalogs.\n\nConstraints:\n- Knot ref: K-02; wave/step 0.2; effort S; risk low\n- Files: TAXONOMY.md (new)\n- Depends on: K-01\n- Notes: Thimble overloads `set` (CLI verb), `set` (Go method), and \"set\" as in \"the\nsecret has been set\" — that's exactly the kind of ambiguity TAXONOMY.md should\nfreeze. Same with `environment` (deploy context) vs `env` (manifest field) vs\n`env` (CLI argument).",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Run /taxonomize",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

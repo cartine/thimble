@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e13f-7092-9ee7-d8b5eea4524b",
+  "occurred_at": "2026-05-07T06:18:57.205725Z",
+  "knot_id": "thimble-2bb2",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A rename plan is committed at `tasks/reports/K-04-rename-plan.md` and approved before any rename runs.\n2. After execution, all type names match canonical taxonomy: `manifest`, `appManifest`, `envManifest`, `store`, `secretEntry`, `namespaceView`, `webServer` — confirm or rename per TAXONOMY.md.\n3. All exported and package-internal identifiers in main.go are consistent with TAXONOMY.md (e.g. if `namespace` is canonical, `appEnv` becomes `namespace`).\n4. `go build ./...` and `go test ./...` both pass with no behavioral change.\n5. Public CLI surface is unchanged: `thimble init`, `set`, `render`, etc. — user-visible verbs are sticky and only renamed if TAXONOMY.md explicitly marks them as drift."
+  }
+}

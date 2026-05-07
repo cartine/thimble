@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e2bc-7ec2-bcde-0881687c9c56",
+  "occurred_at": "2026-05-07T06:18:57.586682Z",
+  "knot_id": "thimble-584f",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Either:\n2. Tag `v0.1.0` exists, the release pipeline produced its artifacts, and the README example continues to use `v0.1.0`; OR\n3. The README example uses `vX.Y.Z` with a sentence pointing readers at the \"latest release\" page.\n4. README's \"latest\" curl-pipe-sh example still works — verified by running it in a clean container."
+  }
+}

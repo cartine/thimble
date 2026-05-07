@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01dc-2b49-78e2-a3cc-85e3987437a1",
+  "occurred_at": "2026-05-07T09:54:26.761495Z",
+  "knot_id": "thimble-d228",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "K-33 implementation plan\n\n## File changes\n1. internal/web/server.go: Add sync.RWMutex `mu` field. Replace `s.token` reads with `s.currentToken()`. Add `setToken(string)`.\n2. internal/web/rotation.go (new): Defines `(*Server).Rotate(stdout io.Writer) error` and `(*Server).RunIdleRotation(ctx, idle, stdout)` and `(*Server).MarkAuthorized()` (resets idle timer). Uses time.Timer; ctx.Done() stops timer.\n3. internal/web/cookie.go: hasValidSession compares to currentToken(); on match, MarkAuthorized() resets idle timer.\n4. internal/cli/run_web.go: Add --idle-rotate=15m flag. Update banner third line to `Token rotates after <idle-rotate>; SIGUSR1 to rotate sooner; Ctrl+C to stop.`. Wire SIGUSR1 (Unix) via build-tag file. Pass ctx from signal.NotifyContext to run idle loop in goroutine.\n5. internal/cli/run_web_signal_unix.go (//go:build !windows): signal.Notify SIGUSR1, rotate on each signal until ctx.Done(). \n6. internal/cli/run_web_signal_windows.go (//go:build windows): no-op.\n7. README.md \"Web UI\" section: paragraph on idle rotation and SIGUSR1.\n\n## Tests\n1. internal/web/rotation_test.go (new): TestRotateInvalidatesExistingCookie; TestIdleRotationFiresWithinSmallWindow (50ms); TestMarkAuthorizedResetsTimer; TestRotatePrintsToStdout.\n2. internal/cli/run_web_test.go: Update banner test to expect new line text including duration interpolation.\n\n## Decisions\n- Test hook: expose (*Server).Rotate(stdout) and (*Server).RunIdleRotation(ctx, idle, stdout) directly on the Server. Tests call them; SIGUSR1 wiring is thin (tested via direct invocation on Unix not signal injection — avoids flake).\n- After rotation, cookie value still equals server.token (server replaces the value); old browsers compare old-value to new-token via constant-time compare → 401.\n- Goroutine cancel via ctx.Done() and t.Stop().\n\n## Verification\n- go build ./...\n- go test ./...\n- go test -tags integration ./...\n- make lint",
+    "datetime": "2026-05-07T09:54:26.761495Z",
+    "entry_id": "019e01dc-2b49-78e2-a3cc-85d456ee94bd",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

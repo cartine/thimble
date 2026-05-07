@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e982-7870-bc18-98c96713a7c9",
+  "occurred_at": "2026-05-07T06:18:59.321489Z",
+  "knot_id": "thimble-e385",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A `scoop-thimble` repo exists with a `bucket/thimble.json` manifest.\n2. Release workflow now also builds Windows binaries (`windows/amd64`, `windows/arm64`) and updates the manifest.\n3. `scoop bucket add thimble https://github.com/cartine/scoop-thimble && scoop install thimble` works on a clean Windows image."
+  }
+}

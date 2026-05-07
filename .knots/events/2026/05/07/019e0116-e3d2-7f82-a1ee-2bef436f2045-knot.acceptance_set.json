@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e3d2-7f82-a1ee-2bef436f2045",
+  "occurred_at": "2026-05-07T06:18:57.865443Z",
+  "knot_id": "thimble-55e4",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A new integration test job in CI installs `age` (apt or release tarball), generates an identity, runs the full lifecycle: init → set → list → render → recipient add → recipient remove, and asserts the rendered plaintext matches what was set.\n2. Tests are tagged `//go:build integration` so they don't slow the unit-test job.\n3. Job runs on at least Ubuntu; ideally macOS too."
+  }
+}

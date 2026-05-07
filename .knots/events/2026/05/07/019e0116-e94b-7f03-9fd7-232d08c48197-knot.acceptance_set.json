@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e94b-7f03-9fd7-232d08c48197",
+  "occurred_at": "2026-05-07T06:18:59.266049Z",
+  "knot_id": "thimble-7f03",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A `homebrew-thimble` repo exists with a `Formula/thimble.rb`.\n2. Release workflow updates the formula on each release with the new version and SHA-256s for darwin/amd64 and darwin/arm64.\n3. `brew install cartine/thimble/thimble` works on a clean macOS image and produces a binary that passes `thimble --version`.\n4. README \"Install\" section adds the brew one-liner above the curl one."
+  }
+}

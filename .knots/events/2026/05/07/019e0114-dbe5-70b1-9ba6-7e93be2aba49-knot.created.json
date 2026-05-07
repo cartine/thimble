@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0114-dbe5-70b1-9ba6-7e93be2aba49",
+  "occurred_at": "2026-05-07T06:16:44.773448Z",
+  "knot_id": "thimble-21d0",
+  "type": "knot.created",
+  "data": {
+    "body": "test",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "test-knot-delete-me",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

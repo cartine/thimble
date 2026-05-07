@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e0d4-7963-856e-b4212b573124",
+  "occurred_at": "2026-05-07T06:18:57.098561Z",
+  "knot_id": "thimble-ddde",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `TAXONOMY.md` exists at repo root with: nouns, verbs, phrases, and per-term definition + canonical synonym (e.g. \"namespace = `<app>/<env>`\").\n2. The skill's drift report is committed at `tasks/reports/K-02-taxonomy.md` listing every term that is used inconsistently across docs and code.\n3. No source/doc edits yet; this knot only catalogs."
+  }
+}

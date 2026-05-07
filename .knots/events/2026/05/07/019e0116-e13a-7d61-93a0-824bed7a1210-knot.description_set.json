@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e13a-7d61-93a0-824bed7a1210",
+  "occurred_at": "2026-05-07T06:18:57.205725Z",
+  "knot_id": "thimble-2bb2",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nAlign Go identifiers (types, functions, vars, fields, comments, error\nmessages) to TAXONOMY.md. Produces a rename plan, gates on review, then\nexecutes language-aware refactors.\n\nVerification:\n1. A rename plan is committed at `tasks/reports/K-04-rename-plan.md` and approved before any rename runs.\n2. After execution, all type names match canonical taxonomy: `manifest`, `appManifest`, `envManifest`, `store`, `secretEntry`, `namespaceView`, `webServer` — confirm or rename per TAXONOMY.md.\n3. All exported and package-internal identifiers in main.go are consistent with TAXONOMY.md (e.g. if `namespace` is canonical, `appEnv` becomes `namespace`).\n4. `go build ./...` and `go test ./...` both pass with no behavioral change.\n5. Public CLI surface is unchanged: `thimble init`, `set`, `render`, etc. — user-visible verbs are sticky and only renamed if TAXONOMY.md explicitly marks them as drift.\n\nConstraints:\n- Knot ref: K-04; wave/step 0.4; effort M; risk med\n- Files: cmd/thimble/main.go, cmd/thimble/main_test.go\n- Depends on: K-03\n- Notes: This is the last knot in Wave 0. After it lands, Wave 2's package split has\nclean naming to organize against. Do not allow this knot to touch CLI verbs or\nflag names without a paired README/CHANGELOG entry."
+  }
+}

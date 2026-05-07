@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e19e-7b12-a5f2-785c1ee2316a",
+  "occurred_at": "2026-05-07T06:18:57.310479Z",
+  "knot_id": "thimble-2c3a",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nThe current `SECURITY.md` is internal review notes, not a disclosure policy.\nGitHub auto-detects `SECURITY.md` and surfaces it in the Security tab — it\nshould answer \"how do I report a vulnerability?\" and \"which versions are\nsupported?\" Move the existing review checklist into `docs/security-review.md`.\n\nVerification:\n1. New `SECURITY.md` contains: (a) supported-versions table, (b) private reporting channel (e.g. GitHub Private Vulnerability Reporting enabled, plus an email contact), (c) expected response SLA.\n2. The \"Security Agent Verdict: Approved\" line is removed — it overclaims given the Residual Risks list.\n3. Existing review/checklist content moves to `docs/security-review.md` with a date stamp and reviewer attribution.\n4. GitHub Security tab now displays the new policy.\n\nConstraints:\n- Knot ref: K-06; wave/step 1.2; effort S; risk low\n- Files: SECURITY.md (rewrite), docs/security-review.md (new)\n- Notes: GitHub PVR (Private Vulnerability Reporting) is free and the lowest-friction\ninbox; enabling it from repo Settings → Security takes 30 seconds.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Replace SECURITY.md with vuln-reporting policy",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

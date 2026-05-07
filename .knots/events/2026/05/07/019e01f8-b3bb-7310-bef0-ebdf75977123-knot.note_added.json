@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01f8-b3bb-7310-bef0-ebdf75977123",
+  "occurred_at": "2026-05-07T10:25:36.699125Z",
+  "knot_id": "thimble-f550",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment: per task constraints (do NOT push to remote, do NOT modify other branches), the shippable artifact is the feature-branch commit 3380eba8bcb54efc80001d1cd4d68c2dfb6a2703 on claude/elastic-clarke-9c0ed3. Maintainer-side merge is out of scope for this session. All four verification commands pass at HEAD.",
+    "datetime": "2026-05-07T10:25:36.699125Z",
+    "entry_id": "019e01f8-b3bb-7310-bef0-ebc557ddaaa8",
+    "model": "unknown",
+    "username": "agent",
+    "version": "unknown"
+  }
+}

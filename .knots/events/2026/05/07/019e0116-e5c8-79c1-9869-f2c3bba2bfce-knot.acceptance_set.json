@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e5c8-79c1-9869-f2c3bba2bfce",
+  "occurred_at": "2026-05-07T06:18:58.368186Z",
+  "knot_id": "thimble-ec22",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Dotenv parser explicitly sets `scanner.Buffer` to a sensible max (e.g. 1 MiB).\n2. Beyond that limit, parser returns \"value on line N exceeds <limit> bytes; store it as a file or split it.\"\n3. Test for: 64 KiB+1 value round-trips fine; 1 MiB+1 value fails with the clear message."
+  }
+}

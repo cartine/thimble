@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e55a-70f1-8d49-a49dad9f87f8",
+  "occurred_at": "2026-05-07T06:18:58.260546Z",
+  "knot_id": "thimble-634c",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\n`runSecretProducer` mirrors child stderr to the parent\n([cmd/thimble/main.go:884](cmd/thimble/main.go:884)). Producers that log to\nstderr — and worse, ones running under `set -x` or with debug flags — leak\nthe secret straight to the operator's terminal.\n\nVerification:\n1. Default behavior: producer stderr is captured into a buffer used only for the error message on non-zero exit.\n2. New `--show-stderr` flag opts back in to live mirroring for debugging.\n3. On success, captured stderr is discarded.\n4. On failure, captured stderr is run through `redact` (truncate to 240 chars) before being shown.\n5. Test covers: producer that writes the secret to stderr does not leak it to the parent's stderr in the success case.\n\nConstraints:\n- Knot ref: K-23; wave/step 4.6; effort S; risk med\n- Files: internal/cli/, README.md\n- Depends on: K-12\n- Notes: The same logic should be applied to `runSecretConsumer` if it ever becomes\nchatty; currently it inherits the parent's stderr by design (the child *is*\nthe user's command)."
+  }
+}

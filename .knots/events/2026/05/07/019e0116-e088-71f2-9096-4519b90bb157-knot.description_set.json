@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e088-71f2-9096-4519b90bb157",
+  "occurred_at": "2026-05-07T06:18:57.027929Z",
+  "knot_id": "thimble-16a2",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nEstablish file/function/line-length budgets for the repo before any other work\nbegins. Today `cmd/thimble/main.go` is 1,394 lines in a single file; that's the\nstrongest signal that there are no agreed limits. Run `/enforce-sourcecode-size`\nto produce concrete budgets and a delta report.\n\nVerification:\n1. A budget file (e.g. `.sourcecode-size.toml` or whatever the skill emits) is committed at repo root.\n2. The skill's report is captured in `tasks/reports/K-01-enforce.md` and lists each over-budget file/function with its measured size.\n3. README \"Contributing\" pointer (or CONTRIBUTING.md after K-07) references the budget file.\n4. Repository builds and tests still pass; no source modifications yet.\n\nConstraints:\n- Knot ref: K-01; wave/step 0.1; effort S; risk low\n- Files: cmd/thimble/main.go, cmd/thimble/main_test.go, any new size-budget config\n- Notes: This knot only measures and ratifies budgets. It does not split files — that's\nK-12. Treat the budget as the contract Wave 2 must satisfy."
+  }
+}

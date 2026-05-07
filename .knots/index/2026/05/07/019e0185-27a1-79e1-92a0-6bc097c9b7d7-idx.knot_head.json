@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0185-27a1-79e1-92a0-6bc097c9b7d7",
+  "occurred_at": "2026-05-07T08:19:24.193951Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-1ca7",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "PR CI: go vet + go test",
+    "type": "work",
+    "updated_at": "2026-05-07T08:19:24.193951Z",
+    "workflow_id": "work_sdlc"
+  }
+}

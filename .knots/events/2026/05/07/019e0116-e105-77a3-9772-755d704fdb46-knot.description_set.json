@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e105-77a3-9772-755d704fdb46",
+  "occurred_at": "2026-05-07T06:18:57.1531Z",
+  "knot_id": "thimble-9ad5",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nApply TAXONOMY.md to existing markdown. Replace synonyms with canonical terms,\nflag contradictions, and produce a unified voice across all three docs.\n\nVerification:\n1. README.md, SECURITY.md, and thimble.md all use canonical terminology from TAXONOMY.md exclusively.\n2. The skill's diff is reviewed and committed; no new content added — only rewording for term alignment.\n3. Any contradictions the skill could not auto-resolve are listed in `tasks/reports/K-03-doc-align-conflicts.md` for human resolution.\n4. A grep for legacy synonyms (e.g. \"store\", \"vault\", \"envfile\") returns no hits except inside fenced code blocks where removal would break the example.\n\nConstraints:\n- Knot ref: K-03; wave/step 0.3; effort S; risk low\n- Files: README.md, SECURITY.md, thimble.md\n- Depends on: K-02\n- Notes: The README's \"Real-Life Flow\" deliberately uses concrete sample names\n(`web-api`, `production`); leave those alone. Only realign nouns/verbs that are\npart of Thimble's vocabulary, not user-supplied identifiers."
+  }
+}

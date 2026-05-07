@@ -1,0 +1,21 @@
+{
+  "event_id": "019e018c-84cd-7152-aa07-bc68b2abe32b",
+  "occurred_at": "2026-05-07T08:27:26.797773Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-b3c1",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Dependabot / Renovate config",
+    "type": "work",
+    "updated_at": "2026-05-07T08:27:26.797773Z",
+    "workflow_id": "work_sdlc"
+  }
+}

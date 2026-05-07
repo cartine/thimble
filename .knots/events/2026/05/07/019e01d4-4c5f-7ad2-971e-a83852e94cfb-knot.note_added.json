@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01d4-4c5f-7ad2-971e-a83852e94cfb",
+  "occurred_at": "2026-05-07T09:45:50.943725Z",
+  "knot_id": "thimble-04a0",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "K-34 plan (strict mode): 1) Remove value <input> from create/update forms in template.html — replace value column with a <code> snippet showing 'thimble set <app> <env> <KEY>'. 2) Server: in handleSecret, if action is create or update and FormValue('value') != '', return 400 with body 'web UI does not accept secret values; use the CLI: thimble set <app> <env> <KEY>'. Do NOT echo back the submitted value. 3) Keep delete form; keep recipient form (recipients are public). 4) Tests: strict-mode POST returns 400; rendered HTML contains no <input name=\"value\"> for any secret create/update form (delete still allowed); rendered HTML contains 'thimble set' suggestion. 5) Update README 'Web UI' section and SECURITY.md to describe the redacted-viewer + recipient/key-manager scope.",
+    "datetime": "2026-05-07T09:45:50.943725Z",
+    "entry_id": "019e01d4-4c5f-7ad2-971e-a82c897caac0",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

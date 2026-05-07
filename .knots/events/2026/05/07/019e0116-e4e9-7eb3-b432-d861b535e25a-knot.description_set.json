@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e4e9-7eb3-b432-d861b535e25a",
+  "occurred_at": "2026-05-07T06:18:58.14821Z",
+  "knot_id": "thimble-60c1",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\n`rewriteEnv` does load → decrypt → mutate → encrypt → save with no flock or\nversion-check on save. Two operators editing different keys in the same\nnamespace concurrently silently lose one set of edits.\n\nVerification:\n1. Each `envManifest` carries a monotonic `Version` (or per-namespace ETag).\n2. `saveManifest` reads the on-disk manifest under an exclusive `flock` of `secrets/thimble.json`, checks the version matches the one this command loaded, and refuses with a clear \"another writer changed <app>/<env>; rerun\" if not.\n3. Reads (`list`, `render`) take a shared lock.\n4. Tests cover: two goroutines mutating different keys → second one fails cleanly; same key → second one fails cleanly; lock released on panic.\n\nConstraints:\n- Knot ref: K-21; wave/step 4.4; effort M; risk med\n- Files: internal/store/\n- Depends on: K-12\n- Notes: `flock` semantics on macOS/Linux are slightly different but `golang.org/x/sys`\ncovers both. Don't bring in a third-party lock library — keep deps minimal."
+  }
+}

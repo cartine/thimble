@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e806-7d20-a2bc-c3fa4d9f7409",
+  "occurred_at": "2026-05-07T06:18:58.94566Z",
+  "knot_id": "thimble-f550",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nToday, anyone with merge access to the consumer repo can add their own\nrecipient via a one-line manifest diff and unlock plaintext access to every\nfuture write. The README's \"verify out of band\" rule is process, not\nenforcement. Add a real gate.\n\nVerification:\n1. Optional `secrets/recipients.signed.toml` file lists current operators and required quorum (e.g. M-of-N).\n2. `thimble recipient add <app> <env> <new>` requires either:\n3. A signature file `secrets/.add-<sha>.sig` containing detached signatures (age signing or sigstore) from at least M of the N current operators, or\n4. `--bootstrap` flag, valid only when the namespace has fewer than 2 recipients (initial setup).\n5. `thimble recipient list <app> <env>` prints fingerprints + signature status.\n6. Tests: bootstrap path; M-of-N satisfied; M-of-N short-by-one rejected; signature over wrong recipient rejected.\n\nConstraints:\n- Knot ref: K-36; wave/step 6.1; effort L; risk high\n- Files: internal/store/, internal/recipient/, README.md, SECURITY.md\n- Depends on: K-20, K-22\n- Notes: This is the structural fix for the single biggest social-engineering risk in\nthe model. Don't let it happen by accident; require it to be a deliberate\ngroup action."
+  }
+}

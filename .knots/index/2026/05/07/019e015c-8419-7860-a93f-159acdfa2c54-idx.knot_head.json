@@ -1,0 +1,21 @@
+{
+  "event_id": "019e015c-8419-7860-a93f-159acdfa2c54",
+  "occurred_at": "2026-05-07T07:35:00.88974Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": "ready_for_planning",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-e385",
+    "profile_id": "autopilot",
+    "state": "deferred",
+    "terminal": false,
+    "title": "Distribution: Scoop bucket",
+    "type": "work",
+    "updated_at": "2026-05-07T07:35:00.88974Z",
+    "workflow_id": "work_sdlc"
+  }
+}

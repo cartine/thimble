@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e27a-75b2-8969-d1f2b0235cdd",
+  "occurred_at": "2026-05-07T06:18:57.530937Z",
+  "knot_id": "thimble-b571",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nCheap signal that the project is alive. Helps a reader within 2 seconds.\n\nVerification:\n1. README header shows badges for: build (Wave 3 CI), latest release version, Go version (from `go.mod`), license (from K-05).\n2. All badges link to authoritative sources (Actions tab, releases page, pkg.go.dev, OSI license page).\n3. No vanity badges (no \"made with love\", no Discord/Slack invite unless they exist).\n\nConstraints:\n- Knot ref: K-10; wave/step 1.6; effort S; risk low\n- Files: README.md\n- Depends on: K-13 (so the build badge has something to point at)\n- Notes: K-13 must land before this knot's build badge resolves to a real workflow.\nOther badges (license, Go version) work immediately.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add status badges to README",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

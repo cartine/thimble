@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e6ce-7fa1-b51a-5147d3288195",
+  "occurred_at": "2026-05-07T06:18:58.629358Z",
+  "knot_id": "thimble-c8e3",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. New flow: server prints the token at startup. The first visit to `/` without a session cookie shows a one-field form (\"paste token to log in\").\n2. On submit, server compares with `subtle.ConstantTimeCompare`, sets a `thimble_session` cookie with `HttpOnly; Secure (when not loopback); SameSite=Strict; Path=/; Max-Age=3600`, and redirects to `/`.\n3. All authenticated routes accept the cookie; the `?token=…` form is removed from links.\n4. Logout link clears the cookie.\n5. Tests: missing cookie → 401; wrong token → 401; correct token → 303 + Set-Cookie; subsequent requests with cookie → 200."
+  }
+}

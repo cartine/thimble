@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01ab-bcbd-7e90-bbd7-7c044eb94d84",
+  "occurred_at": "2026-05-07T09:01:32.733325Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-76cd",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "`thimble --version` subcommand",
+    "type": "work",
+    "updated_at": "2026-05-07T09:01:32.733325Z",
+    "workflow_id": "work_sdlc"
+  }
+}

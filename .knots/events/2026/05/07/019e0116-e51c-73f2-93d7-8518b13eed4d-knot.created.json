@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e51c-73f2-93d7-8518b13eed4d",
+  "occurred_at": "2026-05-07T06:18:58.204904Z",
+  "knot_id": "thimble-0510",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nA repo writer can swap `production.env.age` for an older bundle, or one\nencrypted only to themselves, while leaving the manifest's recipient list\nunchanged. Downstream peers won't notice. Bind the manifest to the\nciphertext.\n\nVerification:\n1. Manifest stores `bundle_sha256` for each `envManifest`. On decrypt/render, Thimble recomputes and rejects if mismatched.\n2. Optional: manifest is signed by one operator's age identity (or a sigstore signature) covering all `bundle_sha256`s and the recipient list. Verified before any write proceeds.\n3. `thimble verify <app> <env>` subcommand prints the bundle SHA, the manifest signature status, and the recipient list with thumbprints.\n4. README \"Peer Safety Rules\" gains a bullet about reviewing `bundle_sha256` changes alongside ciphertext changes.\n\nConstraints:\n- Knot ref: K-22; wave/step 4.5; effort L; risk med\n- Files: internal/store/, internal/age/, README.md\n- Depends on: K-21\n- Notes: Phase this: ship the SHA-in-manifest first (low effort, big win). Add the\nsigned manifest later — that piece is L on its own and depends on a key\nmanagement story we don't yet have.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Bundle attestation (ciphertext SHA + signed manifest)",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

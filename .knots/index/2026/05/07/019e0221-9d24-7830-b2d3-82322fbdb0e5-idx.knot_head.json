@@ -1,0 +1,34 @@
+{
+  "event_id": "019e0221-9d24-7830-b2d3-82322fbdb0e5",
+  "occurred_at": "2026-05-07T11:10:17.892896Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-f23b",
+    "profile_id": "lease",
+    "state": "lease_active",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "lease_active",
+      "output": {
+        "artifact_type": ""
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Lease: claim-thimble-7461",
+    "type": "lease",
+    "updated_at": "2026-05-07T11:10:17.892896Z",
+    "workflow_id": "lease_sdlc"
+  }
+}

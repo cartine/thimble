@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0167-6f86-7a41-a79d-a891b47a28cc",
+  "occurred_at": "2026-05-07T07:46:56.518983Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-9ad5",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Run /taxonomize-align-docs",
+    "type": "work",
+    "updated_at": "2026-05-07T07:46:56.518983Z",
+    "workflow_id": "work_sdlc"
+  }
+}

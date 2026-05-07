@@ -1,0 +1,159 @@
+{
+  "event_id": "019e0116-ec52-7200-96c4-bcb4d76b2f19",
+  "occurred_at": "2026-05-07T06:19:00.044343Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-16a2"
+              ],
+              "step_index": 1
+            },
+            {
+              "knot_ids": [
+                "thimble-ddde"
+              ],
+              "step_index": 2
+            },
+            {
+              "knot_ids": [
+                "thimble-9ad5"
+              ],
+              "step_index": 3
+            },
+            {
+              "knot_ids": [
+                "thimble-2bb2"
+              ],
+              "step_index": 4
+            }
+          ],
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-63bd",
+                "thimble-2c3a",
+                "thimble-aee1",
+                "thimble-e6d7",
+                "thimble-a7b4",
+                "thimble-584f"
+              ],
+              "step_index": 1
+            }
+          ],
+          "wave_index": 2
+        },
+        {
+          "name": "Wave 3: Code Structure",
+          "objective": "main.go split into auditable packages with clear trust boundaries",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-35f3"
+              ],
+              "step_index": 1
+            }
+          ],
+          "wave_index": 3
+        },
+        {
+          "name": "Wave 4: CI / Quality Gates",
+          "objective": "PRs run vet, test, lint, vuln, and real-age integration",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-1ca7",
+                "thimble-bdf7",
+                "thimble-52a3",
+                "thimble-55e4",
+                "thimble-b3c1"
+              ],
+              "step_index": 1
+            }
+          ],
+          "wave_index": 4
+        },
+        {
+          "name": "Wave 5: Runtime Security Hardening",
+          "objective": "Close the runtime threat-model items: age trust, identity hygiene, locks, audit, ops",
+          "wave_index": 5
+        },
+        {
+          "name": "Wave 6: Web UI Hardening",
+          "objective": "Close web-surface items: cookies, host allowlist, cache, rotation, plaintext policy, scope",
+          "wave_index": 6
+        },
+        {
+          "name": "Wave 7: Recipient Governance",
+          "objective": "Recipient adds gated by quorum; rotate flow on removal",
+          "wave_index": 7
+        },
+        {
+          "name": "Wave 8: Release & Install Hardening",
+          "objective": "Signed, attested, multi-channel installs",
+          "wave_index": 8
+        },
+        {
+          "name": "Wave 9: DevX Polish",
+          "objective": "README/Make/automation tell the story",
+          "wave_index": 9
+        }
+      ]
+    },
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-4ff0",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "execution_plan_sdlc/autopilot",
+    "state": "ready_for_design",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Thimble hardening plan",
+    "type": "execution_plan",
+    "updated_at": "2026-05-07T06:19:00.044343Z",
+    "workflow_id": "execution_plan_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0116-ec35-7e41-bfb5-68931d68f772"
+  }
+}

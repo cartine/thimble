@@ -1,0 +1,37 @@
+{
+  "event_id": "019e01a1-944a-7980-bc2f-ef7d82c02414",
+  "occurred_at": "2026-05-07T08:50:27.018106Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-634c",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Suppress producer stderr by default",
+    "type": "work",
+    "updated_at": "2026-05-07T08:50:27.018106Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e01a1-9414-7df3-8875-9909259e4b0b"
+  }
+}

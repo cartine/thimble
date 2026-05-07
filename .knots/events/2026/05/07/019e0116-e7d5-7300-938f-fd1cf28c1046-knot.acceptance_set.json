@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e7d5-7300-938f-fd1cf28c1046",
+  "occurred_at": "2026-05-07T06:18:58.892823Z",
+  "knot_id": "thimble-8644",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `thimble web` prints, before the URL line, a 3-line block: ``` Thimble web is a SINGLE-OPERATOR LOCAL TOOL. For shared/production workflows, use the CLI. Token rotates every 15m; press Ctrl+C to stop. ```\n2. The first page of the UI shows the same banner in muted styling (it's already half-there with the \"values stay redacted\" pill — extend it)."
+  }
+}

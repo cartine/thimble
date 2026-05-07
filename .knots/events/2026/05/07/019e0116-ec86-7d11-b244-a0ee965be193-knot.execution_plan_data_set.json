@@ -1,0 +1,144 @@
+{
+  "event_id": "019e0116-ec86-7d11-b244-a0ee965be193",
+  "occurred_at": "2026-05-07T06:19:00.102377Z",
+  "knot_id": "thimble-4ff0",
+  "type": "knot.execution_plan_data_set",
+  "data": {
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-16a2"
+              ],
+              "step_index": 1
+            },
+            {
+              "knot_ids": [
+                "thimble-ddde"
+              ],
+              "step_index": 2
+            },
+            {
+              "knot_ids": [
+                "thimble-9ad5"
+              ],
+              "step_index": 3
+            },
+            {
+              "knot_ids": [
+                "thimble-2bb2"
+              ],
+              "step_index": 4
+            }
+          ],
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-63bd",
+                "thimble-2c3a",
+                "thimble-aee1",
+                "thimble-e6d7",
+                "thimble-a7b4",
+                "thimble-584f"
+              ],
+              "step_index": 1
+            }
+          ],
+          "wave_index": 2
+        },
+        {
+          "name": "Wave 3: Code Structure",
+          "objective": "main.go split into auditable packages with clear trust boundaries",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-35f3"
+              ],
+              "step_index": 1
+            }
+          ],
+          "wave_index": 3
+        },
+        {
+          "name": "Wave 4: CI / Quality Gates",
+          "objective": "PRs run vet, test, lint, vuln, and real-age integration",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-1ca7",
+                "thimble-bdf7",
+                "thimble-52a3",
+                "thimble-55e4",
+                "thimble-b3c1"
+              ],
+              "step_index": 1
+            }
+          ],
+          "wave_index": 4
+        },
+        {
+          "name": "Wave 5: Runtime Security Hardening",
+          "objective": "Close the runtime threat-model items: age trust, identity hygiene, locks, audit, ops",
+          "steps": [
+            {
+              "knot_ids": [
+                "thimble-1378",
+                "thimble-8a63",
+                "thimble-fd65",
+                "thimble-60c1",
+                "thimble-634c",
+                "thimble-29b9",
+                "thimble-ec22",
+                "thimble-92ea",
+                "thimble-76cd"
+              ],
+              "step_index": 1
+            },
+            {
+              "knot_ids": [
+                "thimble-0510",
+                "thimble-ae92",
+                "thimble-1756"
+              ],
+              "step_index": 2
+            }
+          ],
+          "wave_index": 5
+        },
+        {
+          "name": "Wave 6: Web UI Hardening",
+          "objective": "Close web-surface items: cookies, host allowlist, cache, rotation, plaintext policy, scope",
+          "wave_index": 6
+        },
+        {
+          "name": "Wave 7: Recipient Governance",
+          "objective": "Recipient adds gated by quorum; rotate flow on removal",
+          "wave_index": 7
+        },
+        {
+          "name": "Wave 8: Release & Install Hardening",
+          "objective": "Signed, attested, multi-channel installs",
+          "wave_index": 8
+        },
+        {
+          "name": "Wave 9: DevX Polish",
+          "objective": "README/Make/automation tell the story",
+          "wave_index": 9
+        }
+      ]
+    }
+  },
+  "precondition": {
+    "profile_etag": "019e0116-ec70-7431-89d7-0220a1b0131c"
+  }
+}

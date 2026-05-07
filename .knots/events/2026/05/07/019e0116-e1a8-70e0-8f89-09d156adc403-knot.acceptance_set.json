@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e1a8-70e0-8f89-09d156adc403",
+  "occurred_at": "2026-05-07T06:18:57.310479Z",
+  "knot_id": "thimble-2c3a",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. New `SECURITY.md` contains: (a) supported-versions table, (b) private reporting channel (e.g. GitHub Private Vulnerability Reporting enabled, plus an email contact), (c) expected response SLA.\n2. The \"Security Agent Verdict: Approved\" line is removed — it overclaims given the Residual Risks list.\n3. Existing review/checklist content moves to `docs/security-review.md` with a date stamp and reviewer attribution.\n4. GitHub Security tab now displays the new policy."
+  }
+}

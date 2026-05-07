@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e83a-7c52-b4d1-222c4024c10e",
+  "occurred_at": "2026-05-07T06:18:58.998462Z",
+  "knot_id": "thimble-3745",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nRemoving a recipient does not invalidate plaintext or encrypted copies the\nformer peer already obtained. SECURITY.md acknowledges this. UX-wise, the\nright move is to make rotation the easy default after a removal.\n\nVerification:\n1. `thimble recipient remove <app> <env> <recipient> --rotate` regenerates every value created via `provision` (those marked random in metadata) and prompts for replacements on each non-random value.\n2. `--rotate-randoms-only` skips interactive prompts and only rotates the high-entropy generated keys.\n3. A summary at the end lists keys rotated, keys skipped, and keys that still need attention out of band (\"STRIPE_KEY: rotate via Stripe dashboard\").\n4. Tests: provisioned key gets a fresh value; user-supplied key prompts correctly; cancel mid-flow leaves manifest in a consistent state (uses K-21 locks).\n\nConstraints:\n- Knot ref: K-37; wave/step 6.2; effort M; risk med\n- Files: internal/cli/, internal/store/, internal/age/\n- Depends on: K-36\n- Notes: Mark a value as \"provisioned\" in the manifest when it's set via `provision`\noutput (or via `and-set` from `provision`). That metadata is what\n`--rotate-randoms` uses; it never touches values whose origin we can't\ninfer."
+  }
+}

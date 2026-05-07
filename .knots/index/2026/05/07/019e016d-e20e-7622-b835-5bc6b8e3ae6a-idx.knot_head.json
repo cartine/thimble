@@ -1,0 +1,21 @@
+{
+  "event_id": "019e016d-e20e-7622-b835-5bc6b8e3ae6a",
+  "occurred_at": "2026-05-07T07:53:59.054923Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-80fd",
+    "profile_id": "lease",
+    "state": "lease_terminated",
+    "terminal": true,
+    "title": "Lease: claim-thimble-a7b4",
+    "type": "lease",
+    "updated_at": "2026-05-07T07:53:59.054923Z",
+    "workflow_id": "lease_sdlc"
+  }
+}

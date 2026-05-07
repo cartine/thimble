@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e8da-72d0-bf00-288ad3a11b52",
+  "occurred_at": "2026-05-07T06:18:59.158546Z",
+  "knot_id": "thimble-3e12",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nToday the release workflow has `permissions: contents: write` and produces\nunsigned tarballs. Add SLSA build provenance and (optionally) cosign\nsignatures so installers can verify provenance, not just checksum.\n\nVerification:\n1. Workflow gains `permissions: id-token: write, attestations: write, contents: write`.\n2. A step runs `actions/attest-build-provenance@v1` for each tarball.\n3. Optionally: a step runs `cosign sign-blob` keyless against each tarball and uploads `*.sig` and `*.bundle` to the release.\n4. `install.sh` has a verification path: prefer `gh attestation verify` if `gh` is on PATH, fall back to `cosign verify-blob` if `cosign` is on PATH, fall back to checksum-only with a warning.\n5. README \"Install\" section explains all three verification levels.\n\nConstraints:\n- Knot ref: K-40; wave/step 7.3; effort M; risk low (additive)\n- Files: .github/workflows/release.yml, scripts/install.sh\n- Notes: GitHub's attestation step is free and sufficient for \"trust the build came\nfrom this repo at this commit.\" Cosign adds the option to verify outside\nthe GitHub trust chain."
+  }
+}

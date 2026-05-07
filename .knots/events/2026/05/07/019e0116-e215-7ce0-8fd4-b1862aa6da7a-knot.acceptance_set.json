@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e215-7ce0-8fd4-b1862aa6da7a",
+  "occurred_at": "2026-05-07T06:18:57.420695Z",
+  "knot_id": "thimble-e6d7",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `CHANGELOG.md` exists with `[Unreleased]` and a backfilled `[0.1.0]` entry capturing the current state.\n2. README's install snippet pins to a real tag (see K-11).\n3. Future release workflow (K-40, K-48) generates entries from PR titles or conventional-commits scopes."
+  }
+}

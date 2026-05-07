@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01f8-7744-78e1-a062-28f4e37e5b2a",
+  "occurred_at": "2026-05-07T10:25:21.220814Z",
+  "knot_id": "thimble-f550",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation reviewed against acceptance criteria.\n\nAcceptance check:\n1. ✓ secrets/recipients.signed.toml policy file (TOML subset, hand-rolled parser, no third-party dep). Validates M ≥ 1, M ≤ N, no duplicates, recipient format.\n2. ✓ recipient add requires signatures (3-phase prepare/sign/commit) when policy present.\n3. ✓ --bootstrap valid only at <2 recipients; rejected at 2+ with clear message.\n4. ✓ recipient list prints prefix + thumbprint + recipient.\n5. ✓ Audit log Signers field captures signing thumbprints; Bootstrap field flags chicken-and-egg adds.\n6. ✓ Replay-resistant: canonical message includes <app>:<env>:<new>:<bundle-sha>:<nonce>, stale SHA rejected.\n7. ✓ Unforgeable: each operator's .sig is a re-encryption of the canonical message after decrypting their per-operator challenge with their private key.\n\nAll four verification commands pass: go build, go test, make lint, go test -tags integration.\n\nEnd-to-end smoke verified by hand against real age binary: bootstrap (1->2), policy file installed, prepare creates challenges, two operators sign, commit succeeds, new recipient can decrypt the bundle. Quorum-short flow returns '1/2 signatures present (need from bob or carol)'.\n\nFile sizes: all <500 lines per file, all functions <100 lines (lll/funlen pass).\n\nNo third-party deps added. Bespoke TOML subset parser handles the small surface area we accept.\n\nCommit: 3380eba8bcb54efc80001d1cd4d68c2dfb6a2703\nBranch: claude/elastic-clarke-9c0ed3",
+    "datetime": "2026-05-07T10:25:21.220814Z",
+    "entry_id": "019e01f8-7744-78e1-a062-28e2feeb361f",
+    "model": "unknown",
+    "username": "agent",
+    "version": "unknown"
+  }
+}

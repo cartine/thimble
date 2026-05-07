@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e847-7f43-ba7c-ca0ae90fa86f",
+  "occurred_at": "2026-05-07T06:18:58.998462Z",
+  "knot_id": "thimble-3745",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "risk-med"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e025d-396a-73a0-94e0-a13f4f3b82d3",
+  "occurred_at": "2026-05-07T12:15:24.506845Z",
+  "knot_id": "thimble-209a",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. main has a branch-protection rule requiring PR and the four status checks (build-test on both OSs, vuln, lint, integration).\n2. Direct pushes to main are rejected.\n3. tasks/reports/K-52-branch-protection.md documents the final rule."
+  }
+}

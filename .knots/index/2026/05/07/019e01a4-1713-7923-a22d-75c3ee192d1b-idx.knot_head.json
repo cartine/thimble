@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01a4-1713-7923-a22d-75c3ee192d1b",
+  "occurred_at": "2026-05-07T08:53:11.571836Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-29b9",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "`and-get --env` shell/docker guard",
+    "type": "work",
+    "updated_at": "2026-05-07T08:53:11.571836Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e696-7673-9121-bc7902d587b4",
+  "occurred_at": "2026-05-07T06:18:58.577803Z",
+  "knot_id": "thimble-1756",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nA one-shot health/setup check that surfaces every common pitfall before the\noperator hits it in production.\n\nVerification:\n1. `age` resolved path + version + SHA-256.\n2. Identity file: presence, mode (0600 expected), readable.\n3. Store directory: presence, mode (0700 expected), writeability.\n4. Manifest: parseable, no version conflicts, all referenced bundles exist.\n5. Web UI port (`127.0.0.1:8787` by default): availability.\n6. Recipient list per namespace: count, format (after K-20), thumbprints. Output is tabular; non-zero exit on any failure. Acceptance includes a test that constructs a deliberately-broken setup and asserts each diagnostic fires.\n\nConstraints:\n- Knot ref: K-29; wave/step 4.12; effort M; risk low\n- Files: internal/cli/, internal/doctor/\n- Depends on: K-18, K-19, K-21, K-28\n- Notes: This is the knot that's worth pointing CONTRIBUTING.md at: anyone setting\nup locally runs `thimble doctor` and gets a list of fixes."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "event_id": "019e01ab-bc6a-7f20-91c4-8fa310d3f1f8",
+  "occurred_at": "2026-05-07T09:01:32.65004Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-76cd",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "`thimble --version` subcommand",
+    "type": "work",
+    "updated_at": "2026-05-07T09:01:32.65004Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e01ab-bc39-7b02-9de7-1f493f0e1743"
+  }
+}

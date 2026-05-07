@@ -1,0 +1,14 @@
+{
+  "event_id": "019e015d-e03e-7c90-adcb-cd3ba07109ab",
+  "occurred_at": "2026-05-07T07:36:30.014113Z",
+  "knot_id": "thimble-16a2",
+  "type": "knot.profile_set",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "from_profile_id": "autopilot",
+    "from_state": "ready_for_planning",
+    "to_profile_id": "autopilot_no_planning",
+    "to_state": "ready_for_implementation"
+  }
+}

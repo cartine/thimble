@@ -1,0 +1,21 @@
+{
+  "event_id": "019e018b-7beb-7362-81e3-e188e39418e3",
+  "occurred_at": "2026-05-07T08:26:18.987949Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-55e4",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Integration test against real `age` binary",
+    "type": "work",
+    "updated_at": "2026-05-07T08:26:18.987949Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "event_id": "019e0221-ad04-7fb1-87d8-7e89de1da28d",
+  "occurred_at": "2026-05-07T11:10:21.9566Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-7461",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Demo GIF / asciinema in README",
+    "type": "work",
+    "updated_at": "2026-05-07T11:10:21.9566Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0221-9d9f-7970-a52e-c8bbe628683b"
+  }
+}

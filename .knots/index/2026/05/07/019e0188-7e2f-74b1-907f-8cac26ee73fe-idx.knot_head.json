@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0188-7e2f-74b1-907f-8cac26ee73fe",
+  "occurred_at": "2026-05-07T08:23:02.959241Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-52a3",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "PR CI: staticcheck + gosec",
+    "type": "work",
+    "updated_at": "2026-05-07T08:23:02.959241Z",
+    "workflow_id": "work_sdlc"
+  }
+}

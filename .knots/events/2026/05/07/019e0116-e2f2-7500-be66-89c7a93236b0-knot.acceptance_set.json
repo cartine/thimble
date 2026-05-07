@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e2f2-7500-be66-89c7a93236b0",
+  "occurred_at": "2026-05-07T06:18:57.640742Z",
+  "knot_id": "thimble-35f3",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `cmd/thimble/main.go` — entrypoint only, < 100 lines, just dispatches to `internal/cli`.\n2. `internal/cli/` — flag parsing, subcommand dispatch.\n3. `internal/store/` — manifest + envManifest + atomic writes.\n4. `internal/age/` — exec wrapper for `age` (encrypt, decrypt).\n5. `internal/dotenv/` — parse, encode, quoting.\n6. `internal/web/` — server, routes, template. Acceptance:\n7. All packages respect K-01 size budgets.\n8. All identifiers respect TAXONOMY.md (K-02/K-04).\n9. `go test ./...` passes; behavior unchanged.\n10. Public CLI surface unchanged.\n11. Each package has a 1–3 sentence package doc comment explaining its trust boundary (e.g. \"internal/age is the only package that handles plaintext outside of memory mapped within a single command\")."
+  }
+}

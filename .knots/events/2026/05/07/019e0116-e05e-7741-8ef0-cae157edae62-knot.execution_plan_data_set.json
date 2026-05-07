@@ -1,0 +1,11 @@
+{
+  "event_id": "019e0116-e05e-7741-8ef0-cae157edae62",
+  "occurred_at": "2026-05-07T06:18:56.990843Z",
+  "knot_id": "thimble-4ff0",
+  "type": "knot.execution_plan_data_set",
+  "data": {
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish."
+    }
+  }
+}

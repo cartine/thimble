@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e5c0-71b0-9d9e-d78f1706a1c4",
+  "occurred_at": "2026-05-07T06:18:58.368186Z",
+  "knot_id": "thimble-ec22",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\n`bufio.NewScanner` defaults to a 64 KiB token. A secret value larger than\nthat fails to parse with `bufio.ErrTooLong` — message is unhelpful, and\noperators have no idea their secret was silently truncated on the way in.\n\nVerification:\n1. Dotenv parser explicitly sets `scanner.Buffer` to a sensible max (e.g. 1 MiB).\n2. Beyond that limit, parser returns \"value on line N exceeds <limit> bytes; store it as a file or split it.\"\n3. Test for: 64 KiB+1 value round-trips fine; 1 MiB+1 value fails with the clear message.\n\nConstraints:\n- Knot ref: K-25; wave/step 4.8; effort S; risk low\n- Files: internal/dotenv/\n- Depends on: K-12\n- Notes: Don't go infinite — a truly enormous value pegs memory and is almost\ncertainly a mistake (e.g. someone piping a binary blob).",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Scanner buffer guard for huge values",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

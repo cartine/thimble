@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-ea21-7c00-9da9-9114dcaf1461",
+  "occurred_at": "2026-05-07T06:18:59.480833Z",
+  "knot_id": "thimble-7461",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Either an `asciinema` `.cast` file embedded via the asciinema-player shortcode, or a GIF (≤2 MB) under `assets/`.\n2. README's first section after the logo embeds the demo.\n3. The recording uses sample names that match the README's \"Real-Life Flow\" so a viewer can connect demo to docs.\n4. No real recipients or identities visible in the recording; use throwaway ones generated for the recording."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e76d-74c1-8bce-d5639f262855",
+  "occurred_at": "2026-05-07T06:18:58.789632Z",
+  "knot_id": "thimble-d228",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `thimble web rotate-token` (or a SIGUSR1 handler if simpler) regenerates the token, prints the new value to the controlling terminal, invalidates all existing sessions.\n2. `--idle-rotate=15m` (default) rotates the token after N minutes of no authenticated requests; existing sessions then re-authenticate.\n3. Tests cover: post-rotation, old cookies are 401; new token works; SIGUSR1 handling on platforms that support it."
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0181-f745-7141-a79e-db0949a7f7a0",
+  "occurred_at": "2026-05-07T08:15:55.205544Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-35f3",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Split main.go into packages",
+    "type": "work",
+    "updated_at": "2026-05-07T08:15:55.205544Z",
+    "workflow_id": "work_sdlc"
+  }
+}

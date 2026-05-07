@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e83e-7e33-bd1f-73c20656bebd",
+  "occurred_at": "2026-05-07T06:18:58.998462Z",
+  "knot_id": "thimble-3745",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `thimble recipient remove <app> <env> <recipient> --rotate` regenerates every value created via `provision` (those marked random in metadata) and prompts for replacements on each non-random value.\n2. `--rotate-randoms-only` skips interactive prompts and only rotates the high-entropy generated keys.\n3. A summary at the end lists keys rotated, keys skipped, and keys that still need attention out of band (\"STRIPE_KEY: rotate via Stripe dashboard\").\n4. Tests: provisioned key gets a fresh value; user-supplied key prompts correctly; cancel mid-flow leaves manifest in a consistent state (uses K-21 locks)."
+  }
+}

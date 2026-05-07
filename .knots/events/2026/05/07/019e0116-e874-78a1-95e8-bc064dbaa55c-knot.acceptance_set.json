@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e874-78a1-95e8-bc064dbaa55c",
+  "occurred_at": "2026-05-07T06:18:59.051526Z",
+  "knot_id": "thimble-a673",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `install.sh` aborts with a clear error if `checksums.txt` cannot be downloaded.\n2. `install.sh` aborts if the checksum line for the asset is missing.\n3. `install.sh` aborts on mismatch (already does, leave that path).\n4. New flag `THIMBLE_INSTALL_NO_VERIFY=1` exists for emergency reinstalls but prints a multi-line warning before proceeding.\n5. README \"Install\" section gains a one-line note that verification is mandatory by default."
+  }
+}

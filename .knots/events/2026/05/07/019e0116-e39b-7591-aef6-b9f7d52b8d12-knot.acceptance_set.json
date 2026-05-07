@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e39b-7591-aef6-b9f7d52b8d12",
+  "occurred_at": "2026-05-07T06:18:57.808989Z",
+  "knot_id": "thimble-52a3",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. CI runs `staticcheck ./...` and `gosec ./...` and fails on any finding.\n2. Initial pass may need an allowlist (e.g. `gosec` may flag the `exec.Command` for `age` shelling — document and exclude with a comment justifying).\n3. Each suppression has a comment naming the reason and a knot ID if a fix is planned."
+  }
+}

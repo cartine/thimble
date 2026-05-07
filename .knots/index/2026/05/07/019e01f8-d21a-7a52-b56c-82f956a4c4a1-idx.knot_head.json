@@ -1,0 +1,37 @@
+{
+  "event_id": "019e01f8-d21a-7a52-b56c-82f956a4c4a1",
+  "occurred_at": "2026-05-07T10:25:44.474714Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-f550",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Quorum-signed recipient list",
+    "type": "work",
+    "updated_at": "2026-05-07T10:25:44.474714Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e01f8-c26a-7f71-a3bd-28467527a885"
+  }
+}

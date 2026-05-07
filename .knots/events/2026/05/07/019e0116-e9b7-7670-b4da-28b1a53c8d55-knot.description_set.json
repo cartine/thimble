@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e9b7-7670-b4da-28b1a53c8d55",
+  "occurred_at": "2026-05-07T06:18:59.377986Z",
+  "knot_id": "thimble-cc5f",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nMany deploy hosts are Debian/Ubuntu. `apt-get install thimble` from a\nhosted apt repo (Cloudsmith, GitHub Pages with `apt-ftparchive`, or\nPackageCloud) is the cleanest install path for those hosts.\n\nVerification:\n1. Release workflow produces signed `.deb` packages for amd64 and arm64.\n2. An apt-compatible index is hosted (recommend GitHub Pages + `apt-ftparchive` for free).\n3. README \"Install\" gains a Debian section: `curl … | sudo apt-key add -` (or signed-by trusted.gpg.d), `echo \"deb …\" | sudo tee /etc/apt/sources.list.d/thimble.list`, `sudo apt-get install thimble`.\n4. The `.deb` post-install script does *not* generate identities; it only installs the binary.\n\nConstraints:\n- Knot ref: K-44; wave/step 7.7; effort L; risk low\n- Files: .github/workflows/release.yml, scripts/build-deb.sh\n- Depends on: K-40\n- Notes: This is the heaviest distribution channel; consider it L not M because of\nthe GPG signing key management story. Land it last in Wave 7 if at all."
+  }
+}

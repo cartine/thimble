@@ -1,0 +1,65 @@
+{
+  "event_id": "019e0116-eacd-7c70-b931-a8e4381bfcff",
+  "occurred_at": "2026-05-07T06:18:59.656913Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "wave_index": 2
+        }
+      ]
+    },
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-4ff0",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "execution_plan_sdlc/autopilot",
+    "state": "ready_for_design",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Thimble hardening plan",
+    "type": "execution_plan",
+    "updated_at": "2026-05-07T06:18:59.656913Z",
+    "workflow_id": "execution_plan_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0116-eab2-7d72-b2a5-a1cf9ec5d795"
+  }
+}

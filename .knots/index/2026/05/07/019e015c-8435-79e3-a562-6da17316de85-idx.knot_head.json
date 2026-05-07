@@ -1,0 +1,21 @@
+{
+  "event_id": "019e015c-8435-79e3-a562-6da17316de85",
+  "occurred_at": "2026-05-07T07:35:00.91716Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": "ready_for_planning",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-cc5f",
+    "profile_id": "autopilot",
+    "state": "deferred",
+    "terminal": false,
+    "title": "Distribution: Debian (.deb) repo",
+    "type": "work",
+    "updated_at": "2026-05-07T07:35:00.91716Z",
+    "workflow_id": "work_sdlc"
+  }
+}

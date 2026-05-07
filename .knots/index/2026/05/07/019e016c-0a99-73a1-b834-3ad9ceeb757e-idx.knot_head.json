@@ -1,0 +1,21 @@
+{
+  "event_id": "019e016c-0a99-73a1-b834-3ad9ceeb757e",
+  "occurred_at": "2026-05-07T07:51:58.361757Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-2c3a",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Replace SECURITY.md with vuln-reporting policy",
+    "type": "work",
+    "updated_at": "2026-05-07T07:51:58.361757Z",
+    "workflow_id": "work_sdlc"
+  }
+}

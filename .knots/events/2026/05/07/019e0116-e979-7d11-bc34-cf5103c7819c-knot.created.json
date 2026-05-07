@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e979-7d11-bc34-cf5103c7819c",
+  "occurred_at": "2026-05-07T06:18:59.321489Z",
+  "knot_id": "thimble-e385",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\n`scoop install thimble` for Windows operators. Required to support Windows\nwithout falling back to a hand-edited `install.ps1`.\n\nVerification:\n1. A `scoop-thimble` repo exists with a `bucket/thimble.json` manifest.\n2. Release workflow now also builds Windows binaries (`windows/amd64`, `windows/arm64`) and updates the manifest.\n3. `scoop bucket add thimble https://github.com/cartine/scoop-thimble && scoop install thimble` works on a clean Windows image.\n\nConstraints:\n- Knot ref: K-43; wave/step 7.6; effort M; risk low\n- Files: separate bucket repo (`scoop-thimble`), .github/workflows/release.yml\n- Depends on: K-40\n- Notes: This requires the release matrix to add Windows targets — which is fine,\nthe code has no Unix-only assumptions except possibly the file mode checks\n(K-19 already needs to handle Windows). Validate during the K-19 work.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Distribution: Scoop bucket",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

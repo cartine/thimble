@@ -1,0 +1,9 @@
+{
+  "event_id": "019e025d-3931-7012-b9f6-4074446dda15",
+  "occurred_at": "2026-05-07T12:15:24.45455Z",
+  "knot_id": "thimble-b761",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Pending dir is sharded as <store>/.pending-recipient-adds/<app>/<env>/...\n2. Concurrent recipient-add flows across namespaces don't see each other's signatures.\n3. Migration moves existing flat-layout pending files into the sharded layout on first use.\n4. docs/recipient-quorum.md updated to show the new path.\n5. Integration test exercises two-namespace concurrency."
+  }
+}

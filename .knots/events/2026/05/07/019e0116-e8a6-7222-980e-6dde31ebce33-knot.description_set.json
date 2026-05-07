@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e8a6-7222-980e-6dde31ebce33",
+  "occurred_at": "2026-05-07T06:18:59.105591Z",
+  "knot_id": "thimble-5d90",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nThe README's quickstart points at\n`raw.githubusercontent.com/cartine/thimble/main/scripts/install.sh`. Anyone\nwith push access to `main` can change the install script for everyone in\nflight. Pin the URL.\n\nVerification:\n1. README quickstart's `curl … install.sh | sh` URL points at a tagged commit, e.g. `…/raw/v0.1.0/scripts/install.sh`.\n2. The release workflow uploads `install.sh` itself as a release asset; the README also documents `curl …/releases/latest/download/install.sh | sh` as an alternative.\n3. The script's first line prints its own SHA-256 (computed at build time) so an operator can spot-check.\n\nConstraints:\n- Knot ref: K-39; wave/step 7.2; effort S; risk med\n- Files: scripts/install.sh, README.md\n- Depends on: K-38\n- Notes: Cheap. Do at the same time as K-38 to avoid two README-edit PRs."
+  }
+}

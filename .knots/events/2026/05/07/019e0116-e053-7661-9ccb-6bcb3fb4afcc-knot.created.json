@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e053-7661-9ccb-6bcb3fb4afcc",
+  "occurred_at": "2026-05-07T06:18:56.979211Z",
+  "knot_id": "thimble-4ff0",
+  "type": "knot.created",
+  "data": {
+    "body": "Parent execution_plan for the 48-knot Thimble hardening rollout. See tasks/knot-plan.md for the human-readable map and tasks/knots/K-NN-*.md for individual knot drafts.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "execution_plan_sdlc/autopilot",
+    "state": "ready_for_design",
+    "title": "Thimble hardening plan",
+    "type": "execution_plan",
+    "workflow_id": "execution_plan_sdlc"
+  }
+}

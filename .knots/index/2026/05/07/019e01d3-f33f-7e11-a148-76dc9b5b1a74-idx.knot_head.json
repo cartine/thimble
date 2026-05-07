@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01d3-f33f-7e11-a148-76dc9b5b1a74",
+  "occurred_at": "2026-05-07T09:45:28.127441Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-fd95",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "`Cache-Control: no-store` on web responses",
+    "type": "work",
+    "updated_at": "2026-05-07T09:45:28.127441Z",
+    "workflow_id": "work_sdlc"
+  }
+}

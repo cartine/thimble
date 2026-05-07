@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e2b2-72f2-b41b-449685178f28",
+  "occurred_at": "2026-05-07T06:18:57.586682Z",
+  "knot_id": "thimble-584f",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nThe README's `THIMBLE_VERSION=v0.1.0` references a tag that does not exist in\nthis repo. Either ship `v0.1.0` (preferred) or use a `vX.Y.Z` placeholder.\n\nVerification:\n1. Either:\n2. Tag `v0.1.0` exists, the release pipeline produced its artifacts, and the README example continues to use `v0.1.0`; OR\n3. The README example uses `vX.Y.Z` with a sentence pointing readers at the \"latest release\" page.\n4. README's \"latest\" curl-pipe-sh example still works — verified by running it in a clean container.\n\nConstraints:\n- Knot ref: K-11; wave/step 1.7; effort S; risk low\n- Files: README.md\n- Notes: If pursuing the first option, this knot is gated on K-08 (CHANGELOG) and the\nrelease workflow already in place.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Pin README install example to a real tag",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0212-03d1-7be1-b362-dba78f251def",
+  "occurred_at": "2026-05-07T10:53:15.60163Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-3e12",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Release: sigstore attestation + GH attest",
+    "type": "work",
+    "updated_at": "2026-05-07T10:53:15.60163Z",
+    "workflow_id": "work_sdlc"
+  }
+}

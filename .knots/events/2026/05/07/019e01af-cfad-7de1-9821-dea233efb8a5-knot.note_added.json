@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01af-cfad-7de1-9821-dea233efb8a5",
+  "occurred_at": "2026-05-07T09:05:59.725508Z",
+  "knot_id": "thimble-0510",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Plan: 1) Add BundleSHA256 string field to EnvManifest in internal/store/manifest.go. 2) Add internal/store/sha.go: helper computeSHA256(path) returning hex. 3) Modify encryptAndWrite to compute SHA after writing ciphertext, set meta.BundleSHA256 (caller updates manifest entry); restructure to return updated meta. 4) Modify decrypt to verify SHA before shelling out to age; if manifest SHA empty, populate via decrypt-and-rewrite cycle and emit one-time stderr note. 5) Add internal/store/Verify(app,env) returning verification report struct. 6) Add internal/cli/run_verify.go with runVerify dispatch handler. 7) Update printUsage. 8) Update README with bullet under Peer Safety Rules. 9) Tests: round-trip populates SHA; tampering causes rejection; old manifest upgrades cleanly. 10) Extend integration test for SHA-mismatch rejection.",
+    "datetime": "2026-05-07T09:05:59.725508Z",
+    "entry_id": "019e01af-cfad-7de1-9821-de977aa858af",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

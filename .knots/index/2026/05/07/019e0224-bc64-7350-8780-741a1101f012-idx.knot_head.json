@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0224-bc64-7350-8780-741a1101f012",
+  "occurred_at": "2026-05-07T11:13:42.500184Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-a5a3",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Makefile targets",
+    "type": "work",
+    "updated_at": "2026-05-07T11:13:42.500184Z",
+    "workflow_id": "work_sdlc"
+  }
+}

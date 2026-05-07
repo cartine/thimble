@@ -1,0 +1,9 @@
+{
+  "event_id": "019e025d-38f4-7ca1-b2a4-27b6e3e7d50c",
+  "occurred_at": "2026-05-07T12:15:24.391623Z",
+  "knot_id": "thimble-bdaa",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. recipients.signed.toml changes require quorum signatures from the OLD operators list.\n2. Manifest (or sibling file) stores a policy hash; mismatched hash rejects subsequent quorum-gated ops with a clear error.\n3. New `--bootstrap-policy` flag handles first-time enrolment when no policy hash exists yet.\n4. Tests cover: bootstrap path, quorum-satisfied policy update, quorum-short rejection, stale-policy detection.\n5. docs/recipient-quorum.md and SECURITY.md updated."
+  }
+}

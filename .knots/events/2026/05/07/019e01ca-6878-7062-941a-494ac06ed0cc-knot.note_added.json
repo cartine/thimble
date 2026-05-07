@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01ca-6878-7062-941a-494ac06ed0cc",
+  "occurred_at": "2026-05-07T09:35:02.776549Z",
+  "knot_id": "thimble-c8e3",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "K-30 plan: 1) Add /login GET handler that renders one-field token form; 2) Add /login POST that ConstantTimeCompares token, sets thimble_session cookie (HttpOnly, SameSite=Strict, Path=/, Max-Age=3600, Secure only when non-loopback), redirects to /; 3) Add /logout GET handler that clears cookie and redirects to /login; 4) Refactor authorized() to read cookie; on miss for protected routes render the login form (200 OK with form, 401 only on wrong token submit); 5) Update all template links/forms to remove ?token= and remove hidden token inputs; 6) Update redirectWith to drop token; 7) Update runWeb to print http://addr/ and a separate Token: line; 8) Update server_test.go: remove ?token, use cookie; new tests for missing cookie, wrong token, correct token + Set-Cookie attrs, subsequent requests, logout. Files: internal/web/server.go, internal/web/template.html, internal/cli/run_web.go, internal/web/server_test.go. Add new internal/web/cookie.go to keep server.go under 500 lines.",
+    "datetime": "2026-05-07T09:35:02.776549Z",
+    "entry_id": "019e01ca-6878-7062-941a-49338becd7ad",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

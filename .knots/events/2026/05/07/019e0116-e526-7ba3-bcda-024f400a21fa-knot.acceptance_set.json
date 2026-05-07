@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e526-7ba3-bcda-024f400a21fa",
+  "occurred_at": "2026-05-07T06:18:58.204904Z",
+  "knot_id": "thimble-0510",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Manifest stores `bundle_sha256` for each `envManifest`. On decrypt/render, Thimble recomputes and rejects if mismatched.\n2. Optional: manifest is signed by one operator's age identity (or a sigstore signature) covering all `bundle_sha256`s and the recipient list. Verified before any write proceeds.\n3. `thimble verify <app> <env>` subcommand prints the bundle SHA, the manifest signature status, and the recipient list with thumbprints.\n4. README \"Peer Safety Rules\" gains a bullet about reviewing `bundle_sha256` changes alongside ciphertext changes."
+  }
+}

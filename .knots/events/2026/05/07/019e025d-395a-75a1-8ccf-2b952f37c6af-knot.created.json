@@ -1,0 +1,17 @@
+{
+  "event_id": "019e025d-395a-75a1-8ccf-2b952f37c6af",
+  "occurred_at": "2026-05-07T12:15:24.506845Z",
+  "knot_id": "thimble-209a",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nBranch protection on `main` is the missing operational control after\nWave 4 wired up CI. Without it, the build-test/vuln/lint/integration\ngates we built can be bypassed by a direct push or a force-push.\nGitHub's branch-protection settings require a human at the UI to\nconfigure them; this knot is the human gate that records that\nconfiguration as done.\n\nVerification:\n1. Visit https://github.com/cartine/thimble/settings/branches\n2. Add a branch protection rule for `main` with:\n   - Require pull request before merging.\n   - Require status checks to pass before merging:\n     - `build-test (ubuntu-latest)`\n     - `build-test (macos-latest)`\n     - `vuln`\n     - `lint`\n     - `integration`\n   - Require branches to be up to date before merging (linear history).\n   - Restrict pushes that create matching branches (no direct push to main).\n   - Optionally: require signed commits, require code review (1 approval).\n3. Save the rule.\n4. Confirm by attempting a direct push to main from a branch that\n   bypasses CI — it should be rejected.\n5. Confirm by opening a PR with a deliberately failing change — the\n   PR should be blocked until checks pass.\n6. Add a screenshot or a `gh api` snippet output to\n   `tasks/reports/K-52-branch-protection.md` documenting the final\n   rule configuration.\n\nConstraints:\n- Knot ref: K-52; type: gate (human-owned).\n- Files: tasks/reports/K-52-branch-protection.md (new, post-config evidence).\n- This is a configuration knot, not a code change. There is no commit\n  to tag with `commit:<sha>` — instead, attach a tag like\n  `evidence:tasks/reports/K-52-branch-protection.md` once the report\n  exists.\n- Notes: requires admin access to the cartine/thimble repo. The agent\n  cannot configure branch protection programmatically without that\n  access, so this is intentionally a human gate.",
+    "gate": {
+      "owner_kind": "human"
+    },
+    "profile_id": "evaluate",
+    "state": "ready_to_evaluate",
+    "title": "Configure branch protection on main",
+    "type": "gate",
+    "workflow_id": "gate_sdlc"
+  }
+}

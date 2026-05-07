@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e4b5-7cb2-b47c-3450de692f56",
+  "occurred_at": "2026-05-07T06:18:58.092978Z",
+  "knot_id": "thimble-fd65",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `validateRecipient` accepts only:\n2. `age1` followed by a Bech32 charset of expected length (X25519 recipients).\n3. SSH recipients beginning with `ssh-ed25519 ` or `ssh-rsa ` followed by a base64 blob and optional comment.\n4. Anything else fails with a precise message: \"expected `age1…` or `ssh-ed25519 …`/`ssh-rsa …`; got `<truncated input>`.\"\n5. Tests cover: valid age1, valid ssh-ed25519, malformed age0 (rejected), random string (rejected), trailing newline trimmed, leading dash rejected."
+  }
+}

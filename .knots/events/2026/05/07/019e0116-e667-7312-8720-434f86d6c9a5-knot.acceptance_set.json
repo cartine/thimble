@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e667-7312-8720-434f86d6c9a5",
+  "occurred_at": "2026-05-07T06:18:58.526075Z",
+  "knot_id": "thimble-76cd",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `thimble --version` and `thimble version` both print: `thimble vX.Y.Z (commit abc1234, built 2026-05-07T14:00:00Z, go1.25.0)`.\n2. Release workflow injects version/commit/date via `-ldflags=\"-X main.version=…\"` etc.\n3. Local builds without ldflags print `dev` for version and the git short SHA if available, otherwise `unknown`."
+  }
+}

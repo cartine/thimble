@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-ea93-7271-806b-be7deb9357f4",
+  "occurred_at": "2026-05-07T06:18:59.586553Z",
+  "knot_id": "thimble-a4df",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "risk-med (touches the release pipeline)"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e69a-77b0-b819-47f5caa0f96f",
+  "occurred_at": "2026-05-07T06:18:58.577803Z",
+  "knot_id": "thimble-1756",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `age` resolved path + version + SHA-256.\n2. Identity file: presence, mode (0600 expected), readable.\n3. Store directory: presence, mode (0700 expected), writeability.\n4. Manifest: parseable, no version conflicts, all referenced bundles exist.\n5. Web UI port (`127.0.0.1:8787` by default): availability.\n6. Recipient list per namespace: count, format (after K-20), thumbprints. Output is tabular; non-zero exit on any failure. Acceptance includes a test that constructs a deliberately-broken setup and asserts each diagnostic fires."
+  }
+}

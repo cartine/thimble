@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01bf-eb80-7540-9ceb-10383dc1c266",
+  "occurred_at": "2026-05-07T09:23:35.424766Z",
+  "knot_id": "thimble-1756",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Plan: 1) Create internal/doctor/doctor.go with Run(ctx, store, ageTool, opts) Report. CheckResult{Name, Status, Detail} struct. 2) Sub-files for each check: age (resolved path, version, sha256 of binary), identity (presence, mode 0600), store (presence, mode 0700, writeable), manifest (parseable, no version conflict, bundles exist), bundles (per-namespace SHA-256 match), web port (TCP listen probe on 127.0.0.1:8787), recipients (count + prefix + thumbprint). 3) Add CONTRIBUTING.md 'Setup verification' section. 4) Update README install section with one-line pointer. 5) Add internal/cli/run_doctor.go: --json flag for machine-readable; tabular default with red/yellow/green ANSI when stdout is a terminal; non-zero exit on any fail. 6) Tests: deliberately broken setup in temp dir asserts each diagnostic fires.",
+    "datetime": "2026-05-07T09:23:35.424766Z",
+    "entry_id": "019e01bf-eb80-7540-9ceb-1020ad34c184",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e482-7410-9f5d-967fb09315ec",
+  "occurred_at": "2026-05-07T06:18:58.034534Z",
+  "knot_id": "thimble-8a63",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "wave-4"
+  }
+}

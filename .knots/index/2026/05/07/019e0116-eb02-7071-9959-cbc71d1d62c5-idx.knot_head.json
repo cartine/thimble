@@ -1,0 +1,75 @@
+{
+  "event_id": "019e0116-eb02-7071-9959-cbc71d1d62c5",
+  "occurred_at": "2026-05-07T06:18:59.708965Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "wave_index": 2
+        },
+        {
+          "name": "Wave 3: Code Structure",
+          "objective": "main.go split into auditable packages with clear trust boundaries",
+          "wave_index": 3
+        },
+        {
+          "name": "Wave 4: CI / Quality Gates",
+          "objective": "PRs run vet, test, lint, vuln, and real-age integration",
+          "wave_index": 4
+        }
+      ]
+    },
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-4ff0",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "execution_plan_sdlc/autopilot",
+    "state": "ready_for_design",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Thimble hardening plan",
+    "type": "execution_plan",
+    "updated_at": "2026-05-07T06:18:59.708965Z",
+    "workflow_id": "execution_plan_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0116-eae8-7e13-810c-27ea594b9ecd"
+  }
+}

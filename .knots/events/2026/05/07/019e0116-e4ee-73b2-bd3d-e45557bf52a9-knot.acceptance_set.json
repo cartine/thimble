@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e4ee-73b2-bd3d-e45557bf52a9",
+  "occurred_at": "2026-05-07T06:18:58.14821Z",
+  "knot_id": "thimble-60c1",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Each `envManifest` carries a monotonic `Version` (or per-namespace ETag).\n2. `saveManifest` reads the on-disk manifest under an exclusive `flock` of `secrets/thimble.json`, checks the version matches the one this command loaded, and refuses with a clear \"another writer changed <app>/<env>; rerun\" if not.\n3. Reads (`list`, `render`) take a shared lock.\n4. Tests cover: two goroutines mutating different keys → second one fails cleanly; same key → second one fails cleanly; lock released on panic."
+  }
+}

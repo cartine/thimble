@@ -1,0 +1,21 @@
+{
+  "event_id": "019e015c-83f9-7f41-88c4-247c4978c79e",
+  "occurred_at": "2026-05-07T07:35:00.857257Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": "ready_for_planning",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-7f03",
+    "profile_id": "autopilot",
+    "state": "deferred",
+    "terminal": false,
+    "title": "Distribution: Homebrew tap",
+    "type": "work",
+    "updated_at": "2026-05-07T07:35:00.857257Z",
+    "workflow_id": "work_sdlc"
+  }
+}

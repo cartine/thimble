@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-ea82-7d83-8b61-9c5a66bba2b5",
+  "occurred_at": "2026-05-07T06:18:59.586553Z",
+  "knot_id": "thimble-a4df",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nReleases-as-a-button. Today, cutting a release means pushing a tag and\nhoping the workflow is healthy. Wrap that into one target that's safe to\nrun.\n\nVerification:\n1. `make tag-release VERSION=v0.1.1` does: 1. Refuses if working tree is dirty or branch != `main`. 2. Refuses if `CHANGELOG.md` does not have an entry for `VERSION`. 3. Tags and pushes. 4. Watches the release workflow via `gh run watch`. 5. After workflow success, downloads each artifact, verifies checksum against published `checksums.txt`, runs `gh attestation verify` (K-40). 6. Prints a single \"ready\" line with the release URL on success, or a diagnostic on failure.\n2. Tests / dry runs: `--dry-run` flag prints the steps without acting.\n\nConstraints:\n- Knot ref: K-48; wave/step 8.3; effort M; risk med (touches the release pipeline)\n- Files: Makefile, scripts/tag-release.sh\n- Depends on: K-08, K-40, K-41, K-47\n- Notes: This is the closing knot of the plan. After it lands, every step from\n\"I want to release\" to \"I can recommend operators upgrade\" is reproducible\nand observable.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "`make tag-release` automation",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

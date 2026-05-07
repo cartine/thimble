@@ -1,0 +1,21 @@
+{
+  "event_id": "019e016e-2cc1-7f31-a7e3-9b3ed6de58d0",
+  "occurred_at": "2026-05-07T07:54:18.177056Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-584f",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Pin README install example to a real tag",
+    "type": "work",
+    "updated_at": "2026-05-07T07:54:18.177056Z",
+    "workflow_id": "work_sdlc"
+  }
+}

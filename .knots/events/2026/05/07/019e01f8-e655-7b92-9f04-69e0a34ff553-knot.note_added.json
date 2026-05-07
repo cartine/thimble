@@ -1,0 +1,15 @@
+{
+  "event_id": "019e01f8-e655-7b92-9f04-69e0a34ff553",
+  "occurred_at": "2026-05-07T10:25:49.653227Z",
+  "knot_id": "thimble-f550",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment review: commit 3380eba8 tagged on knot; branch claude/elastic-clarke-9c0ed3 tagged on knot. All four local verification commands pass (go build, go test, make lint, go test -tags integration). Per session constraints, the change is on the feature branch only — main-branch merge happens outside this session.",
+    "datetime": "2026-05-07T10:25:49.653227Z",
+    "entry_id": "019e01f8-e655-7b92-9f04-69da1c6adc3f",
+    "model": "unknown",
+    "username": "agent",
+    "version": "unknown"
+  }
+}

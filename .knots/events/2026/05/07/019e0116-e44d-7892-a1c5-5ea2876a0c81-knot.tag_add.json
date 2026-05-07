@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e44d-7892-a1c5-5ea2876a0c81",
+  "occurred_at": "2026-05-07T06:18:57.977088Z",
+  "knot_id": "thimble-1378",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "risk-high (single biggest runtime trust gap)"
+  }
+}

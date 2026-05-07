@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e9bb-7bf2-8c91-7ad39017fd1e",
+  "occurred_at": "2026-05-07T06:18:59.377986Z",
+  "knot_id": "thimble-cc5f",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Release workflow produces signed `.deb` packages for amd64 and arm64.\n2. An apt-compatible index is hosted (recommend GitHub Pages + `apt-ftparchive` for free).\n3. README \"Install\" gains a Debian section: `curl … | sudo apt-key add -` (or signed-by trusted.gpg.d), `echo \"deb …\" | sudo tee /etc/apt/sources.list.d/thimble.list`, `sudo apt-get install thimble`.\n4. The `.deb` post-install script does *not* generate identities; it only installs the binary."
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e019a-f307-7e83-9211-3f1c41db60f8",
+  "occurred_at": "2026-05-07T08:43:12.519113Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-fd65",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Strict recipient format validation",
+    "type": "work",
+    "updated_at": "2026-05-07T08:43:12.519113Z",
+    "workflow_id": "work_sdlc"
+  }
+}

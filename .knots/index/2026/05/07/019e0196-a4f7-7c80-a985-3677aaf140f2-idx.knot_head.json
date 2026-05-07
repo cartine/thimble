@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0196-a4f7-7c80-a985-3677aaf140f2",
+  "occurred_at": "2026-05-07T08:38:30.391794Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-8a63",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Identity-file mode sanity check",
+    "type": "work",
+    "updated_at": "2026-05-07T08:38:30.391794Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "event_id": "019e0116-eb4d-7c30-9aa7-fafac21064c1",
+  "occurred_at": "2026-05-07T06:18:59.789404Z",
+  "knot_id": "thimble-4ff0",
+  "type": "knot.execution_plan_data_set",
+  "data": {
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "wave_index": 2
+        },
+        {
+          "name": "Wave 3: Code Structure",
+          "objective": "main.go split into auditable packages with clear trust boundaries",
+          "wave_index": 3
+        },
+        {
+          "name": "Wave 4: CI / Quality Gates",
+          "objective": "PRs run vet, test, lint, vuln, and real-age integration",
+          "wave_index": 4
+        },
+        {
+          "name": "Wave 5: Runtime Security Hardening",
+          "objective": "Close the runtime threat-model items: age trust, identity hygiene, locks, audit, ops",
+          "wave_index": 5
+        },
+        {
+          "name": "Wave 6: Web UI Hardening",
+          "objective": "Close web-surface items: cookies, host allowlist, cache, rotation, plaintext policy, scope",
+          "wave_index": 6
+        },
+        {
+          "name": "Wave 7: Recipient Governance",
+          "objective": "Recipient adds gated by quorum; rotate flow on removal",
+          "wave_index": 7
+        }
+      ]
+    }
+  },
+  "precondition": {
+    "profile_etag": "019e0116-eb37-7eb1-8f4a-23b283351e04"
+  }
+}

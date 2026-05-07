@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e1da-7e23-aa2e-77e8e42fa76c",
+  "occurred_at": "2026-05-07T06:18:57.365771Z",
+  "knot_id": "thimble-aee1",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nLower the bar for outside review. A CONTRIBUTING.md is itself a security\ncontrol: more eyeballs catch more issues earlier.\n\nVerification:\n1. Repo layout (post-K-12 package structure).\n2. How to run tests locally, including the integration job from K-16.\n3. The threat model (or pointer to README's threat-model section after K-09).\n4. How a release is cut (after K-48 lands, link to that target).\n5. Coding standards: size budgets from K-01, taxonomy from K-02.\n6. Required PR checks (after Wave 3 lands).\n\nConstraints:\n- Knot ref: K-07; wave/step 1.3; effort S; risk low\n- Files: CONTRIBUTING.md (new)\n- Notes: Keep it under 200 lines. A long CONTRIBUTING.md is read by no one."
+  }
+}

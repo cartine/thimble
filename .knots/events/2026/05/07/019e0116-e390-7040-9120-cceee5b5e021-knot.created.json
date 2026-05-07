@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e390-7040-9120-cceee5b5e021",
+  "occurred_at": "2026-05-07T06:18:57.808989Z",
+  "knot_id": "thimble-52a3",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nLayer static analysis on top of `go vet`. `staticcheck` catches Go-idiomatic\nbugs; `gosec` catches security smells (path traversal, weak RNG, unsafe\nshell, hardcoded creds).\n\nVerification:\n1. CI runs `staticcheck ./...` and `gosec ./...` and fails on any finding.\n2. Initial pass may need an allowlist (e.g. `gosec` may flag the `exec.Command` for `age` shelling — document and exclude with a comment justifying).\n3. Each suppression has a comment naming the reason and a knot ID if a fix is planned.\n\nConstraints:\n- Knot ref: K-15; wave/step 3.3; effort S; risk low\n- Files: .github/workflows/ci.yml, .staticcheck.conf, .gosec.yaml (optional)\n- Depends on: K-13\n- Notes: Resist the urge to broadly suppress; prefer fixing the underlying smell.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "PR CI: staticcheck + gosec",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

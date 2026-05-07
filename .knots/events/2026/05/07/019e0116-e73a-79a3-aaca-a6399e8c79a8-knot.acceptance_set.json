@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e73a-79a3-aaca-a6399e8c79a8",
+  "occurred_at": "2026-05-07T06:18:58.736616Z",
+  "knot_id": "thimble-fd95",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Every response from `internal/web` carries `Cache-Control: no-store, no-cache, must-revalidate` and `Pragma: no-cache`.\n2. Verified by integration test (existing `TestWebUIRequiresTokenAndRedactsValues` extended)."
+  }
+}

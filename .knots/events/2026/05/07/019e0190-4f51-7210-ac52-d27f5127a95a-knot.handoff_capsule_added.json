@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0190-4f51-7210-ac52-d27f5127a95a",
+  "occurred_at": "2026-05-07T08:31:35.249353Z",
+  "knot_id": "thimble-1378",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "K-18 plan: add age.Resolve(binary, sha256Pin) -> abs path. Wire --age-binary flag and THIMBLE_AGE_BINARY/THIMBLE_AGE_SHA256 env vars from internal/cli/cli.go through to internal/store via store.New options. Add --verbose top-level flag that prints resolved binary once on first use. Update README Requirements to call out the binary as a trust boundary, SECURITY.md to flag residual risk if pinning is not used. Test: TestResolve covers no-pin OK, matching-pin OK, mismatched-pin error, missing-binary error. TODO comment in age.go references K-29 doctor consuming the resolved path.",
+    "datetime": "2026-05-07T08:31:35.249353Z",
+    "entry_id": "019e0190-4f51-7210-ac52-d2694681f229",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

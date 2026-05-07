@@ -1,0 +1,31 @@
+{
+  "event_id": "019e0116-eae3-7d93-a68b-5a32648823a8",
+  "occurred_at": "2026-05-07T06:18:59.683095Z",
+  "knot_id": "thimble-4ff0",
+  "type": "knot.execution_plan_data_set",
+  "data": {
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "wave_index": 2
+        },
+        {
+          "name": "Wave 3: Code Structure",
+          "objective": "main.go split into auditable packages with clear trust boundaries",
+          "wave_index": 3
+        }
+      ]
+    }
+  },
+  "precondition": {
+    "profile_etag": "019e0116-eacd-7c70-b931-a8e4381bfcff"
+  }
+}

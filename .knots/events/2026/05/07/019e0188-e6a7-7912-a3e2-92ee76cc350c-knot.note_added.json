@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0188-e6a7-7912-a3e2-92ee76cc350c",
+  "occurred_at": "2026-05-07T08:23:29.70392Z",
+  "knot_id": "thimble-55e4",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Plan for K-16:\n\n1. Add `//go:build integration` test at internal/store/store_integration_test.go.\n   Test plan:\n   - t.TempDir() for the secrets root.\n   - Resolve real `age` and `age-keygen` from PATH; t.Skip if missing so\n     `go test ./...` in dev still passes.\n   - Generate an identity via `age-keygen -o id.txt`, parse the public key\n     from the `# public key:` header line.\n   - store.New(root, identity); s.Init(\"svc\",\"prod\", []string{pubkey}).\n   - SetSecret K1=v1; CreateSecret K2=v2; ListSecrets returns sorted [K1 K2].\n   - Render returns \"K1=v1\\nK2=v2\\n\".\n   - Generate a 2nd identity, AddRecipient its pubkey, Render still returns\n     same plaintext, RemoveRecipient drops it back to one recipient.\n   - Final RemoveRecipient on the last recipient must error (invariant).\n\n2. Add an `integration` make target: `go test -tags integration -timeout 60s ./...`.\n\n3. Add `integration` job to .github/workflows/ci.yml:\n   - runs-on: ubuntu-latest\n   - apt-get update && apt-get install -y age\n   - actions/setup-go@v5 with go-version-file\n   - go test -tags integration -timeout 60s ./...\n\nRisks:\n- age not available on stock ubuntu-latest images: apt-get works on jammy\n  (22.04) and noble (24.04). ubuntu-latest currently maps to 24.04 which\n  ships `age` in universe.\n- Identity parsing: age-keygen writes `# public key: age1...` as the\n  second line. Parse defensively (regex `age1[a-z0-9]+`).\n\nOut of scope:\n- macOS integration job (knot says Ubuntu sufficient).\n- A new package under internal/age/*_integration_test.go (knot suggests\n  store/ instead because the lifecycle goes through Store).\n\nEffort: M.  Touches one new test file, one Makefile target, one CI job.",
+    "datetime": "2026-05-07T08:23:29.70392Z",
+    "entry_id": "019e0188-e6a7-7912-a3e2-92dfc3f8293e",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

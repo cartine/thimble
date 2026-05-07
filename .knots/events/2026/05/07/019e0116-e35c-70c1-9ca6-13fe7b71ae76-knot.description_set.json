@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e35c-70c1-9ca6-13fe7b71ae76",
+  "occurred_at": "2026-05-07T06:18:57.750637Z",
+  "knot_id": "thimble-bdf7",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nCatch vulnerable stdlib/dep combinations on every PR. Cheap, low-noise.\n\nVerification:\n1. CI workflow installs `govulncheck` and runs `govulncheck ./...`.\n2. Job fails on any reported vulnerability.\n3. README badges (K-10) include a vuln-status badge if a hosted reporter is used; otherwise just rely on the CI gate.\n\nConstraints:\n- Knot ref: K-14; wave/step 3.2; effort S; risk low\n- Files: .github/workflows/ci.yml\n- Depends on: K-13\n- Notes: `govulncheck` is conservative — only reports actually-reachable\nvulnerabilities, so failures are signal not noise."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0114-dbea-7192-87e1-e227848c2bfa",
+  "occurred_at": "2026-05-07T06:16:44.773448Z",
+  "knot_id": "thimble-21d0",
+  "type": "knot.description_set",
+  "data": {
+    "description": "test"
+  }
+}

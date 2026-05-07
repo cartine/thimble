@@ -1,0 +1,17 @@
+{
+  "event_id": "019e016d-e0a4-7be2-8348-24eb23675cc4",
+  "occurred_at": "2026-05-07T07:53:58.692775Z",
+  "knot_id": "thimble-a7b4",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "force": false,
+    "from": "ready_for_plan_review",
+    "profile_id": "autopilot",
+    "to": "plan_review",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e016d-e077-7f41-89b4-0ed9348478d0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e248-79a3-9e5a-137baa64a5dc",
+  "occurred_at": "2026-05-07T06:18:57.476011Z",
+  "knot_id": "thimble-a7b4",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nHonest threat models build trust faster than feature lists. Make the\nin-scope/out-of-scope split explicit so users can decide if Thimble fits\ntheir risk model in 30 seconds.\n\nVerification:\n1. README gains a \"Threat Model\" section (one screen, not a paper) covering:\n2. **In scope**: lost laptop with identity file, repo write-access attacker smuggling a recipient, network MITM during install, terminal history/scrollback exposure, accidental argv leak.\n3. **Out of scope**: root on the deploy host (see thimble.md), `age` protocol break, malicious operator with a valid identity, side-channel attacks on the TTY.\n4. Each in-scope item points at the control that mitigates it (recipient validation, atomic writes, no-argv-secrets, masked prompt, etc.).\n5. Each out-of-scope item names the user's responsibility (e.g. \"rotate after laptop loss; we cannot retroactively revoke past plaintext\").\n\nConstraints:\n- Knot ref: K-09; wave/step 1.5; effort S; risk low\n- Files: README.md\n- Notes: This section also unblocks K-06 (real SECURITY.md can link here) and K-07\n(CONTRIBUTING.md can link here)."
+  }
+}

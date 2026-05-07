@@ -1,0 +1,47 @@
+{
+  "event_id": "019e025d-395a-75a1-8ccf-2babf4fa695e",
+  "occurred_at": "2026-05-07T12:15:24.506845Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "human"
+    },
+    "invariants": [],
+    "knot_id": "thimble-209a",
+    "next_step_metadata": {
+      "action_kind": "gate",
+      "action_state": "evaluating",
+      "output": {
+        "artifact_type": ""
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "human"
+      }
+    },
+    "profile_id": "evaluate",
+    "state": "ready_to_evaluate",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "evaluating",
+      "output": {
+        "artifact_type": ""
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "human"
+      }
+    },
+    "terminal": false,
+    "title": "Configure branch protection on main",
+    "type": "gate",
+    "updated_at": "2026-05-07T12:15:24.506845Z",
+    "workflow_id": "gate_sdlc"
+  }
+}

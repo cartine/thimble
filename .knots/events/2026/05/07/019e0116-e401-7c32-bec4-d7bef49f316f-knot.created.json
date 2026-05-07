@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e401-7c32-bec4-d7bef49f316f",
+  "occurred_at": "2026-05-07T06:18:57.92104Z",
+  "knot_id": "thimble-b3c1",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nDrop-in upstream-update bot. Visible \"I keep this current\" signal and a real\ndefense against stale-CVE drift.\n\nVerification:\n1. `.github/dependabot.yml` covers `gomod` (weekly) and `github-actions` (weekly).\n2. Auto-merge is *not* enabled for `gomod`. (We want the gate, not the auto.)\n3. A label policy exists so security updates land with `security` label.\n\nConstraints:\n- Knot ref: K-17; wave/step 3.5; effort S; risk low\n- Files: .github/dependabot.yml (new)\n- Notes: The current dep set is tiny (`golang.org/x/term`, `golang.org/x/sys`), so\nchurn will be low. The valuable part is the GitHub Actions update stream —\n`actions/checkout`, `setup-go`, `softprops/action-gh-release` all need\nperiodic bumps.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Dependabot / Renovate config",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

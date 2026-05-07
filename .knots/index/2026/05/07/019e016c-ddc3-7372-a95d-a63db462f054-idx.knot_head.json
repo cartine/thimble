@@ -1,0 +1,21 @@
+{
+  "event_id": "019e016c-ddc3-7372-a95d-a63db462f054",
+  "occurred_at": "2026-05-07T07:52:52.419393Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-aee1",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add CONTRIBUTING.md",
+    "type": "work",
+    "updated_at": "2026-05-07T07:52:52.419393Z",
+    "workflow_id": "work_sdlc"
+  }
+}

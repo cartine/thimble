@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01f8-c27f-7e82-9690-17d37d55b514",
+  "occurred_at": "2026-05-07T10:25:40.479205Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-fbf9",
+    "profile_id": "lease",
+    "state": "lease_terminated",
+    "terminal": true,
+    "title": "Lease: claim-thimble-f550",
+    "type": "lease",
+    "updated_at": "2026-05-07T10:25:40.479205Z",
+    "workflow_id": "lease_sdlc"
+  }
+}

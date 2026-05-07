@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0215-cef3-7961-accd-92744268637b",
+  "occurred_at": "2026-05-07T10:57:24.211485Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-70cb",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Reproducible-build verify target",
+    "type": "work",
+    "updated_at": "2026-05-07T10:57:24.211485Z",
+    "workflow_id": "work_sdlc"
+  }
+}

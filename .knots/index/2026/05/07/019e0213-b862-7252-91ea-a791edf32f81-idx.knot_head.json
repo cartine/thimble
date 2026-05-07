@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0213-b862-7252-91ea-a791edf32f81",
+  "occurred_at": "2026-05-07T10:55:07.362614Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-5d90",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "install.sh: pin to tag, not main",
+    "type": "work",
+    "updated_at": "2026-05-07T10:55:07.362614Z",
+    "workflow_id": "work_sdlc"
+  }
+}

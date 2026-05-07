@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e942-7761-a7e3-ab6c13f3f753",
+  "occurred_at": "2026-05-07T06:18:59.266049Z",
+  "knot_id": "thimble-7f03",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\n`brew install cartine/thimble/thimble`. Most macOS operators install\neverything via brew; not having it here means most people fall back to\n`curl|sh`, which is the path we want them off.\n\nVerification:\n1. A `homebrew-thimble` repo exists with a `Formula/thimble.rb`.\n2. Release workflow updates the formula on each release with the new version and SHA-256s for darwin/amd64 and darwin/arm64.\n3. `brew install cartine/thimble/thimble` works on a clean macOS image and produces a binary that passes `thimble --version`.\n4. README \"Install\" section adds the brew one-liner above the curl one.\n\nConstraints:\n- Knot ref: K-42; wave/step 7.5; effort M; risk low\n- Files: separate tap repo (`homebrew-thimble`), .github/workflows/release.yml\n- Depends on: K-40\n- Notes: Doable as a tap from day one. Homebrew core requires a track record we\ndon't have yet — revisit in 6 months.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Distribution: Homebrew tap",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

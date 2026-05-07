@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e65e-7ff0-a31d-85c0c177e6cc",
+  "occurred_at": "2026-05-07T06:18:58.526075Z",
+  "knot_id": "thimble-76cd",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nOperators can't tell what binary is on a host vs. what shipped a fix without\nthis. Bare-minimum operability.\n\nVerification:\n1. `thimble --version` and `thimble version` both print: `thimble vX.Y.Z (commit abc1234, built 2026-05-07T14:00:00Z, go1.25.0)`.\n2. Release workflow injects version/commit/date via `-ldflags=\"-X main.version=…\"` etc.\n3. Local builds without ldflags print `dev` for version and the git short SHA if available, otherwise `unknown`.\n\nConstraints:\n- Knot ref: K-28; wave/step 4.11; effort S; risk low\n- Files: internal/cli/, .github/workflows/release.yml\n- Depends on: K-12\n- Notes: Cheap, high-value, frequently the first thing on an operator's checklist.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "`thimble --version` subcommand",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

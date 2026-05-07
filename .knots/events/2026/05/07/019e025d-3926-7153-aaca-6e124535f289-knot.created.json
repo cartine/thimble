@@ -1,0 +1,17 @@
+{
+  "event_id": "019e025d-3926-7153-aaca-6e124535f289",
+  "occurred_at": "2026-05-07T12:15:24.45455Z",
+  "knot_id": "thimble-b761",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nClose the K-36 follow-up gap: the pending-signature directory\n(`secrets/.pending-recipient-adds/`) is single-tenant — only one\nrecipient-add can be in flight per repo at any time. A team with\nmultiple concurrent adds across different namespaces (e.g. adding\nalice to `web-api/staging` while bob is being added to\n`worker/production`) can't run them in parallel. Shard the pending\ndirectory by namespace so concurrent quorum-add flows don't collide.\n\nVerification:\n1. Pending signatures live at\n   `secrets/.pending-recipient-adds/<app>/<env>/<thumbprint>-<recipient-sha>.sig`.\n2. `thimble recipient sign-add <app> <env> ...` writes to the\n   per-namespace path; `thimble recipient add` reads from the same.\n3. Two concurrent quorum-add flows (web-api/staging and\n   worker/production) each accumulate signatures independently and\n   each succeeds at commit time without seeing the other's pending\n   files.\n4. Migration: any existing pending files at the old flat path are\n   moved to the new sharded path on first use, with a one-line\n   stderr note. After migration, the old flat path is empty and the\n   loader stops looking there.\n5. Test: integration test with two namespaces sees two separate\n   pending dirs; cross-namespace pollution does not happen.\n\nConstraints:\n- Knot ref: K-51; follow-up to K-36 (thimble-f550).\n- Files: internal/quorum/{prepare,sign,verify}.go, internal/store/quorum_sign.go, docs/recipient-quorum.md.\n- Backwards compat: handle the migration cleanly so existing in-flight signatures aren't lost when this knot lands.\n- Notes: this is purely a layout change, not a protocol change. The signature contents are unchanged; only the path resolution shifts.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Shard quorum pending signatures per namespace",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e016d-e31b-7e51-a12f-2dceb3c3820c",
+  "occurred_at": "2026-05-07T07:53:59.323338Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-a7b4",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add Threat Model section to README",
+    "type": "work",
+    "updated_at": "2026-05-07T07:53:59.323338Z",
+    "workflow_id": "work_sdlc"
+  }
+}

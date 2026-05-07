@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0221-ada8-7430-a5eb-733f6520eee3",
+  "occurred_at": "2026-05-07T11:10:22.120666Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-7461",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Demo GIF / asciinema in README",
+    "type": "work",
+    "updated_at": "2026-05-07T11:10:22.120666Z",
+    "workflow_id": "work_sdlc"
+  }
+}

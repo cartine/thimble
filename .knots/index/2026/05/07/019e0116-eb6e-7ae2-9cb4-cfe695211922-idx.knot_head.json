@@ -1,0 +1,95 @@
+{
+  "event_id": "019e0116-eb6e-7ae2-9cb4-cfe695211922",
+  "occurred_at": "2026-05-07T06:18:59.816589Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "execution_plan": {
+      "objective": "Take Thimble from v0.0 hobby to a small-team-trustable secrets manager: source shape, vocabulary, legal/trust scaffolding, code restructure, CI gates, runtime hardening, web UI hardening, recipient governance, release & install hardening, DevX polish.",
+      "waves": [
+        {
+          "name": "Wave 1: Foundation Alignment",
+          "objective": "Source-shape and vocabulary baseline before any other work begins",
+          "wave_index": 1
+        },
+        {
+          "name": "Wave 2: Legal & Trust Scaffolding",
+          "objective": "Repo passes basic procurement smell-test; trust enablers in place",
+          "wave_index": 2
+        },
+        {
+          "name": "Wave 3: Code Structure",
+          "objective": "main.go split into auditable packages with clear trust boundaries",
+          "wave_index": 3
+        },
+        {
+          "name": "Wave 4: CI / Quality Gates",
+          "objective": "PRs run vet, test, lint, vuln, and real-age integration",
+          "wave_index": 4
+        },
+        {
+          "name": "Wave 5: Runtime Security Hardening",
+          "objective": "Close the runtime threat-model items: age trust, identity hygiene, locks, audit, ops",
+          "wave_index": 5
+        },
+        {
+          "name": "Wave 6: Web UI Hardening",
+          "objective": "Close web-surface items: cookies, host allowlist, cache, rotation, plaintext policy, scope",
+          "wave_index": 6
+        },
+        {
+          "name": "Wave 7: Recipient Governance",
+          "objective": "Recipient adds gated by quorum; rotate flow on removal",
+          "wave_index": 7
+        },
+        {
+          "name": "Wave 8: Release & Install Hardening",
+          "objective": "Signed, attested, multi-channel installs",
+          "wave_index": 8
+        }
+      ]
+    },
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-4ff0",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "execution_plan_sdlc/autopilot",
+    "state": "ready_for_design",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "design",
+      "output": {
+        "artifact_type": "note"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Thimble hardening plan",
+    "type": "execution_plan",
+    "updated_at": "2026-05-07T06:18:59.816589Z",
+    "workflow_id": "execution_plan_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0116-eb52-7402-b2e9-e7cd76331ba8"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e08d-7541-a2f0-b83ba98f0d8e",
+  "occurred_at": "2026-05-07T06:18:57.027929Z",
+  "knot_id": "thimble-16a2",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A budget file (e.g. `.sourcecode-size.toml` or whatever the skill emits) is committed at repo root.\n2. The skill's report is captured in `tasks/reports/K-01-enforce.md` and lists each over-budget file/function with its measured size.\n3. README \"Contributing\" pointer (or CONTRIBUTING.md after K-07) references the budget file.\n4. Repository builds and tests still pass; no source modifications yet."
+  }
+}

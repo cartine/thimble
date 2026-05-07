@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0196-f99e-7383-b7db-545fe5c75dc6",
+  "occurred_at": "2026-05-07T08:38:52.062221Z",
+  "knot_id": "thimble-fd65",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "K-20 plan: tighten ValidateRecipient in internal/store/validate.go. Accept exactly two shapes: (1) 'age1' + Bech32 charset [023456789acdefghjklmnpqrstuvwxyz]+ (typical X25519 length is 62 chars, but allow 50-90 to absorb variance), (2) 'ssh-ed25519 ' or 'ssh-rsa ' followed by base64 blob (RFC4648 alphabet) with optional trailing whitespace+comment. Trim a single trailing newline. Reject everything else with the message 'expected age1... or ssh-ed25519/ssh-rsa ...; got <truncated 32 chars>'. Tests in store_test.go: valid age1, valid ssh-ed25519, malformed age0 rejected, random string rejected, trailing newline trimmed, leading dash rejected.",
+    "datetime": "2026-05-07T08:38:52.062221Z",
+    "entry_id": "019e0196-f99e-7383-b7db-544bb2e22e2e",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

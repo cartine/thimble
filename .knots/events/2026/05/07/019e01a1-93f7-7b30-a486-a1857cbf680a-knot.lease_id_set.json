@@ -1,0 +1,9 @@
+{
+  "event_id": "019e01a1-93f7-7b30-a486-a1857cbf680a",
+  "occurred_at": "2026-05-07T08:50:26.935592Z",
+  "knot_id": "thimble-634c",
+  "type": "knot.lease_id_set",
+  "data": {
+    "lease_id": "thimble-c2cd"
+  }
+}

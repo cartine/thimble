@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0115-ebd3-7743-8a85-a3810a75447f",
+  "occurred_at": "2026-05-07T06:17:54.387545Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-21d0",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "test-knot-delete-me",
+    "type": "work",
+    "updated_at": "2026-05-07T06:17:54.387545Z",
+    "workflow_id": "work_sdlc"
+  }
+}

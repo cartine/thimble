@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0181-d10c-7573-9875-a905415bf908",
+  "occurred_at": "2026-05-07T08:15:45.42081Z",
+  "knot_id": "thimble-35f3",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment note: per the parent agent's hard constraints (no push to remote, no merge to main), shipment is a local-only operation. All implementation commits are present on the worktree branch claude/elastic-clarke-9c0ed3 and tagged on this knot. The 6 K-12 commits are: 1d177b5 (internal/dotenv), 9c5739c (internal/age), 981160d (internal/store), 2fd64d8 (internal/web), 62a08c5 (internal/cli + main shrink), 8c3fc55 (TAXONOMY refresh). go build, go test, golangci-lint, and check_file_sizes.sh all pass.",
+    "datetime": "2026-05-07T08:15:45.42081Z",
+    "entry_id": "019e0181-d10c-7573-9875-a8f43545c459",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01cf-9cd5-72f0-9f2a-f3a6cf38028f",
+  "occurred_at": "2026-05-07T09:40:43.861926Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-c8e3",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Move web token from URL to cookie",
+    "type": "work",
+    "updated_at": "2026-05-07T09:40:43.861926Z",
+    "workflow_id": "work_sdlc"
+  }
+}

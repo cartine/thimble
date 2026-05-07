@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e58a-75c0-9d3e-323b8d26a8fa",
+  "occurred_at": "2026-05-07T06:18:58.314805Z",
+  "knot_id": "thimble-29b9",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\n`and-get --env` exposes the secret through the child's environment block.\nSECURITY.md flags it. We can do better: refuse to use `--env` for shell-shaped\nchildren that almost always re-export.\n\nVerification:\n1. When `--env` is set and the child command's basename is one of `sh`, `bash`, `zsh`, `fish`, `pwsh`, `cmd.exe`, `powershell`, abort with: \"use stdin or `--allow-shell-env`; child shell will export the value.\"\n2. Same for `docker run` / `podman run` without `--env-file=-` or `-e KEY` pointing only at this var.\n3. `--allow-shell-env` flag exists for users who really mean it.\n4. README \"Safe Secret Entry\" section gains a paragraph explaining when `--env` is and isn't safe.\n\nConstraints:\n- Knot ref: K-24; wave/step 4.7; effort S; risk med\n- Files: internal/cli/, README.md\n- Depends on: K-12\n- Notes: This is a soft guard: a determined user can always work around it. Goal is\nto catch the muscle-memory `thimble and-get --env FOO bar prod KEY -- bash\n-c '...'` pattern that is almost always wrong.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "`and-get --env` shell/docker guard",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

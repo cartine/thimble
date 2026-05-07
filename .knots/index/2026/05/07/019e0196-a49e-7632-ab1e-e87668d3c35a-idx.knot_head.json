@@ -1,0 +1,37 @@
+{
+  "event_id": "019e0196-a49e-7632-ab1e-e87668d3c35a",
+  "occurred_at": "2026-05-07T08:38:30.302055Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-8a63",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Identity-file mode sanity check",
+    "type": "work",
+    "updated_at": "2026-05-07T08:38:30.302055Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0196-90dd-7302-99e8-a68c1a1ea191"
+  }
+}

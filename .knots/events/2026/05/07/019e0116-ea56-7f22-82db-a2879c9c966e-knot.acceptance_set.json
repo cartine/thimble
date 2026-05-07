@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-ea56-7f22-82db-a2879c9c966e",
+  "occurred_at": "2026-05-07T06:18:59.534065Z",
+  "knot_id": "thimble-a5a3",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `make build` — local cross-platform builds.\n2. `make test` — `go test ./...` race + coverage.\n3. `make integration` — runs `//go:build integration` jobs (K-16) against real `age`.\n4. `make lint` — `go vet`, `staticcheck`, `gosec`.\n5. `make vuln` — `govulncheck`.\n6. `make verify-release VERSION=…` — calls K-41's verify script.\n7. `make help` — prints target descriptions. Acceptance:\n8. All targets work on a clean checkout.\n9. CI workflows from Wave 3 invoke `make` targets directly so local and CI stay in sync."
+  }
+}

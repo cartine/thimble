@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e703-7783-a473-3924516d6401",
+  "occurred_at": "2026-05-07T06:18:58.681747Z",
+  "knot_id": "thimble-3488",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Middleware rejects requests whose `Host` header is not in the allowlist: `127.0.0.1[:port]`, `[::1][:port]`, `localhost[:port]` (plus any user-supplied address via `--addr`).\n2. Rejection is `400 Bad Request` with body \"host not allowed\".\n3. For non-loopback binds, allowlist defaults to the configured `--addr`'s host; a `--allow-host` flag lets the operator add more.\n4. Tests: matching Host → 200; foreign Host → 400; case differences in `Host` handled."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-ea18-74a3-a1ad-ff8e666e6dba",
+  "occurred_at": "2026-05-07T06:18:59.480833Z",
+  "knot_id": "thimble-7461",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nA 30-second demo showing init → recipient add → set → render moves adoption\nmore than docs do. Demos answer \"what is this?\" in seconds.\n\nVerification:\n1. Either an `asciinema` `.cast` file embedded via the asciinema-player shortcode, or a GIF (≤2 MB) under `assets/`.\n2. README's first section after the logo embeds the demo.\n3. The recording uses sample names that match the README's \"Real-Life Flow\" so a viewer can connect demo to docs.\n4. No real recipients or identities visible in the recording; use throwaway ones generated for the recording.\n\nConstraints:\n- Knot ref: K-46; wave/step 8.1; effort S; risk low\n- Files: assets/demo.cast or assets/demo.gif, README.md\n- Depends on: K-04, K-05, K-09\n- Notes: Keep it short. A 30-second demo gets watched; a 3-minute one does not.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Demo GIF / asciinema in README",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

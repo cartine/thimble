@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e5fc-70c1-8977-74238ca6f05d",
+  "occurred_at": "2026-05-07T06:18:58.419398Z",
+  "knot_id": "thimble-92ea",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. All `age` invocations use a timeout context: 10 s default, configurable via `THIMBLE_AGE_TIMEOUT` (in seconds).\n2. Signal handling: SIGINT to Thimble cancels the child cleanly.\n3. On timeout, error message is \"age timed out after Ns; rerun with `THIMBLE_AGE_TIMEOUT=N` if your hardware is slow or the bundle is large.\""
+  }
+}

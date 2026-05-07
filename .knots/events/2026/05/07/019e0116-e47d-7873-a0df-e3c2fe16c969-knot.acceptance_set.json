@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e47d-7873-a0df-e3c2fe16c969",
+  "occurred_at": "2026-05-07T06:18:58.034534Z",
+  "knot_id": "thimble-8a63",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Before invoking `age -i`, Thimble `Stat`s the identity file.\n2. If `mode & 0o077 != 0`, abort with: \"identity file <path> is mode 0NNN; expected 0600. Run `chmod 0600 <path>` and retry.\"\n3. `--unsafe-allow-identity-mode` flag exists for environments where mode cannot be set (e.g. some Windows / WSL setups), and using it logs a warning to stderr.\n4. Test covers: 0600 OK, 0640 rejected, flag overrides rejection."
+  }
+}

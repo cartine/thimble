@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e8ab-7820-96a5-dbad8ef44525",
+  "occurred_at": "2026-05-07T06:18:59.105591Z",
+  "knot_id": "thimble-5d90",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. README quickstart's `curl … install.sh | sh` URL points at a tagged commit, e.g. `…/raw/v0.1.0/scripts/install.sh`.\n2. The release workflow uploads `install.sh` itself as a release asset; the README also documents `curl …/releases/latest/download/install.sh | sh` as an alternative.\n3. The script's first line prints its own SHA-256 (computed at build time) so an operator can spot-check."
+  }
+}

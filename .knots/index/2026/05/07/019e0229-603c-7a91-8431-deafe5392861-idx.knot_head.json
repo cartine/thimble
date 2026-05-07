@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0229-603c-7a91-8431-deafe5392861",
+  "occurred_at": "2026-05-07T11:18:46.588852Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-a4df",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "`make tag-release` automation",
+    "type": "work",
+    "updated_at": "2026-05-07T11:18:46.588852Z",
+    "workflow_id": "work_sdlc"
+  }
+}

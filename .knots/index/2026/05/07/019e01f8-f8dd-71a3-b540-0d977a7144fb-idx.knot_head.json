@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01f8-f8dd-71a3-b540-0d977a7144fb",
+  "occurred_at": "2026-05-07T10:25:54.397594Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-f550",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Quorum-signed recipient list",
+    "type": "work",
+    "updated_at": "2026-05-07T10:25:54.397594Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e631-7bc3-897b-700b639fcc27",
+  "occurred_at": "2026-05-07T06:18:58.471956Z",
+  "knot_id": "thimble-ae92",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `secrets/.thimble-audit.log` is appended on every mutating op (init, recipient add/remove, create, update, delete, set, and-set).\n2. Each entry: timestamp (UTC), operator identifier (recipient thumbprint of the identity used to decrypt this session — stable, non-secret), op, app, env, key (or recipient).\n3. File mode 0640.\n4. `thimble audit <app> <env>` subcommand pretty-prints the log filtered by namespace.\n5. Audit writes never block on IO failure; on failure they emit a stderr warning but do not abort the user's mutation."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e443-7dd3-a01b-609a034e49fa",
+  "occurred_at": "2026-05-07T06:18:57.977088Z",
+  "knot_id": "thimble-1378",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `--age-binary=/path/to/age` flag and `THIMBLE_AGE_BINARY` env var supported.\n2. On startup, Thimble resolves the binary path via `exec.LookPath` and prints it once on `--verbose` or first-use of any decrypt/encrypt command.\n3. Optional SHA-256 pin: `THIMBLE_AGE_SHA256` is checked before exec; mismatch aborts with a clear error.\n4. README \"Requirements\" section is updated to call this out as a trust boundary; SECURITY.md threat model lists it as a residual risk if pinning is not used.\n5. `thimble doctor` (K-29) reports the resolved path and SHA-256."
+  }
+}

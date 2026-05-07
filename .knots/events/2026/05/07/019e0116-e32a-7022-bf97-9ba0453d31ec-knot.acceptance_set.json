@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e32a-7022-bf97-9ba0453d31ec",
+  "occurred_at": "2026-05-07T06:18:57.696286Z",
+  "knot_id": "thimble-1ca7",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `.github/workflows/ci.yml` runs on `push` and `pull_request`.\n2. Steps: `actions/checkout@v4`, `actions/setup-go@v5` with `go-version-file`, `go vet ./...`, `go test ./...` (race + coverage flags).\n3. Workflow runs on Ubuntu and macOS at least.\n4. Branch protection on `main` requires this workflow to pass."
+  }
+}

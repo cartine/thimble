@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e9ec-72b2-9c97-08b112c0e650",
+  "occurred_at": "2026-05-07T06:18:59.428096Z",
+  "knot_id": "thimble-5791",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `Dockerfile` is multi-stage: build from `golang:1.25` with `-trimpath`, copy a static binary and a pinned `age` binary into a `scratch` (or `gcr.io/distroless/static`) final stage.\n2. Release workflow builds `linux/amd64` and `linux/arm64`, pushes to `ghcr.io/cartine/thimble:vX.Y.Z` and `:latest`.\n3. Image is signed via cosign keyless (K-40 toolchain).\n4. README \"Install\" gains: `docker run --rm -v $PWD:/work ghcr.io/cartine/thimble:latest list <app> <env>`."
+  }
+}

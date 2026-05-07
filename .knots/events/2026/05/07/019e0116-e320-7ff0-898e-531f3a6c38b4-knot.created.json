@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e320-7ff0-898e-531f3a6c38b4",
+  "occurred_at": "2026-05-07T06:18:57.696286Z",
+  "knot_id": "thimble-1ca7",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nToday there is *no* CI on PRs — only the release workflow. Add a baseline\ngate that runs on every push and pull request.\n\nVerification:\n1. `.github/workflows/ci.yml` runs on `push` and `pull_request`.\n2. Steps: `actions/checkout@v4`, `actions/setup-go@v5` with `go-version-file`, `go vet ./...`, `go test ./...` (race + coverage flags).\n3. Workflow runs on Ubuntu and macOS at least.\n4. Branch protection on `main` requires this workflow to pass.\n\nConstraints:\n- Knot ref: K-13; wave/step 3.1; effort S; risk low\n- Files: .github/workflows/ci.yml (new)\n- Depends on: K-12\n- Notes: Coverage output can stay simple (text in job log) until K-15 adds richer\nreporting.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "PR CI: go vet + go test",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

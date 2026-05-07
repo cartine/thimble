@@ -1,0 +1,17 @@
+{
+  "event_id": "019e025d-38af-7252-83ff-2967043a19f9",
+  "occurred_at": "2026-05-07T12:15:24.335413Z",
+  "knot_id": "thimble-1b14",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nReplace the placeholder `assets/demo.cast` (committed by K-46) with a real\nasciinema recording so the README's demo link plays an actual session\ninstead of comment-only stub.\n\nVerification:\n1. `wc -c assets/demo.cast` is non-trivial (>1 KiB) and the file's first\n   line is asciinema's standard JSON header `{\"version\": 2, ...}`, not the\n   `#` placeholder comments.\n2. `asciinema play assets/demo.cast` (or the asciinema-player web embed)\n   produces a clean session: init -> recipient add --bootstrap -> set with\n   provision -> list -> render to /dev/null. Total runtime under ~30s.\n3. No real secret values appear on screen: every `set` flow uses\n   `provision` piped to `set --origin=provision`, and `render` redirects\n   to /dev/null.\n4. README's \"Demo\" subsection (anchor in K-46) renders the cast (either\n   via asciinema.org link or asciinema-player snippet pointed at the\n   committed file). One-line caption explains what's happening.\n\nConstraints:\n- Knot ref: K-49; follow-up to K-46.\n- Files: assets/demo.cast (overwrite placeholder), README.md (caption).\n- Notes: Operator records locally with `asciinema rec assets/demo.cast bash scripts/demo.sh`. The `make demo` target prints the exact command. Don't fake a cast file by hand-editing JSON — re-record if the timing is wrong.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Record real asciinema demo cast",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

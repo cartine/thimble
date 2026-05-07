@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e593-70c2-ba4a-a1c5bdf2dd3b",
+  "occurred_at": "2026-05-07T06:18:58.314805Z",
+  "knot_id": "thimble-29b9",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. When `--env` is set and the child command's basename is one of `sh`, `bash`, `zsh`, `fish`, `pwsh`, `cmd.exe`, `powershell`, abort with: \"use stdin or `--allow-shell-env`; child shell will export the value.\"\n2. Same for `docker run` / `podman run` without `--env-file=-` or `-e KEY` pointing only at this var.\n3. `--allow-shell-env` flag exists for users who really mean it.\n4. README \"Safe Secret Entry\" section gains a paragraph explaining when `--env` is and isn't safe."
+  }
+}

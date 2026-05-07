@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e5f8-79f1-bce2-fff67fc81f54",
+  "occurred_at": "2026-05-07T06:18:58.419398Z",
+  "knot_id": "thimble-92ea",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\n`exec.CommandContext(context.Background(), …)` never cancels. A stuck or\nhostile `age` hangs the operator's CLI indefinitely — the only signal is\n\"this is taking forever.\"\n\nVerification:\n1. All `age` invocations use a timeout context: 10 s default, configurable via `THIMBLE_AGE_TIMEOUT` (in seconds).\n2. Signal handling: SIGINT to Thimble cancels the child cleanly.\n3. On timeout, error message is \"age timed out after Ns; rerun with `THIMBLE_AGE_TIMEOUT=N` if your hardware is slow or the bundle is large.\"\n\nConstraints:\n- Knot ref: K-26; wave/step 4.9; effort S; risk low\n- Files: internal/age/\n- Depends on: K-12\n- Notes: 10 s is generous for typical bundles. Large bundles (tens of MB) might need\nlonger; the env var is the escape valve."
+  }
+}

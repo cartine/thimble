@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0193-a09f-7953-9451-c70a8ea4ffd5",
+  "occurred_at": "2026-05-07T08:35:12.671661Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-1378",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Pin/verify `age` binary path",
+    "type": "work",
+    "updated_at": "2026-05-07T08:35:12.671661Z",
+    "workflow_id": "work_sdlc"
+  }
+}

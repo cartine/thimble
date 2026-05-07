@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e6ff-7d23-a6b3-64469c020261",
+  "occurred_at": "2026-05-07T06:18:58.681747Z",
+  "knot_id": "thimble-3488",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nThe loopback guard checks the listen address, not the incoming `Host` header.\nA malicious page that DNS-rebinds a hostname to `127.0.0.1` would still hit\nthe server; only the 256-bit token saves you. Add explicit Host validation.\n\nVerification:\n1. Middleware rejects requests whose `Host` header is not in the allowlist: `127.0.0.1[:port]`, `[::1][:port]`, `localhost[:port]` (plus any user-supplied address via `--addr`).\n2. Rejection is `400 Bad Request` with body \"host not allowed\".\n3. For non-loopback binds, allowlist defaults to the configured `--addr`'s host; a `--allow-host` flag lets the operator add more.\n4. Tests: matching Host → 200; foreign Host → 400; case differences in `Host` handled.\n\nConstraints:\n- Knot ref: K-31; wave/step 5.2; effort S; risk med\n- Files: internal/web/\n- Depends on: K-12\n- Notes: This closes the only remaining DNS-rebinding vector worth worrying about for\na local-only tool. Combined with K-30 (cookies + SameSite=Strict) it's\ndefense in depth, not single-control."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e86b-7cc2-a92a-733eb3ef01df",
+  "occurred_at": "2026-05-07T06:18:59.051526Z",
+  "knot_id": "thimble-a673",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nToday's [install.sh:34](scripts/install.sh:34) silently skips checksum\nverification if the checksums file fails to download:\n\n```sh\nif curl -fsSL \"$base/checksums.txt\" -o \"$tmp/checksums.txt\"; then\n  expected=\"...\"\n  ...\nfi\n```\n\nA transient network blip — or an active MITM at the CDN edge that fails one\nrequest and serves another — bypasses verification. This must be mandatory.\n\nVerification:\n1. `install.sh` aborts with a clear error if `checksums.txt` cannot be downloaded.\n2. `install.sh` aborts if the checksum line for the asset is missing.\n3. `install.sh` aborts on mismatch (already does, leave that path).\n4. New flag `THIMBLE_INSTALL_NO_VERIFY=1` exists for emergency reinstalls but prints a multi-line warning before proceeding.\n5. README \"Install\" section gains a one-line note that verification is mandatory by default.\n\nConstraints:\n- Knot ref: K-38; wave/step 7.1; effort S; risk high (current behavior is silently unsafe)\n- Files: scripts/install.sh\n- Notes: This is the highest-leverage fix in Wave 7. Land it first.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "install.sh: mandatory checksum verification",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

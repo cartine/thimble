@@ -1,0 +1,9 @@
+{
+  "event_id": "019e025d-38bd-7c00-9342-32da7875b40d",
+  "occurred_at": "2026-05-07T12:15:24.335413Z",
+  "knot_id": "thimble-1b14",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. assets/demo.cast is a real asciinema v2 recording (JSON header, frame stream), not the placeholder.\n2. Playback runs the canonical lifecycle from scripts/demo.sh end-to-end with no errors.\n3. No real secret values on screen.\n4. README \"Demo\" subsection has the cast embedded or linked, plus a one-line caption."
+  }
+}

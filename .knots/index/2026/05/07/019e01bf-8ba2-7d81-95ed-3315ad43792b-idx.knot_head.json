@@ -1,0 +1,21 @@
+{
+  "event_id": "019e01bf-8ba2-7d81-95ed-3315ad43792b",
+  "occurred_at": "2026-05-07T09:23:10.881991Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-ae92",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Append-only audit log",
+    "type": "work",
+    "updated_at": "2026-05-07T09:23:10.881991Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e80e-7281-a77b-a57f268fd142",
+  "occurred_at": "2026-05-07T06:18:58.94566Z",
+  "knot_id": "thimble-f550",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "wave-6"
+  }
+}

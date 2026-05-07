@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e62c-7523-a68a-fa3360973699",
+  "occurred_at": "2026-05-07T06:18:58.471956Z",
+  "knot_id": "thimble-ae92",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nSECURITY.md acknowledges the gap: no audit log. Even a local, file-based\nledger of `{when, by, op, app, env, key}` would make incident response and\noperator handoffs dramatically easier.\n\nVerification:\n1. `secrets/.thimble-audit.log` is appended on every mutating op (init, recipient add/remove, create, update, delete, set, and-set).\n2. Each entry: timestamp (UTC), operator identifier (recipient thumbprint of the identity used to decrypt this session — stable, non-secret), op, app, env, key (or recipient).\n3. File mode 0640.\n4. `thimble audit <app> <env>` subcommand pretty-prints the log filtered by namespace.\n5. Audit writes never block on IO failure; on failure they emit a stderr warning but do not abort the user's mutation.\n\nConstraints:\n- Knot ref: K-27; wave/step 4.10; effort M; risk low\n- Files: internal/store/, internal/audit/, README.md\n- Depends on: K-21\n- Notes: Don't include values, ever. Don't include identity file paths. Thumbprints\nare public — they can sit in git alongside encrypted bundles without harm."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019e019b-8f8d-7050-a15c-b51c34a80b48",
+  "occurred_at": "2026-05-07T08:43:52.589536Z",
+  "knot_id": "thimble-60c1",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "K-21 plan: TOCTOU fix for concurrent rewriteEnv. Add per-namespace Version (uint64) to EnvManifest. saveManifest takes an exclusive flock on secrets/thimble.json covering full read-modify-write; before merging it re-reads the manifest from disk and verifies (app,env) Version still matches what we loaded; bumps on save. List/Render take shared lock. Build internal/store/lock.go wrapping unix.Flock LOCK_EX/LOCK_SH (build-tagged for windows fallback). Tests in store_test.go: two goroutines mutating different keys both succeed eventually but second loses-race fails cleanly; same key second fails; lock released on panic via defer.",
+    "datetime": "2026-05-07T08:43:52.589536Z",
+    "entry_id": "019e019b-8f8d-7050-a15c-b50319b31a1a",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

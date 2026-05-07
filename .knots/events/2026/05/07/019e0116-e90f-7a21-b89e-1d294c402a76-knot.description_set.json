@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e90f-7a21-b89e-1d294c402a76",
+  "occurred_at": "2026-05-07T06:18:59.210843Z",
+  "knot_id": "thimble-70cb",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nDocument and prove that builds are deterministic. Provide a one-liner that\nrebuilds locally and compares to the released checksum.\n\nVerification:\n1. `make verify-release VERSION=v0.1.0` (or equivalent) checks out the tag, rebuilds with the same `-trimpath -ldflags=\"-s -w\"` flags and CGO/GOOS matrix, and diffs the resulting tarball SHA-256s against the published `checksums.txt`.\n2. README \"Verifying releases\" section walks through the steps.\n3. CI gains a \"reproducibility\" job (optional, slow) that runs the same verification monthly or on release.\n\nConstraints:\n- Knot ref: K-41; wave/step 7.4; effort M; risk low\n- Files: Makefile, scripts/verify-release.sh, README.md\n- Depends on: K-40\n- Notes: Reproducible Go builds are mostly a function of `-trimpath` (already on),\nmatched Go version (`go-version-file`), and stable third-party deps\n(already minimal). This knot is mostly about *demonstrating* the property,\nnot building it."
+  }
+}

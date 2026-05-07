@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-ea52-7b32-aa3b-d847d459fd68",
+  "occurred_at": "2026-05-07T06:18:59.534065Z",
+  "knot_id": "thimble-a5a3",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nA `Makefile` with the standard set of targets means \"every contributor runs\nthe same checks I run.\" Reproducibility is a trust signal.\n\nVerification:\n1. `make build` — local cross-platform builds.\n2. `make test` — `go test ./...` race + coverage.\n3. `make integration` — runs `//go:build integration` jobs (K-16) against real `age`.\n4. `make lint` — `go vet`, `staticcheck`, `gosec`.\n5. `make vuln` — `govulncheck`.\n6. `make verify-release VERSION=…` — calls K-41's verify script.\n7. `make help` — prints target descriptions. Acceptance:\n8. All targets work on a clean checkout.\n9. CI workflows from Wave 3 invoke `make` targets directly so local and CI stay in sync.\n\nConstraints:\n- Knot ref: K-47; wave/step 8.2; effort S; risk low\n- Files: Makefile (new)\n- Depends on: K-12, K-13, K-14, K-15, K-16\n- Notes: CLAUDE.md prefers build targets over ad-hoc commands. This is the knot\nthat operationalizes that."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0116-e3c9-7811-a812-b4293861a099",
+  "occurred_at": "2026-05-07T06:18:57.865443Z",
+  "knot_id": "thimble-55e4",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nToday's tests substitute a sed-based fake `age` binary\n([cmd/thimble/main_test.go:266](cmd/thimble/main_test.go:266)). That proves\narg-construction round-trips, not that the real protocol works. A real\nintegration test catches drift if `age` flags or output format change.\n\nVerification:\n1. A new integration test job in CI installs `age` (apt or release tarball), generates an identity, runs the full lifecycle: init → set → list → render → recipient add → recipient remove, and asserts the rendered plaintext matches what was set.\n2. Tests are tagged `//go:build integration` so they don't slow the unit-test job.\n3. Job runs on at least Ubuntu; ideally macOS too.\n\nConstraints:\n- Knot ref: K-16; wave/step 3.4; effort M; risk med\n- Files: .github/workflows/ci.yml, internal/age/*_integration_test.go (new)\n- Depends on: K-13\n- Notes: This is the test that would have caught a hostile `age` swap at install time\n— close to but not the same as K-18 (which addresses the runtime-side trust\nboundary).",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Integration test against real `age` binary",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

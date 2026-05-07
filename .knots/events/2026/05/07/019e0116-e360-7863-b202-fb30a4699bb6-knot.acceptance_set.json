@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0116-e360-7863-b202-fb30a4699bb6",
+  "occurred_at": "2026-05-07T06:18:57.750637Z",
+  "knot_id": "thimble-bdf7",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. CI workflow installs `govulncheck` and runs `govulncheck ./...`.\n2. Job fails on any reported vulnerability.\n3. README badges (K-10) include a vuln-status badge if a hosted reporter is used; otherwise just rely on the CI gate."
+  }
+}
