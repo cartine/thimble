@@ -7,10 +7,13 @@
 package cli
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/store"
@@ -46,6 +49,11 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	ctx, stop := signal.NotifyContext(
+		context.Background(), os.Interrupt, syscall.SIGTERM,
+	)
+	defer stop()
+	st.SetContext(ctx)
 	return dispatch(st, rest, stdout, stderr)
 }
 

@@ -17,7 +17,16 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 )
+
+// DefaultTimeout is how long Thimble waits on an age subprocess
+// before cancelling it. THIMBLE_AGE_TIMEOUT (seconds) overrides.
+const DefaultTimeout = 10 * time.Second
+
+// EnvTimeoutVar is the env var operators set to widen the timeout
+// for slow hardware or unusually large bundles.
+const EnvTimeoutVar = "THIMBLE_AGE_TIMEOUT"
 
 // Tool wraps invocations of the `age` binary. The zero value is not
 // usable; construct one via New.
@@ -155,7 +164,9 @@ func (t *Tool) announceBinary() {
 
 // Encrypt encrypts plain into ASCII-armored age ciphertext addressed to
 // recipients. It returns an error if recipients is empty or if the age
-// binary fails; stderr is redacted to avoid leaking values.
+// binary fails; stderr is redacted to avoid leaking values. K-26
+// applies a per-call timeout (THIMBLE_AGE_TIMEOUT, default 10s) and
+// honors cancellation of ctx (e.g. SIGINT propagated by the CLI).
 func (t *Tool) Encrypt(ctx context.Context, recipients []string, plain string) ([]byte, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("at least one recipient is required")
@@ -165,24 +176,27 @@ func (t *Tool) Encrypt(ctx context.Context, recipients []string, plain string) (
 	for _, recipient := range recipients {
 		args = append(args, "-r", recipient)
 	}
+	withTimeout, cancel, deadline := contextWithTimeout(ctx)
+	defer cancel()
 	// #nosec G204 -- t.binary is the trusted age binary configured at
 	// startup; recipients are validated by store.ValidateRecipient before
 	// reaching here. Resolve() pins the absolute path with optional
 	// SHA-256 verification (K-18).
-	cmd := exec.CommandContext(ctx, t.binary, args...)
+	cmd := exec.CommandContext(withTimeout, t.binary, args...)
 	cmd.Stdin = strings.NewReader(plain)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("age encrypt failed: %s", Redact(stderr.String()))
+		return nil, wrapAgeError(withTimeout, "encrypt", deadline, stderr.String())
 	}
 	return stdout.Bytes(), nil
 }
 
 // Decrypt decrypts the age-encrypted file at path using the configured
 // identity (if any). It returns the plaintext as a string with stderr
-// redacted on error.
+// redacted on error. K-26 enforces THIMBLE_AGE_TIMEOUT and propagates
+// ctx cancellation to the child.
 func (t *Tool) Decrypt(ctx context.Context, path string) (string, error) {
 	t.announceBinary()
 	args := []string{"-d"}
@@ -195,18 +209,55 @@ func (t *Tool) Decrypt(ctx context.Context, path string) (string, error) {
 		args = append(args, "-i", t.identity)
 	}
 	args = append(args, path)
+	withTimeout, cancel, deadline := contextWithTimeout(ctx)
+	defer cancel()
 	// #nosec G204 -- t.binary is the trusted age binary configured at
 	// startup; path is a manifest-controlled file inside the store root.
 	// Resolve() pins the absolute path with optional SHA-256
 	// verification (K-18).
-	cmd := exec.CommandContext(ctx, t.binary, args...)
+	cmd := exec.CommandContext(withTimeout, t.binary, args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("age decrypt failed: %s", Redact(stderr.String()))
+		return "", wrapAgeError(withTimeout, "decrypt", deadline, stderr.String())
 	}
 	return stdout.String(), nil
+}
+
+// contextWithTimeout layers DefaultTimeout (or THIMBLE_AGE_TIMEOUT)
+// onto parent and returns the wrapped context, its cancel function,
+// and the timeout duration in seconds for use in error messages.
+func contextWithTimeout(
+	parent context.Context,
+) (context.Context, context.CancelFunc, time.Duration) {
+	d := DefaultTimeout
+	if v := os.Getenv(EnvTimeoutVar); v != "" {
+		if parsed, err := time.ParseDuration(v + "s"); err == nil && parsed > 0 {
+			d = parsed
+		}
+	}
+	ctx, cancel := context.WithTimeout(parent, d)
+	return ctx, cancel, d
+}
+
+// wrapAgeError shapes the error returned to callers so a context
+// timeout is distinguishable from a non-zero exit. Cancelled-by-
+// caller errors propagate ctx.Err() unchanged so signal handling
+// reads cleanly higher up. The op string is "encrypt" or "decrypt"
+// so the message points at the failing direction.
+func wrapAgeError(ctx context.Context, op string, deadline time.Duration, stderr string) error {
+	if ctx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf(
+			"age timed out after %ds; rerun with %s=N if your hardware "+
+				"is slow or the bundle is large.",
+			int(deadline.Seconds()), EnvTimeoutVar,
+		)
+	}
+	if ctx.Err() == context.Canceled {
+		return fmt.Errorf("age %s cancelled: %w", op, ctx.Err())
+	}
+	return fmt.Errorf("age %s failed: %s", op, Redact(stderr))
 }
 
 // Redact trims and truncates stderr from the age binary (or any other

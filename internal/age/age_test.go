@@ -1,12 +1,14 @@
 package age_test
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cartine/thimble/internal/age"
 )
@@ -121,6 +123,53 @@ func TestCheckIdentityModeUnsafeAllowOverridesRejection(t *testing.T) {
 	}
 	if !strings.Contains(warn.String(), "warning") {
 		t.Fatalf("warn output = %q, expected warning", warn.String())
+	}
+}
+
+// TestEncryptTimesOutWhenAgeStalls covers K-26: a stuck age binary
+// must surface a timeout error within THIMBLE_AGE_TIMEOUT. Uses
+// `exec sleep` so SIGKILL collapses the whole chain promptly.
+func TestEncryptTimesOutWhenAgeStalls(t *testing.T) {
+	bin := writeFakeBinary(t, t.TempDir(), "exec sleep 30")
+	t.Setenv("THIMBLE_AGE_TIMEOUT", "1")
+	tool := age.New(bin, "")
+	_, err := tool.Encrypt(
+		context.Background(),
+		[]string{"age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"},
+		"plain",
+	)
+	if err == nil {
+		t.Fatalf("Encrypt accepted stalled binary")
+	}
+	if !strings.Contains(err.Error(), "age timed out after 1s") {
+		t.Fatalf("error = %v, want timeout message", err)
+	}
+	if !strings.Contains(err.Error(), "THIMBLE_AGE_TIMEOUT") {
+		t.Fatalf("error = %v, want THIMBLE_AGE_TIMEOUT hint", err)
+	}
+}
+
+// TestEncryptCancelsOnContextCancel verifies cancellation of the
+// caller's context aborts the age subprocess promptly. This is the
+// path SIGINT exercises in production.
+func TestEncryptCancelsOnContextCancel(t *testing.T) {
+	bin := writeFakeBinary(t, t.TempDir(), "exec sleep 30")
+	tool := age.New(bin, "")
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(150 * time.Millisecond)
+		cancel()
+	}()
+	_, err := tool.Encrypt(
+		ctx,
+		[]string{"age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"},
+		"plain",
+	)
+	if err == nil {
+		t.Fatalf("Encrypt accepted cancelled context")
+	}
+	if !strings.Contains(err.Error(), "cancelled") {
+		t.Fatalf("error = %v, want 'cancelled'", err)
 	}
 }
 

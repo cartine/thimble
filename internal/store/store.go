@@ -21,9 +21,10 @@ import (
 // type that reads or writes the secrets/ tree; callers that need a
 // view (e.g. the web UI, render command) ask Store for it.
 type Store struct {
-	root string
-	age  *age.Tool
-	now  func() time.Time
+	root    string
+	age     *age.Tool
+	now     func() time.Time
+	baseCtx context.Context
 }
 
 // New returns a Store rooted at root that decrypts with identity. The
@@ -31,14 +32,29 @@ type Store struct {
 // first use; callers that need to pin a specific binary or SHA-256
 // should call NewWithAge.
 func New(root, identity string) *Store {
-	return &Store{root: root, age: age.New("age", identity), now: time.Now}
+	return &Store{
+		root:    root,
+		age:     age.New("age", identity),
+		now:     time.Now,
+		baseCtx: context.Background(),
+	}
 }
 
 // NewWithAge returns a Store that uses tool for all encrypt/decrypt
 // operations. Construct tool via age.New / age.Resolve so the binary
 // path is pinned at startup (K-18).
 func NewWithAge(root string, tool *age.Tool) *Store {
-	return &Store{root: root, age: tool, now: time.Now}
+	return &Store{root: root, age: tool, now: time.Now, baseCtx: context.Background()}
+}
+
+// SetContext installs a base context that the Store passes to every
+// age subprocess invocation. The CLI wires SIGINT-cancelable contexts
+// through here so Ctrl-C interrupts a stuck age call cleanly (K-26).
+func (s *Store) SetContext(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	s.baseCtx = ctx
 }
 
 // Root returns the directory the Store reads and writes.
@@ -412,7 +428,7 @@ func (s *Store) encryptAndWrite(meta EnvManifest, plain string) error {
 	if err := ValidateRecipients(meta.Recipients); err != nil {
 		return err
 	}
-	cipher, err := s.age.Encrypt(context.Background(), meta.Recipients, plain)
+	cipher, err := s.age.Encrypt(s.context(), meta.Recipients, plain)
 	if err != nil {
 		return err
 	}
@@ -425,7 +441,16 @@ func (s *Store) encryptAndWrite(meta EnvManifest, plain string) error {
 
 func (s *Store) decrypt(meta EnvManifest) (string, error) {
 	return s.age.Decrypt(
-		context.Background(),
+		s.context(),
 		filepath.Join(s.root, filepath.FromSlash(meta.File)),
 	)
+}
+
+// context returns the base context for an age invocation, falling
+// back to context.Background() if SetContext was never called.
+func (s *Store) context() context.Context {
+	if s.baseCtx == nil {
+		return context.Background()
+	}
+	return s.baseCtx
 }
