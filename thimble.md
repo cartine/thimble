@@ -1,5 +1,14 @@
 # Thimble: Lightweight Secrets Management
 
+> **Status: original design doc, retained for context.** The implementation has
+> diverged in two specific ways: the manifest is `secrets/thimble.json` (not
+> `thimble.toml`), and bundles live under `secrets/<application>/<environment>.env.age`
+> (not flat under `secrets/`). The CLI takes both `<application>` and
+> `<environment>` as positional args. The [README](README.md) is the
+> authoritative reference for current behavior; this document is preserved for
+> the original problem framing, non-goals, and design principles. See
+> [TAXONOMY.md](TAXONOMY.md) for canonical terms.
+
 Thimble is a small-team secrets tool for Koja-style deployments: one or a few
 operators, one or a few Hetzner hosts, Docker Compose, and no appetite for a
 full Vault-shaped service before the product needs one.
