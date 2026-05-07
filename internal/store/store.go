@@ -53,7 +53,8 @@ func (s *Store) SetAge(t *age.Tool) { s.age = t }
 func (s *Store) SetClock(now func() time.Time) { s.now = now }
 
 // Init creates a new namespace with an initial recipient list. It
-// fails if the namespace already exists.
+// fails if the namespace already exists. Held under an exclusive
+// flock so two operators racing Init cannot trample each other.
 func (s *Store) Init(app, env string, recipients []string) error {
 	if err := ValidateName("app", app); err != nil {
 		return err
@@ -65,7 +66,11 @@ func (s *Store) Init(app, env string, recipients []string) error {
 	if err != nil {
 		return err
 	}
-	recipients = cleaned
+	lock, err := lockExclusive(s.root)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
 	m, err := s.loadManifest()
 	if err != nil {
 		return err
@@ -80,9 +85,10 @@ func (s *Store) Init(app, env string, recipients []string) error {
 	envMeta := EnvManifest{
 		Format:     "dotenv",
 		File:       filepath.ToSlash(filepath.Join(app, env+".env.age")),
-		Recipients: sortedUnique(recipients),
+		Recipients: sortedUnique(cleaned),
 		CreatedAt:  now,
 		UpdatedAt:  now,
+		Version:    1,
 	}
 	if err := s.encryptAndWrite(envMeta, ""); err != nil {
 		return err
@@ -209,8 +215,14 @@ func (s *Store) Render(app, env string) (string, error) {
 }
 
 // ListNamespaces returns a flattened, sorted view of every (app, env)
-// pair recorded in the manifest.
+// pair recorded in the manifest. Held under a shared flock so a
+// concurrent writer cannot tear the read.
 func (s *Store) ListNamespaces() ([]NamespaceView, error) {
+	lock, err := lockShared(s.root)
+	if err != nil {
+		return nil, err
+	}
+	defer lock.Close()
 	m, err := s.loadManifest()
 	if err != nil {
 		return nil, err
@@ -236,7 +248,7 @@ func (s *Store) ListNamespaces() ([]NamespaceView, error) {
 }
 
 // Find returns the EnvManifest for (app, env), or an error if the
-// namespace is not initialized.
+// namespace is not initialized. Held under a shared flock.
 func (s *Store) Find(app, env string) (EnvManifest, error) {
 	if err := ValidateName("app", app); err != nil {
 		return EnvManifest{}, err
@@ -244,6 +256,11 @@ func (s *Store) Find(app, env string) (EnvManifest, error) {
 	if err := ValidateName("environment", env); err != nil {
 		return EnvManifest{}, err
 	}
+	lock, err := lockShared(s.root)
+	if err != nil {
+		return EnvManifest{}, err
+	}
+	defer lock.Close()
 	m, err := s.loadManifest()
 	if err != nil {
 		return EnvManifest{}, err
@@ -277,6 +294,10 @@ func (s *Store) ReadEnv(app, env string) (map[string]string, EnvManifest, error)
 	return values, meta, nil
 }
 
+// rewriteEnv applies edit to the (app, env) namespace under K-21
+// optimistic concurrency. It loads the manifest unlocked, runs edit,
+// then re-acquires an exclusive flock to verify the on-disk Version
+// has not changed before encrypting and saving.
 func (s *Store) rewriteEnv(
 	app, env string,
 	edit func(*EnvManifest, map[string]string) error,
@@ -287,18 +308,11 @@ func (s *Store) rewriteEnv(
 	if err := ValidateName("environment", env); err != nil {
 		return err
 	}
-	m, err := s.loadManifest()
+	m, meta, err := s.loadEnvForEdit(app, env)
 	if err != nil {
 		return err
 	}
-	appMeta, ok := m.Apps[app]
-	if !ok {
-		return fmt.Errorf("%s/%s is not initialized", app, env)
-	}
-	meta, ok := appMeta.Environments[env]
-	if !ok {
-		return fmt.Errorf("%s/%s is not initialized", app, env)
-	}
+	loadedVersion := meta.Version
 	plain, err := s.decrypt(meta)
 	if err != nil {
 		return err
@@ -311,12 +325,87 @@ func (s *Store) rewriteEnv(
 		return err
 	}
 	meta.UpdatedAt = s.now().UTC().Format(time.RFC3339)
-	if err := s.encryptAndWrite(meta, dotenv.Encode(values)); err != nil {
+	meta.Version = loadedVersion + 1
+	return s.commitEnv(app, env, m, meta, loadedVersion, dotenv.Encode(values))
+}
+
+// loadEnvForEdit reads the manifest under a shared lock and returns
+// the manifest and the env's manifest entry, or an "is not
+// initialized" error if missing.
+func (s *Store) loadEnvForEdit(app, env string) (Manifest, EnvManifest, error) {
+	lock, err := lockShared(s.root)
+	if err != nil {
+		return Manifest{}, EnvManifest{}, err
+	}
+	defer lock.Close()
+	m, err := s.loadManifest()
+	if err != nil {
+		return Manifest{}, EnvManifest{}, err
+	}
+	appMeta, ok := m.Apps[app]
+	if !ok {
+		return Manifest{}, EnvManifest{}, fmt.Errorf("%s/%s is not initialized", app, env)
+	}
+	meta, ok := appMeta.Environments[env]
+	if !ok {
+		return Manifest{}, EnvManifest{}, fmt.Errorf("%s/%s is not initialized", app, env)
+	}
+	return m, meta, nil
+}
+
+// commitEnv re-reads the manifest under an exclusive lock, refuses if
+// the on-disk Version has advanced past loadedVersion, and otherwise
+// writes the new ciphertext and bumped manifest atomically.
+func (s *Store) commitEnv(
+	app, env string,
+	m Manifest, meta EnvManifest, loadedVersion uint64, plain string,
+) error {
+	lock, err := lockExclusive(s.root)
+	if err != nil {
 		return err
+	}
+	defer lock.Close()
+	disk, err := s.loadManifest()
+	if err != nil {
+		return err
+	}
+	if cur, ok := envFrom(disk, app, env); ok && cur.Version != loadedVersion {
+		return fmt.Errorf("another writer changed %s/%s; rerun", app, env)
+	}
+	if err := s.encryptAndWrite(meta, plain); err != nil {
+		return err
+	}
+	mergeInto(&m, disk, app, env, meta)
+	return s.saveManifest(m)
+}
+
+// envFrom returns the EnvManifest for (app, env) from m, if present.
+func envFrom(m Manifest, app, env string) (EnvManifest, bool) {
+	appMeta, ok := m.Apps[app]
+	if !ok {
+		return EnvManifest{}, false
+	}
+	meta, ok := appMeta.Environments[env]
+	return meta, ok
+}
+
+// mergeInto installs the edited (app, env) entry into m using the
+// freshly read disk manifest as the base, so a concurrent edit to a
+// different namespace is not lost.
+func mergeInto(m *Manifest, disk Manifest, app, env string, meta EnvManifest) {
+	*m = disk
+	if m.Apps == nil {
+		m.Apps = map[string]AppManifest{}
+	}
+	appMeta, ok := m.Apps[app]
+	if !ok {
+		appMeta = AppManifest{Environments: map[string]EnvManifest{}}
+	}
+	if appMeta.Environments == nil {
+		appMeta.Environments = map[string]EnvManifest{}
 	}
 	appMeta.Environments[env] = meta
 	m.Apps[app] = appMeta
-	return s.saveManifest(m)
 }
 
 func (s *Store) encryptAndWrite(meta EnvManifest, plain string) error {
