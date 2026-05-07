@@ -219,6 +219,9 @@ Commands:
   verify <app> <env>                      print bundle SHA + recipient list
   audit [--limit N] <app> <env>           print audit log entries for namespace
   doctor [--json] [--addr ...]            run setup/health diagnostics
-  web [--addr 127.0.0.1:8787]             run the local web UI
+  web [--addr 127.0.0.1:8787] [--allow-host foo.local:8787]
+                                          run the local web UI
+                                          (--allow-host is repeatable;
+                                           default Hosts cover loopback + --addr)
 
 Secret values are never accepted as command arguments.`

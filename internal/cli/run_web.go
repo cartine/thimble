@@ -21,6 +21,9 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	fs.SetOutput(stderr)
 	addr := fs.String("addr", defaultAddr, "listen address")
 	token := fs.String("token", os.Getenv("THIMBLE_WEB_TOKEN"), "web UI token")
+	var allowHosts stringList
+	fs.Var(&allowHosts, "allow-host",
+		"extra Host header to allow (repeatable; defaults cover loopback + --addr)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -38,13 +41,55 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		}
 		*token = generated
 	}
+	guard := buildHostGuard(*addr, allowHosts)
 	server := web.New(st, *token, loopback)
 	mux := http.NewServeMux()
 	server.Routes(mux)
-	httpServer := &http.Server{Addr: *addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	httpServer := &http.Server{
+		Addr:              *addr,
+		Handler:           guard.Middleware(mux),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 	fmt.Fprintf(stdout, "Thimble web UI: http://%s/\n", *addr)
 	fmt.Fprintf(stdout, "Token: %s\n", *token)
 	return httpServer.ListenAndServe()
+}
+
+// buildHostGuard composes the canonical loopback allowlist with the
+// configured listen address and any --allow-host flags. The bind host
+// is added explicitly so non-loopback addresses still match.
+func buildHostGuard(addr string, extra []string) *web.HostGuard {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		host, port = addr, ""
+	}
+	authorities := web.LoopbackAuthorities(port)
+	if host != "" {
+		authorities = append(authorities, host)
+		if port != "" {
+			authorities = append(authorities, net.JoinHostPort(host, port))
+		}
+	}
+	authorities = append(authorities, extra...)
+	return web.NewHostGuard(authorities)
+}
+
+// stringList is a flag.Value that accumulates repeated --allow-host
+// values into a slice without losing order.
+type stringList []string
+
+// String renders the accumulator for flag --help output.
+func (s *stringList) String() string {
+	if s == nil {
+		return ""
+	}
+	return fmt.Sprint(*s)
+}
+
+// Set appends one --allow-host value.
+func (s *stringList) Set(v string) error {
+	*s = append(*s, v)
+	return nil
 }
 
 func randomToken() (string, error) {
