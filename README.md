@@ -237,6 +237,9 @@ project size budget: <500 lines/file, <100 lines/function, <100 columns/line.
 Details in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md). A fuller
 `CONTRIBUTING.md` lands with [K-07](tasks/knots/K-07-contributing.md).
 
+See [TAXONOMY.md](TAXONOMY.md) for the project's shared vocabulary
+(application, environment, namespace, recipient, identity, bundle, etc.).
+
 ## Security Position
 
 - Encryption and decryption are delegated to `age`.

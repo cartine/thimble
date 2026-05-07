@@ -11,6 +11,12 @@ Run `make lint` before committing. All source files must stay within:
 The standard is enforced by `.golangci.yml` (funlen + lll) and
 `scripts/check_file_sizes.sh`.
 
+## Vocabulary
+
+See [TAXONOMY.md](TAXONOMY.md) for canonical terms (application,
+environment, namespace, recipient, identity, bundle, ...). Update via
+`/taxonomize`.
+
 ## Workflow
 
 This repo uses `kno` for execution-plan tracking. See `tasks/knot-plan.md`

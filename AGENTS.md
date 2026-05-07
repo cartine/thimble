@@ -4,6 +4,13 @@ This repo uses [knots](https://github.com/cartine/knots) (`kno`) for
 execution-plan tracking. The 48-knot Thimble hardening plan is in
 `tasks/knot-plan.md`; individual drafts are in `tasks/knots/K-NN-*.md`.
 
+## Vocabulary
+
+See [TAXONOMY.md](TAXONOMY.md) for canonical terms. Read it before
+renaming anything; refresh it via `/taxonomize` (preserves human edits).
+
+## Workflow
+
 When picking up work:
 
 1. `kno ls` — see active knots.
