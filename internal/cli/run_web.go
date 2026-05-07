@@ -45,9 +45,10 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	server := web.New(st, *token, loopback)
 	mux := http.NewServeMux()
 	server.Routes(mux)
+	handler := guard.Middleware(web.NoStoreMiddleware(mux))
 	httpServer := &http.Server{
 		Addr:              *addr,
-		Handler:           guard.Middleware(mux),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	fmt.Fprintf(stdout, "Thimble web UI: http://%s/\n", *addr)

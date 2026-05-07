@@ -27,25 +27,32 @@ func TestWebUICookieFlowAndRedaction(t *testing.T) {
 	server := web.New(st, "test-token", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
+	// Wrap with NoStoreMiddleware so cache-control headers are
+	// asserted as part of the live cookie flow (K-32).
+	handler := web.NoStoreMiddleware(mux)
 
 	t.Run("missing cookie redirects or 401s", func(t *testing.T) {
-		assertMissingCookieResponses(t, mux)
+		assertMissingCookieResponses(t, handler)
 	})
 	t.Run("wrong token rejected", func(t *testing.T) {
-		assertWrongTokenRejected(t, mux)
+		assertWrongTokenRejected(t, handler)
 	})
-	cookie := loginAndExtractCookie(t, mux, "test-token")
+	cookie := loginAndExtractCookie(t, handler, "test-token")
 	t.Run("correct token sets cookie attributes", func(t *testing.T) {
 		assertCookieAttrs(t, cookie, false)
 	})
 	t.Run("authorized session shows redacted UI", func(t *testing.T) {
-		assertAuthorizedView(t, mux, cookie)
+		assertAuthorizedView(t, handler, cookie)
 	})
 	t.Run("authorized update persists", func(t *testing.T) {
-		assertAuthorizedUpdate(t, mux, st, cookie)
+		assertAuthorizedUpdate(t, handler, st, cookie)
 	})
 	t.Run("logout clears cookie", func(t *testing.T) {
-		assertLogoutClears(t, mux, cookie)
+		assertLogoutClears(t, handler, cookie)
+	})
+	t.Run("authorized GET sets no-store headers", func(t *testing.T) {
+		assertNoStoreHeaders(t, handler, http.MethodGet, "/?app=webapp&env=dev",
+			cookie)
 	})
 }
 
