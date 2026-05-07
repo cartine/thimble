@@ -164,7 +164,9 @@ Commands:
   update <app> <env> KEY                  update one existing key from pipe or masked prompt
   set <app> <env> KEY                     create or update one key from pipe or masked prompt
   provision [--bytes 32]                  generate a random secret for a pipe
-  and-set <app> <env> KEY -- <command>    set a key from a command's stdout
+  and-set [--show-stderr] <app> <env> KEY -- <command>
+                                          set a key from a command's stdout
+                                          (producer stderr is captured by default)
   and-get <app> <env> KEY -- <command>    pass a key to a command on stdin
   delete <app> <env> KEY                  delete one secret key
   list <app> <env>                        list keys only, never values

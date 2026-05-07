@@ -121,6 +121,12 @@ stored without appearing on the terminal:
 thimble and-set web-api production WEBHOOK_SECRET -- ./scripts/create-webhook-secret
 ```
 
+`and-set` captures the producer's stderr by default; only the failure message
+shows it (truncated and redacted). Pass `--show-stderr` if you need to see the
+producer's stderr live for debugging — useful when the producer runs under
+`set -x` and you trust your terminal not to be over the shoulder of someone
+who shouldn't see it.
+
 Use `and-get` to pass a secret to a command on stdin:
 
 ```sh

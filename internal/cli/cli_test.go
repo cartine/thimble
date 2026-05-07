@@ -114,3 +114,48 @@ func TestProvisionRequiresStrongTokenAndWritesToPipe(t *testing.T) {
 type ioDiscardFile struct{}
 
 func (ioDiscardFile) Write(p []byte) (int, error) { return len(p), nil }
+
+// TestRunSecretProducerSuppressesStderrOnSuccess covers K-23: a
+// producer that writes the secret to stderr must not leak it to the
+// parent's stderr in the success case.
+func TestRunSecretProducerSuppressesStderrOnSuccess(t *testing.T) {
+	root := t.TempDir()
+	producer := filepath.Join(root, "noisy.sh")
+	const script = "#!/bin/sh\n" +
+		"printf 'leaky-stderr\\n' >&2\n" +
+		"printf 'real-secret\\n'\n"
+	if err := os.WriteFile(producer, []byte(script), 0o700); err != nil {
+		t.Fatalf("write producer: %v", err)
+	}
+	var stderr strings.Builder
+	value, err := runSecretProducer([]string{producer}, &stderr, false)
+	if err != nil {
+		t.Fatalf("runSecretProducer: %v", err)
+	}
+	if value != "real-secret" {
+		t.Fatalf("value = %q, want real-secret", value)
+	}
+	if strings.Contains(stderr.String(), "leaky-stderr") {
+		t.Fatalf("producer stderr leaked to parent: %q", stderr.String())
+	}
+}
+
+// TestRunSecretProducerShowStderrMirrors covers the --show-stderr
+// opt-in: stderr is mirrored to the parent for debugging.
+func TestRunSecretProducerShowStderrMirrors(t *testing.T) {
+	root := t.TempDir()
+	producer := filepath.Join(root, "noisy.sh")
+	const script = "#!/bin/sh\n" +
+		"printf 'debug-line\\n' >&2\n" +
+		"printf 'real-secret\\n'\n"
+	if err := os.WriteFile(producer, []byte(script), 0o700); err != nil {
+		t.Fatalf("write producer: %v", err)
+	}
+	var stderr strings.Builder
+	if _, err := runSecretProducer([]string{producer}, &stderr, true); err != nil {
+		t.Fatalf("runSecretProducer: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "debug-line") {
+		t.Fatalf("stderr was not mirrored: %q", stderr.String())
+	}
+}

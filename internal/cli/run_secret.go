@@ -39,15 +39,25 @@ func runProvision(args []string, stdout, stderr io.Writer) error {
 }
 
 func runAndSet(st *store.Store, args []string, stdout, stderr io.Writer) error {
-	if len(args) < 5 {
-		return errors.New("usage: thimble and-set <app> <env> <KEY> -- <command> [args...]")
+	fs := flag.NewFlagSet("and-set", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	showStderr := fs.Bool("show-stderr", false,
+		"mirror the producer's stderr live (default: capture for failure messages only)")
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
-	app, env, key := args[0], args[1], args[2]
-	cmdArgs, err := commandAfterDash(args[3:])
+	rest := fs.Args()
+	if len(rest) < 5 {
+		return errors.New(
+			"usage: thimble and-set [--show-stderr] <app> <env> <KEY> -- <command> [args...]",
+		)
+	}
+	app, env, key := rest[0], rest[1], rest[2]
+	cmdArgs, err := commandAfterDash(rest[3:])
 	if err != nil {
 		return err
 	}
-	value, err := runSecretProducer(cmdArgs, stderr)
+	value, err := runSecretProducer(cmdArgs, stderr, *showStderr)
 	if err != nil {
 		return err
 	}

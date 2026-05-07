@@ -57,9 +57,11 @@ func commandAfterDash(args []string) ([]string, error) {
 }
 
 // runSecretProducer runs the user-supplied command and captures its
-// stdout as the secret value. Stderr is forwarded to stderr but a copy
-// is buffered so failure messages can be redacted before surfacing.
-func runSecretProducer(args []string, stderr io.Writer) (string, error) {
+// stdout as the secret value. Stderr is captured into a buffer used
+// only for the failure message; on success the captured stderr is
+// discarded (K-23). Pass showStderr=true to mirror stderr live for
+// debugging.
+func runSecretProducer(args []string, stderr io.Writer, showStderr bool) (string, error) {
 	// #nosec G204 -- args is the command the operator placed after `--`
 	// on the Thimble CLI. Running operator-supplied commands is the
 	// documented design of `thimble set --from-cmd ... --` and friends.
@@ -67,7 +69,11 @@ func runSecretProducer(args []string, stderr io.Writer) (string, error) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
 	cmd.Stdout = &out
-	cmd.Stderr = io.MultiWriter(stderr, &errOut)
+	if showStderr {
+		cmd.Stderr = io.MultiWriter(stderr, &errOut)
+	} else {
+		cmd.Stderr = &errOut
+	}
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("secret producer failed: %s", age.Redact(errOut.String()))
 	}
