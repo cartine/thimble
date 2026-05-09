@@ -15,6 +15,23 @@ make test
 `make help` lists every target. You also need `age` on `PATH` to run
 anything beyond unit tests.
 
+### Run the binary you just built
+
+`make build` lands the binary at `./thimble` (relative to the repo
+root). For pre-release dogfooding — running `thimble` from any
+directory, recording the demo cast, exercising real namespaces — use
+`make install-local`:
+
+```sh
+make install-local        # builds + installs to ~/.local/bin/thimble
+thimble --version         # confirm $PATH picks it up
+make uninstall-local      # remove the local install when done
+```
+
+This mirrors the same pattern knots and foolery use; `~/.local/bin` is
+already on most operators' `PATH`. Override the destination with
+`make install-local INSTALL_DIR=/some/other/dir`.
+
 ## Setup verification
 
 Run `thimble doctor` after install to confirm your environment is sane. It

@@ -6,13 +6,14 @@
 #
 # Run `make help` for the full list.
 
-GO        ?= go
-GOOS      ?=
-GOARCH    ?=
-LDFLAGS   ?= -s -w
-BUILDARGS ?= -trimpath -ldflags="$(LDFLAGS)"
+GO          ?= go
+GOOS        ?=
+GOARCH      ?=
+LDFLAGS     ?= -s -w
+BUILDARGS   ?= -trimpath -ldflags="$(LDFLAGS)"
+INSTALL_DIR ?= $(HOME)/.local/bin
 
-.PHONY: help build test integration lint vuln verify-release demo tag-release
+.PHONY: help build install-local uninstall-local test integration lint vuln verify-release demo tag-release
 
 help: ## List targets and short descriptions.
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / { \
@@ -21,6 +22,15 @@ help: ## List targets and short descriptions.
 
 build: ## Build thimble for the host (override GOOS/GOARCH to cross-compile).
 	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(BUILDARGS) ./cmd/thimble
+
+install-local: ## Build and install thimble to ~/.local/bin (or $$INSTALL_DIR). Use for pre-release dogfooding.
+	@mkdir -p "$(INSTALL_DIR)"
+	$(GO) build $(BUILDARGS) -o "$(INSTALL_DIR)/thimble" ./cmd/thimble
+	@printf '%s\n' "Installed: $(INSTALL_DIR)/thimble"
+	@printf '%s\n' 'Confirm with: thimble --version  (verify $$PATH includes $(INSTALL_DIR))'
+
+uninstall-local: ## Remove ~/.local/bin/thimble (or $$INSTALL_DIR/thimble).
+	@rm -f "$(INSTALL_DIR)/thimble" && printf '%s\n' "Removed: $(INSTALL_DIR)/thimble"
 
 test: ## Run unit tests with the race detector.
 	$(GO) test -race ./...
