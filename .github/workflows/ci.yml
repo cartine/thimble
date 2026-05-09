@@ -56,11 +56,14 @@ jobs:
         # checker. v2.x is required because go.mod declares a newer
         # toolchain than v1 binaries can lint. golangci-lint-action@v7
         # is the first major version that supports golangci-lint v2.x.
+        # No `args:` — we only want the action to install the binary;
+        # `make lint` runs it explicitly in the next step. (v2's
+        # `golangci-lint run` rejects `--version`, so the v6 idiom of
+        # using `args: --version` as a smoke-test no longer works.)
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
           install-mode: binary
-          args: --version
       - name: make lint
         run: make lint
       - name: install staticcheck
