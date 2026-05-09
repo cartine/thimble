@@ -87,6 +87,19 @@ review notes from the initial implementation are at
   control — but the post-rotation bundle is unreadable to them and
   the new values are unknown to them.
 
+- **`render` writes plaintext to whatever consumes its stdout.** The
+  `thimble render <app> <env>` subcommand emits dotenv on stdout, and
+  the canonical pipeline `thimble render … > /run/svc.env` puts the
+  plaintext on disk for every reader who can `cat` that file. The
+  preferred no-disk path is K-58's `thimble exec`: it decrypts the
+  namespace and forks the child with the values delivered on the
+  child's stdin (default) or in its env block (`--env`), with no
+  filesystem write at any point. The env-block flavor still leaks
+  through `/proc/<pid>/environ` to root and to anyone in the same
+  pid namespace; the stdin flavor does not. Pick stdin when you
+  control the app's source, env when you do not. Both flavors record
+  one row in the K-27 audit log (`op="exec"`).
+
 - **Peer membership is NOT quorum-gated.** The K-55
   `secrets/thimble.peers.toml` file is local to each operator and any
   operator with write access can edit it. Adding a peer grants only
