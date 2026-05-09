@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  packages: write
 
 jobs:
   build:
@@ -34,9 +37,15 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           version="${GITHUB_REF_NAME#v}"
+          commit="${GITHUB_SHA:0:7}"
+          built="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           name="thimble_${version}_${GOOS}_${GOARCH}"
+          ldflags="-s -w"
+          ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.version=$version"
+          ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.commit=$commit"
+          ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.buildDate=$built"
           mkdir -p "dist/$name"
-          go build -trimpath -ldflags="-s -w" -o "dist/$name/thimble" ./cmd/thimble
+          go build -trimpath -ldflags="$ldflags" -o "dist/$name/thimble" ./cmd/thimble
           cp README.md SECURITY.md "dist/$name/"
           tar -C "dist/$name" -czf "dist/$name.tar.gz" .
       - uses: actions/upload-artifact@v4
@@ -48,16 +57,82 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Stage install.sh
+        run: cp scripts/install.sh dist/install.sh
       - name: Checksums
         run: |
           cd dist
-          sha256sum *.tar.gz > checksums.txt
+          sha256sum *.tar.gz install.sh > checksums.txt
+      # SLSA build-provenance attestation: signs each tarball + checksums.txt
+      # with a Sigstore certificate tied to this workflow run. Verifiable
+      # post-release with `gh attestation verify <asset> --repo cartine/thimble`.
+      # TODO: layer cosign sign-blob keyless on top once we want a path that
+      # does not require a github CLI install — left out of v0 to keep the
+      # surface minimal.
+      - name: Attest tarballs
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/install.sh
+            dist/checksums.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.tar.gz
+            dist/install.sh
             dist/checksums.txt
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve image tags
+        id: meta
+        run: |
+          version="${GITHUB_REF_NAME}"
+          repo_lc="$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$repo_lc" >>"$GITHUB_OUTPUT"
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$GITHUB_OUTPUT"
+          echo "commit=${GITHUB_SHA:0:7}" >>"$GITHUB_OUTPUT"
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT=${{ steps.meta.outputs.commit }}
+            BUILD_DATE=${{ steps.meta.outputs.build_date }}
+      - name: Attest image
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ steps.meta.outputs.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

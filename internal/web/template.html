@@ -1,0 +1,196 @@
+{{define "ui"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thimble</title>
+  <style>
+    :root { color-scheme: light; --ink:#17202a; --muted:#607080; --line:#d8dee5; --accent:#116466; --accent-soft:#e8f3ef; --bg:#f7f8f6; --panel:#ffffff; --warn:#9a3412; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+    header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 24px; border-bottom:1px solid var(--line); background:var(--panel); }
+    .brand { display:flex; gap:12px; align-items:center; min-width:0; }
+    .logo { width:42px; height:42px; flex:0 0 42px; }
+    .brand-copy { display:grid; gap:1px; min-width:0; }
+    h1 { margin:0; font-size:20px; letter-spacing:0; }
+    h2 { margin:0 0 12px; font-size:15px; }
+    main { display:grid; grid-template-columns:minmax(240px,320px) 1fr; gap:20px; padding:20px 24px; max-width:1180px; margin:0 auto; }
+    section, aside { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    a { color:var(--accent); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .muted { color:var(--muted); }
+    .tip { background:var(--accent-soft); border-color:#b9d8ce; color:#20332f; }
+    .tip strong { display:block; margin-bottom:3px; }
+    .stack { display:grid; gap:12px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    label { display:grid; gap:5px; font-weight:600; }
+    input, textarea { width:100%; min-height:38px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+    textarea { min-height:84px; resize:vertical; }
+    button { min-height:36px; padding:0 12px; border:0; border-radius:6px; background:var(--accent); color:white; font-weight:700; cursor:pointer; }
+    button.secondary { background:#50606f; }
+    button.danger { background:var(--warn); }
+    ul { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+    li { border-bottom:1px solid var(--line); padding-bottom:8px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; border-bottom:1px solid var(--line); padding:9px 6px; vertical-align:top; }
+    th { color:var(--muted); font-size:12px; text-transform:uppercase; }
+    .notice { border-color:#9bc7a8; background:#edf7ef; }
+    .error { border-color:#e0a287; background:#fff3ed; }
+    .pill { display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; }
+    .field-note { margin:4px 0 0; color:var(--muted); font-size:12px; }
+    .scope-banner { margin:0 0 4px; padding:8px 10px; background:#fbf6e9; border:1px solid #e7d39a; border-radius:6px; color:#5e4910; font-size:12px; }
+    @media (max-width: 820px) { main { grid-template-columns:1fr; padding:14px; } header { padding:14px; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="Thimble">
+      <rect width="64" height="64" rx="14" fill="#eef6f3"/>
+      <path d="M20 17c2.5-4 21.5-4 24 0l4 31c.5 3.7-3.2 7-7.1 7H23.1c-3.9 0-7.6-3.3-7.1-7l4-31Z" fill="#116466"/>
+      <path d="M23 20c2.1-2.1 15.9-2.1 18 0l3.6 28.2c.2 1.6-1.4 2.8-3.7 2.8H23.1c-2.3 0-3.9-1.2-3.7-2.8L23 20Z" fill="#ffffff" opacity=".88"/>
+      <path d="M24 24h16M24.5 30h15M25 36h14M26 42h12" stroke="#116466" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+      <path d="M33 11l18 18" stroke="#17202a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M49.5 27.5l4 4" stroke="#17202a" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="28" cy="27" r="1.8" fill="#116466"/><circle cx="36" cy="27" r="1.8" fill="#116466"/><circle cx="31" cy="34" r="1.8" fill="#116466"/><circle cx="39" cy="34" r="1.8" fill="#116466"/><circle cx="29" cy="41" r="1.8" fill="#116466"/><circle cx="37" cy="41" r="1.8" fill="#116466"/>
+    </svg>
+    <div class="brand-copy">
+      <h1>Thimble</h1>
+      <span class="muted">local age-backed secrets</span>
+    </div>
+  </div>
+  <div class="row">
+    <span class="pill">values stay redacted</span>
+    <a href="/logout">Log out</a>
+  </div>
+</header>
+<main>
+  <aside class="stack">
+    {{if .Notice}}<section class="notice">{{.Notice}}</section>{{end}}
+    {{if .Error}}<section class="error">{{.Error}}</section>{{end}}
+    <p class="muted scope-banner">single-operator local tool · use CLI for shared/production</p>
+    <section class="stack">
+      <h2>Namespaces</h2>
+      <ul>
+      {{range .Namespaces}}
+        <li><a href="/?app={{.App}}&env={{.Env}}"><strong>{{.App}}</strong> / {{.Env}}</a><br><span class="muted">{{.Recipients}} recipients · {{.UpdatedAt}}</span></li>
+      {{else}}
+        <li class="muted">No namespaces yet.</li>
+      {{end}}
+      </ul>
+    </section>
+    <section class="tip">
+      <strong>Namespace model</strong>
+      <span>Use one namespace per application and environment. A production bundle and a staging bundle can share key names while keeping recipients separate.</span>
+    </section>
+    <section class="stack">
+      <h2>Create Namespace</h2>
+      <form class="stack" action="/namespace" method="post">
+        <label>Application <input name="app" autocomplete="off" required></label>
+        <label>Environment <input name="env" autocomplete="off" required></label>
+        <label>Recipients <textarea name="recipients" spellcheck="false" required></textarea><span class="field-note">Add verified age public recipients only. One per line or comma-separated.</span></label>
+        <button>Create</button>
+      </form>
+    </section>
+    <section class="tip">
+      <strong>Peer handoff</strong>
+      <span>Commit encrypted bundles, never identities. Add a peer by verifying their recipient out of band, then re-encrypt with Recipient Add.</span>
+    </section>
+  </aside>
+  <section class="stack">
+    {{if .Selected}}
+      <div class="row">
+        <h2>{{.Selected.App}} / {{.Selected.Env}}</h2>
+        <span class="pill">values redacted</span>
+      </div>
+      <section class="tip">
+        <strong>Safe entry</strong>
+        <span>The web UI is a redacted viewer. To set or update a value, run the suggested CLI command. The browser never sees plaintext.</span>
+      </section>
+      <table>
+        <thead><tr><th>Key</th><th>Set value (CLI)</th><th>Delete</th></tr></thead>
+        <tbody>
+          {{range .Selected.Keys}}
+          <tr>
+            <td><code>{{.Key}}</code></td>
+            <td><code>thimble set {{$.Selected.App}} {{$.Selected.Env}} {{.Key}}</code></td>
+            <td>
+              <form class="row" action="/secret" method="post">
+                <input type="hidden" name="app" value="{{$.Selected.App}}">
+                <input type="hidden" name="env" value="{{$.Selected.Env}}">
+                <input type="hidden" name="key" value="{{.Key}}">
+                <button class="danger" name="action" value="delete">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      <section class="tip">
+        <strong>Add a new key</strong>
+        <span>Run <code>thimble set {{.Selected.App}} {{.Selected.Env}} NEW_KEY</code> in your terminal. Thimble masks the prompt and pipes plaintext only into the encrypted bundle.</span>
+      </section>
+      <section class="stack">
+        <h2>Recipients</h2>
+        <p class="field-note">Recipient changes re-encrypt this bundle. Keep at least one offline recovery recipient before removing an operator.</p>
+        <ul>
+        {{range .Selected.Recipients}}
+          <li>
+            <form class="row" action="/recipient" method="post">
+              <input type="hidden" name="app" value="{{$.Selected.App}}">
+              <input type="hidden" name="env" value="{{$.Selected.Env}}">
+              <input type="hidden" name="recipient" value="{{.}}">
+              <code>{{.}}</code>
+              <button class="danger" name="action" value="remove">Remove</button>
+            </form>
+          </li>
+        {{end}}
+        </ul>
+        <form class="row" action="/recipient" method="post">
+          <input type="hidden" name="app" value="{{.Selected.App}}">
+          <input type="hidden" name="env" value="{{.Selected.Env}}">
+          <input name="recipient" placeholder="age1..." required>
+          <button name="action" value="add">Add</button>
+        </form>
+      </section>
+    {{else}}
+      <h2>Select a Namespace</h2>
+      <p class="muted">Create or select an application/environment namespace to manage redacted keys.</p>
+      <section class="tip">
+        <strong>Good first flow</strong>
+        <span>Create a namespace, add one operator recipient and one recovery recipient, then set values through a pipe or masked prompt.</span>
+      </section>
+    {{end}}
+  </section>
+</main>
+</body>
+</html>{{end}}
+{{define "login"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thimble · Sign in</title>
+  <style>
+    body { margin:0; font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#17202a; background:#f7f8f6; }
+    .wrap { max-width:420px; margin:10vh auto; padding:24px; background:#ffffff; border:1px solid #d8dee5; border-radius:8px; }
+    h1 { margin:0 0 6px; font-size:20px; }
+    p.lead { margin:0 0 18px; color:#607080; }
+    form { display:grid; gap:12px; }
+    input { width:100%; min-height:38px; padding:8px 10px; border:1px solid #d8dee5; border-radius:6px; font:inherit; }
+    button { min-height:38px; padding:0 12px; border:0; border-radius:6px; background:#116466; color:white; font-weight:700; cursor:pointer; }
+    .error { padding:10px; border:1px solid #e0a287; background:#fff3ed; border-radius:6px; margin-bottom:12px; color:#9a3412; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Thimble · Sign in</h1>
+    <p class="lead">Paste the token printed on the server console.</p>
+    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+    <form action="/login" method="post" autocomplete="off">
+      <input type="password" name="token" autocomplete="off" placeholder="token" autofocus required>
+      <button>Sign in</button>
+    </form>
+  </div>
+</body>
+</html>{{end}}

@@ -1,51 +1,125 @@
-# Security Review
+# Security Policy
 
-This implementation is approved for the intended small-team, file-first Thimble
-slice when used with `age` and normal operator hygiene.
+## Reporting a Vulnerability
 
-## Approved Controls
+If you've found a vulnerability in Thimble, please report it privately so we
+can fix it before public disclosure.
 
-- No custom cryptography. Thimble shells out to the audited `age` binary.
-- Secrets are scoped by application and environment.
-- Plaintext is kept in memory for the active command and is not written to a
-  working-tree temp file.
-- Encrypted bundles and metadata are written with atomic rename.
-- Files are created with restrictive modes: store directories `0700`, files
-  `0600`.
-- Listing and web UI views expose keys and metadata only, not values.
-- Secret values are rejected when supplied as command arguments.
-- CLI create, update, and set read from a pipe or a masked terminal prompt.
-- `provision` refuses weak generated values and is designed for piping into
-  storage flows.
-- `and-set` captures a command's stdout and stores it without echoing the value.
-- `and-get` passes a value to a child command on stdin by default; environment
-  variable exposure is explicit with `--env`.
-- Web UI requires a token. Non-loopback binds are rejected unless a token is
-  explicitly supplied.
-- Secret names, app names, environment names, and recipients are validated before
-  touching the filesystem or invoking `age`.
-- Recipient changes re-encrypt the bundle so metadata and ciphertext remain in
-  sync.
-- Peer setup is recipient-based: peers exchange encrypted bundles and verified
-  public recipients, never private age identities.
+Two channels, in order of preference:
 
-## Residual Risks
+1. **GitHub Private Vulnerability Reporting** — open a draft advisory at
+   <https://github.com/cartine/thimble/security/advisories/new>. This routes
+   directly to maintainers, keeps the discussion private, and produces a CVE
+   automatically when published.
+2. **Email** — `its@thecartine.me`. PGP fingerprint will be added here once
+   the project has one published.
 
-- Explicit `and-get --env` use can expose values through child process
-  environments. Prefer stdin where tools allow it.
-- The web UI is an operator tool, not a multi-user hosted service. Use it on
-  loopback or behind a trusted tunnel.
-- Decryption requires an authorized age identity. A compromised operator machine
-  or deploy host can read any secret that identity can decrypt.
-- Removing a recipient does not invalidate plaintext or encrypted copies they
-  already obtained. Rotate high-risk values after access removal.
-- This does not yet provide audit logs, policy approval workflows, or automatic
-  rotation.
+Please include:
 
-## Security Agent Verdict
+- A description of the issue and its impact.
+- Steps to reproduce, ideally with a minimal proof of concept.
+- The version (`thimble --version`) you reproduced against, if applicable.
+- Whether you intend to disclose publicly and on what timeline.
 
-Approved for the requested implementation slice: basic CRUD tooling,
-application/environment namespaces, peer-capable encrypted bundle sync, safe
-secret entry, a local web UI, and release-script install and update. The
-implementation follows the `thimble.md` non-goal of not implementing
-cryptography and keeps remaining risks explicit.
+## Response SLA
+
+We aim to:
+
+- **Acknowledge** receipt within **3 business days**.
+- **Triage** (severity assessment, CVE if warranted) within **7 business days**.
+- **Patch** critical issues in `main` within **30 calendar days** of confirmation,
+  shorter for actively exploited issues.
+- **Credit** reporters publicly in release notes unless asked otherwise.
+
+## Supported Versions
+
+| Version    | Supported          |
+|------------|--------------------|
+| `main`     | ✓ (rolling)        |
+| `0.x`      | ✓ (latest minor)   |
+| `< 0.x-1`  | ✗                  |
+
+We are pre-1.0. Until 1.0, only the latest `0.x` minor receives security fixes.
+After 1.0, the policy will widen to the current major and one prior minor.
+
+## Threat Model
+
+A short threat model lives in the [README](README.md#threat-model). Internal
+review notes from the initial implementation are at
+[docs/security-review.md](docs/security-review.md).
+
+### Residual risks
+
+- **Compromise of the `age` binary on `PATH`.** Thimble shells out to `age`
+  for every encrypt/decrypt. If pinning is not used, a malicious binary
+  earlier in the path can intercept plaintext during encrypt and capture
+  the identity-file path during decrypt, with zero indication. Mitigate
+  per-invocation with `--age-binary=/path/to/age` (or
+  `THIMBLE_AGE_BINARY=...`) and, when you have a known-good build, set
+  `THIMBLE_AGE_SHA256=<hex>` so a mismatch aborts before the binary runs.
+  K-18 is the gap; K-29 (`thimble doctor`) will surface the resolved path
+  and SHA-256 on demand.
+
+- **Single-operator recipient additions when no quorum policy is
+  configured.** When `secrets/recipients.signed.toml` is absent, any
+  operator with write access to the secrets store can grant a new
+  recipient via a one-line manifest change. K-36 ships the structural
+  fix as **opt-in**: drop a policy file listing M-of-N operators and
+  every recipient add must be signed by M of them before the bundle
+  re-encrypts. Without the policy file, the only mitigations are
+  out-of-band review of recipient changes before they apply and the
+  K-27 audit log. Protocol detail:
+  [docs/recipient-quorum.md](docs/recipient-quorum.md).
+
+- **Removing a recipient does not invalidate plaintext or encrypted
+  copies they already obtained.** Once a peer has decrypted a bundle
+  the plaintext can outlive the recipient list. K-37 makes rotation
+  the easy default: `thimble recipient remove --rotate <app> <env>
+  age1...` regenerates every value whose origin is `provision`
+  (high-entropy random tokens produced by `thimble provision`)
+  atomically alongside the recipient drop, and surfaces every other
+  key as "manual rotate needed" so the operator knows what to re-set
+  out of band. The new value lands under the same exclusive flock
+  as the recipient list, so a concurrent reader either sees the old
+  bundle or the fully-rotated bundle, never a torn state. The
+  removed peer's already-decrypted plaintext remains a residual risk
+  — anything the peer copied before removal is out of Thimble's
+  control — but the post-rotation bundle is unreadable to them and
+  the new values are unknown to them.
+
+- **Peer membership is NOT quorum-gated.** The K-55
+  `secrets/thimble.peers.toml` file is local to each operator and any
+  operator with write access can edit it. Adding a peer grants only
+  rsync rights (the ability to copy ciphertext bundles) — it does
+  **not** grant decrypt rights. Granting decrypt access is still a
+  recipient addition (`thimble recipient add`), which IS gated by the
+  K-36 quorum policy. A malicious operator who adds themselves to
+  peers.toml gains the ability to pull encrypted material but cannot
+  read it without a quorum-approved recipient grant.
+
+## Scope
+
+In scope: the `thimble` CLI, the local web UI, the release tooling, and the
+install scripts. Out of scope: vulnerabilities in `age`, the Go toolchain, or
+other upstream dependencies — please report those to their respective projects.
+
+### Web UI scope
+
+The web UI is a **redacted viewer plus recipient/key manager**. It can:
+
+- Create namespaces.
+- List keys (never values) per namespace.
+- Add and remove recipients (these are public addresses, not secrets).
+- Delete keys.
+
+It cannot accept secret values. Strict-mode rejection (K-34) returns a 400
+on any POST that carries a non-empty `value` form field; the rejection body
+points the operator at the CLI command. Setting or updating a key is always
+done from the terminal via `thimble set <app> <env> <KEY>` so plaintext
+never touches form bodies, browser autofill, or DevTools.
+
+## Public Disclosure
+
+We coordinate disclosure. If a fix is available, we publish the advisory and
+release notes simultaneously. If no fix is available within 90 days, we work
+with the reporter on a mutually agreeable disclosure timeline.

@@ -1,0 +1,112 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build-test
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: make test
+
+  vuln:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: govulncheck
+        run: make vuln
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: install golangci-lint
+        # `make lint` runs golangci-lint (funlen, lll) + the source-size
+        # checker. v2 is required because go.mod declares
+        # `toolchain go1.26.2` and v1 binaries built against older Go
+        # refuse to lint a newer-toolchain target.
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.12.2
+          install-mode: binary
+          args: --version
+      - name: make lint
+        run: make lint
+      - name: install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+      - name: install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: staticcheck
+        run: staticcheck ./...
+      - name: gosec
+        # -tests=false skips test fixtures (which intentionally write
+        # 0o700 fake `age` shell scripts and would otherwise trip G306).
+        # G204 (subprocess) suppressions are inline at the four call
+        # sites in internal/age and internal/cli, each justified.
+        run: gosec -tests=false ./...
+
+  integration:
+    name: integration (real age)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: install age
+        # `age` lives in the universe component on Ubuntu 24.04.
+        # The package ships both `age` and `age-keygen`.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age
+      - name: integration tests
+        run: make integration
+
+  docker-build:
+    # Build the multi-arch image to catch Dockerfile breakage on PRs and
+    # pushes to main. Push-on-tag happens in the release workflow.
+    name: docker build (no push)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: build linux/amd64 + linux/arm64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: thimble:ci

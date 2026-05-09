@@ -1,0 +1,15 @@
+# Trim the Docker build context. We want module + sources only.
+.git
+.github
+.claude
+.knots
+.idea
+.vscode
+**/*.test
+**/*.out
+**/coverage*
+dist
+docs
+tasks
+tests/golden
+**/.DS_Store

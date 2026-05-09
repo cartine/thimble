@@ -1,5 +1,14 @@
 # Thimble: Lightweight Secrets Management
 
+> **Status: original design doc, retained for context.** The implementation has
+> diverged in two specific ways: the manifest is `secrets/thimble.json` (not
+> `thimble.toml`), and bundles live under `secrets/<application>/<environment>.env.age`
+> (not flat under `secrets/`). The CLI takes both `<application>` and
+> `<environment>` as positional args. The [README](README.md) is the
+> authoritative reference for current behavior; this document is preserved for
+> the original problem framing, non-goals, and design principles. See
+> [TAXONOMY.md](TAXONOMY.md) for canonical terms.
+
 Thimble is a small-team secrets tool for Koja-style deployments: one or a few
 operators, one or a few Hetzner hosts, Docker Compose, and no appetite for a
 full Vault-shaped service before the product needs one.
@@ -34,7 +43,8 @@ a small CLI and an intentionally narrow mental model.
 
 ## Design Principles
 
-- **File-first:** encrypted secrets are ordinary files that can live in git.
+- **File-first:** encrypted secrets are ordinary files; any byte-faithful
+  transport (rsync, object storage, scp) can move them between peers.
 - **Peer-capable:** operators and deploy hosts can sync encrypted bundles
   without a required central server.
 - **Recipient-based:** access is controlled by public encryption recipients,
@@ -95,8 +105,9 @@ thimble rotate production KOJA_SMTP_PASSWORD
 ## Peer-to-Peer Shape
 
 Peer-to-peer is interesting because Thimble does not need to be highly
-available. The encrypted bundle is the durable object. Any authorized peer can
-hold, sync, and redeploy it.
+available. The encrypted bundle is the durable object — a content-addressed
+file that is meaningless to anyone outside its recipient list. Any authorized
+peer can hold it, copy it, replicate it, and redeploy it.
 
 Peers can be:
 
@@ -105,7 +116,28 @@ Peers can be:
 - an offline backup location
 - a future agent workstation with limited permissions
 
-The simplest sync mode is git. A later mode could use direct peer exchange:
+### Why file-first
+
+Treating the encrypted bundle as the source of truth — instead of a running
+service — has three concrete payoffs:
+
+- **No coordination cost at the wire.** Replication is a file copy. If your
+  team can rsync, scp, or `aws s3 sync`, you already have the protocol.
+  There is no Thimble daemon that needs a quorum to take a write.
+- **Transport is interchangeable.** Whatever moves bytes can move bundles:
+  rsync over ssh, an S3-compatible bucket, a USB drive into a SCIF, a
+  signed email attachment. The cryptography does not care.
+- **No long-running attack surface.** The component most likely to grow CVEs
+  in a Vault-shaped deployment — the always-on server with privileged
+  decrypt capability — does not exist. Thimble is a CLI that runs for the
+  duration of the command and then exits.
+
+### Sync modes
+
+The simplest sync mode is rsync over ssh against a single store host (Pattern
+A in the README's [Storing and Syncing](README.md#storing-and-syncing)
+section); pick whatever your team already uses. A later mode could use
+direct peer exchange:
 
 ```sh
 thimble peer invite production alice-laptop
@@ -114,8 +146,26 @@ thimble peer pull production alice-laptop
 ```
 
 In that model, peers exchange only encrypted bundles and recipient metadata.
-There is no central Thimble server to fail over. Conflict handling can start
-simple: reject concurrent edits unless the encrypted bundle version matches.
+There is no central Thimble server to fail over. The README walks through
+the three patterns (store host, object storage, direct host-to-host) with
+concrete one-liners; this document is the design framing.
+
+### Concurrency
+
+Conflict handling does not need to be clever because every mutation is
+local-first and the wire is just a file copy:
+
+- The K-21 manifest version + flock detect concurrent writes; the loser
+  pulls the newer manifest, replays its mutation against it, and pushes
+  again. Silent overwrite is impossible.
+- The K-27 audit log is append-only JSONL with UUID-keyed events. Two
+  diverged logs union by event ID — idempotent, order-independent. There
+  is no conflict to resolve, only a merge to perform.
+
+That is enough to scale a small fleet. A future trio of knots (K-55..K-57)
+will sugar this with `thimble peer` subcommands for membership, on-mutate
+broadcast, and heartbeats; the underlying model — file-first, transport-
+agnostic, version-checked — does not change.
 
 ## Example Workflow
 
@@ -124,7 +174,7 @@ flowchart TD
     A["Operator runs thimble edit production"] --> B["Decrypt to temp editor buffer"]
     B --> C["Operator changes KOJA_SMTP_PASSWORD"]
     C --> D["Encrypt production.env.age for recipients"]
-    D --> E["Commit encrypted bundle to git"]
+    D --> E["Sync encrypted bundle to store host"]
     E --> F["thimble deploy production koja"]
     F --> G["SSH to Hetzner deploy host"]
     G --> H["Upload rendered /opt/quilt/.env with mode 0600"]
@@ -167,7 +217,8 @@ the host, which is inherent to the application needing them.
   a simpler UX wrapper?
 - How should agents request a secret-dependent operation without seeing the
   decrypted secret?
-- How much audit belongs in git history versus Thimble's own metadata?
+- How much audit belongs in the transport's history (commit log, object
+  storage versioning) versus Thimble's own append-only audit log?
 
 ## First Implementation Slice
 

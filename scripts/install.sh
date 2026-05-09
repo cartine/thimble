@@ -1,10 +1,78 @@
 #!/bin/sh
+# Thimble installer.
+#
+# Usage:
+#   curl -fsSL <url>/install.sh | sh
+#
+# Environment variables:
+#   THIMBLE_REPO=cartine/thimble    # source repo (default).
+#   THIMBLE_VERSION=vX.Y.Z|latest   # release tag to install (default: latest).
+#   THIMBLE_INSTALL_DIR=$HOME/.local/bin
+#   THIMBLE_BIN_NAME=thimble
+#
+#   THIMBLE_INSTALL_NO_VERIFY=1     # skip checksum verification.
+#                                   # DANGEROUS — only for emergency reinstalls
+#                                   # when checksums.txt is unreachable. The
+#                                   # script prints a multi-line warning and
+#                                   # waits before proceeding.
+#
+# Verification levels (best to worst):
+#   1. `gh attestation verify` if `gh` is on PATH — full SLSA build provenance.
+#      Confirms the asset was built by the cartine/thimble GitHub workflow at
+#      the tagged commit.
+#   2. `cosign verify-blob` if a `*.bundle` is uploaded for the asset and
+#      `cosign` is on PATH (currently a no-op since K-40 ships with attestation
+#      only — left as a forward hook).
+#   3. SHA-256 against checksums.txt — mandatory baseline. Confirms the asset
+#      matches what the release publisher hashed.
+#
+# Checksum verification is MANDATORY by default. If checksums.txt cannot be
+# downloaded, the asset's checksum line is missing, or the SHA-256 does not
+# match, the installer aborts. Set THIMBLE_INSTALL_NO_VERIFY=1 to bypass.
+
 set -eu
+
+# Print this script's own SHA-256 first so an operator piping it through `sh`
+# can spot-check that the script they ran matches what is published in the
+# release. We compute at runtime to keep the build pipeline simple; macOS
+# ships `shasum -a 256` rather than `sha256sum`, so try both.
+self_sha256() {
+  if [ ! -r "$1" ]; then
+    return 0
+  fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$1" | awk '{print $2}'
+  fi
+}
+# When invoked via `curl … | sh`, $0 is typically the shell name itself
+# (`sh` or `/bin/sh`), and the script body lives only on the inherited
+# stdin pipe — there is no file we can hash. Detect by basename.
+_self_base="$(basename -- "$0" 2>/dev/null || echo)"
+case "$_self_base" in
+  sh|-sh|bash|-bash|zsh|dash|""|*"$0"*)
+    : # piped or unknown invocation, skip the self-hash print.
+    ;;
+  *)
+    if [ -r "$0" ]; then
+      _self="$(self_sha256 "$0" || true)"
+      if [ -n "$_self" ]; then
+        echo "thimble installer SHA-256: $_self" >&2
+      fi
+      unset _self
+    fi
+    ;;
+esac
+unset _self_base
 
 REPO="${THIMBLE_REPO:-cartine/thimble}"
 VERSION="${THIMBLE_VERSION:-latest}"
 INSTALL_DIR="${THIMBLE_INSTALL_DIR:-$HOME/.local/bin}"
 BIN_NAME="${THIMBLE_BIN_NAME:-thimble}"
+NO_VERIFY="${THIMBLE_INSTALL_NO_VERIFY:-}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -31,12 +99,81 @@ trap 'rm -rf "$tmp"' EXIT
 
 mkdir -p "$INSTALL_DIR"
 curl -fsSL "$base/$asset" -o "$tmp/$asset"
-if curl -fsSL "$base/checksums.txt" -o "$tmp/checksums.txt"; then
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$1" | awk '{print $2}'
+  else
+    echo "no sha256 tool available (need sha256sum, shasum, or openssl)" >&2
+    return 1
+  fi
+}
+
+if [ -n "$NO_VERIFY" ]; then
+  echo "" >&2
+  echo "============================================================" >&2
+  echo "WARNING: THIMBLE_INSTALL_NO_VERIFY=1 is set." >&2
+  echo "" >&2
+  echo "Checksum verification is DISABLED. The downloaded asset will" >&2
+  echo "be installed without integrity checking. A network attacker" >&2
+  echo "or a compromised CDN could substitute a malicious binary and" >&2
+  echo "this installer would not detect it." >&2
+  echo "" >&2
+  echo "This flag exists only for emergency reinstalls when the" >&2
+  echo "official checksums.txt is unreachable. Re-run without the" >&2
+  echo "flag as soon as possible." >&2
+  echo "============================================================" >&2
+  echo "" >&2
+  sleep 3
+else
+  if ! curl -fsSL "$base/checksums.txt" -o "$tmp/checksums.txt"; then
+    echo "failed to download checksums.txt from $base/checksums.txt" >&2
+    echo "checksum verification is mandatory; aborting." >&2
+    echo "set THIMBLE_INSTALL_NO_VERIFY=1 to bypass (not recommended)." >&2
+    exit 1
+  fi
   expected="$(grep "  $asset\$" "$tmp/checksums.txt" | awk '{print $1}')"
-  actual="$(openssl dgst -sha256 "$tmp/$asset" | awk '{print $2}')"
+  if [ -z "$expected" ]; then
+    echo "no checksum entry for $asset in checksums.txt" >&2
+    echo "the release may be incomplete; aborting." >&2
+    exit 1
+  fi
+  actual="$(sha256_of "$tmp/$asset")"
   if [ "$expected" != "$actual" ]; then
     echo "checksum mismatch for $asset" >&2
+    echo "  expected: $expected" >&2
+    echo "  actual:   $actual" >&2
     exit 1
+  fi
+
+  # Layered provenance. Checksum was the floor; this is additive.
+  if command -v gh >/dev/null 2>&1; then
+    if gh attestation verify "$tmp/$asset" --repo "$REPO" >/dev/null 2>&1; then
+      echo "verified build provenance for $asset via gh attestation"
+    else
+      echo "warning: gh attestation verify failed for $asset" >&2
+      echo "checksum is OK but provenance could not be confirmed." >&2
+      echo "if you trust the checksum source, this may be acceptable;" >&2
+      echo "otherwise abort and re-run with a known-good network." >&2
+    fi
+  elif command -v cosign >/dev/null 2>&1 && \
+       curl -fsSL -o "$tmp/$asset.bundle" "$base/$asset.bundle" 2>/dev/null; then
+    if cosign verify-blob \
+         --bundle "$tmp/$asset.bundle" \
+         --certificate-identity-regexp "^https://github.com/$REPO/" \
+         --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+         "$tmp/$asset" >/dev/null 2>&1; then
+      echo "verified build provenance for $asset via cosign"
+    else
+      echo "warning: cosign verify-blob failed for $asset" >&2
+    fi
+  else
+    echo "note: install \`gh\` (https://cli.github.com) or \`cosign\` for full provenance verification."
+    echo "      checksum match is the only guarantee currently in effect."
   fi
 fi
 
