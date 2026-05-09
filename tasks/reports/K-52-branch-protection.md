@@ -40,9 +40,9 @@ referencing `raw.githubusercontent.com`, README PVR link).
       "required_status_checks": [
         {"context": "build-test (ubuntu-latest)"},
         {"context": "build-test (macos-latest)"},
-        {"context": "vuln"},
+        {"context": "govulncheck"},
         {"context": "lint"},
-        {"context": "integration"}
+        {"context": "integration (real age)"}
       ]
     }
   }
@@ -59,7 +59,7 @@ referencing `raw.githubusercontent.com`, README PVR link).
   push that rewrites history.
 - **PRs targeting `main` cannot merge** until the five required CI
   checks pass: `build-test (ubuntu-latest)`,
-  `build-test (macos-latest)`, `vuln`, `lint`, `integration`.
+  `build-test (macos-latest)`, `govulncheck`, `lint`, `integration (real age)`.
 - **`strict_required_status_checks_policy: true`** means the PR
   branch must be up to date with `main` before the merge button
   enables.
