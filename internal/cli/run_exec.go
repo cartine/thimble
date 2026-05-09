@@ -147,14 +147,14 @@ func guardShellEnvAll(cmdArgs []string) error {
 	if shellChildren[base] {
 		return errors.New(
 			"use stdin (drop --env) or --allow-shell-env; " +
-				"child shell will export every value.",
+				"child shell will export every value",
 		)
 	}
 	if base == "docker" || base == "podman" {
 		if !dockerRunReadsEnvFromStdin(cmdArgs[1:]) {
 			return errors.New(
 				"use stdin (drop --env) or --allow-shell-env or " +
-					"`--env-file=-`; the container would inherit operator env.",
+					"`--env-file=-`; the container would inherit operator env",
 			)
 		}
 	}
