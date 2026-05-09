@@ -1,13 +1,15 @@
-# placeholder — record locally and overwrite
-# regenerate via `make demo`
-#
-# This file is intentionally empty. To produce a real recording:
-#
-#   1. Build the binary so the demo script can find it:
-#        go build -o thimble ./cmd/thimble
-#   2. Record:
-#        asciinema rec assets/demo.cast bash scripts/demo.sh
-#   3. Commit the recording.
-#
-# A real .cast is a JSON-Lines stream beginning with a header object
-# (asciicast v2). Asciinema overwrites this comment on first record.
+{"version":3,"term":{"cols":96,"rows":55,"type":"xterm-256color","version":"ghostty 1.3.2-cmux-ios-manual-io-minimal-clean-20260501-+22fa801f8","theme":{"fg":"#ffffff","bg":"#1e1e1e","palette":"#1a1a1a:#cc372e:#26a439:#cdac08:#0869cb:#9647bf:#479ec2:#98989d:#464646:#ff453a:#32d74b:#ffd60a:#0a84ff:#bf5af2:#76d6ff:#ffffff"}},"timestamp":1778315167,"command":"bash scripts/demo.sh","env":{"SHELL":"/bin/zsh"}}
+[0.009, "o", "\r\n$ age-keygen -o $THIMBLE_AGE_IDENTITY\r\n"]
+[0.433, "o", "\r\n$ thimble init web-api production --recipient $OPERATOR_RECIPIENT\r\n"]
+[0.596, "o", "initialized web-api/production\r\n"]
+[0.407, "o", "\r\n$ thimble recipient add --bootstrap web-api production $DEPLOY_RECIPIENT\r\n"]
+[0.428, "o", "added recipient to web-api/production\r\n"]
+[0.404, "o", "\r\n$ thimble provision | thimble set --origin=provision web-api production SESSION_SECRET\r\n"]
+[0.440, "o", "saved SESSION_SECRET in web-api/production\r\n"]
+[0.409, "o", "\r\n$ thimble provision | thimble set --origin=provision web-api production DATABASE_URL\r\n"]
+[0.442, "o", "saved DATABASE_URL in web-api/production\r\n"]
+[0.409, "o", "\r\n$ thimble list web-api production\r\n"]
+[0.431, "o", "DATABASE_URL\r\nSESSION_SECRET\r\n"]
+[0.409, "o", "\r\n$ thimble render --format dotenv web-api production > /dev/null   # values stay private\r\n"]
+[0.831, "o", "\r\n# done — temp store at /var/folders/9_/95syhmb93fbfwy3tjzyc7ysh0000gn/T/thimble-demo-XXXXXX.sfP2FkiH6K removed on exit.\r\n"]
+[0.008, "x", "0"]

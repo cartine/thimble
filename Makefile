@@ -13,7 +13,7 @@ LDFLAGS     ?= -s -w
 BUILDARGS   ?= -trimpath -ldflags="$(LDFLAGS)"
 INSTALL_DIR ?= $(HOME)/.local/bin
 
-.PHONY: help build install-local uninstall-local test integration lint vuln verify-release demo tag-release
+.PHONY: help build install-local uninstall-local test integration lint vuln verify-release demo demo-gif tag-release
 
 help: ## List targets and short descriptions.
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / { \
@@ -74,7 +74,15 @@ verify-release: ## Reproduce a published release and diff SHA-256s. Usage: make 
 
 demo: ## Print instructions for recording assets/demo.cast.
 	@echo 'Run: asciinema rec --overwrite -c "bash scripts/demo.sh" assets/demo.cast'
-	@echo "Then commit assets/demo.cast to capture the recording."
+	@echo 'Then: make demo-gif  (renders assets/demo.gif for inline README playback).'
+
+demo-gif: ## Convert assets/demo.cast to assets/demo.gif (requires `agg`).
+	@command -v agg >/dev/null 2>&1 || { \
+	  echo "agg not found; install with: brew install agg"; \
+	  exit 1; \
+	}
+	agg assets/demo.cast assets/demo.gif
+	@echo "Wrote assets/demo.gif"
 
 tag-release: ## Bump version, tag, push, watch release. Usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]
 	@if [ -z "$(VERSION)" ]; then \
