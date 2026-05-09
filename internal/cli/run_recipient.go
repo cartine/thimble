@@ -19,7 +19,7 @@ import (
 func runRecipientV2(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 1 {
 		return errors.New(
-			"usage: thimble recipient <add|remove|list|sign-add> ...",
+			"usage: thimble recipient <add|remove|list|sign-add> [args]",
 		)
 	}
 	switch args[0] {
@@ -33,7 +33,7 @@ func runRecipientV2(st *store.Store, args []string, stdout, stderr io.Writer) er
 		return runRecipientSignAdd(st, args[1:], stdout)
 	default:
 		return errors.New(
-			"usage: thimble recipient <add|remove|list|sign-add> ...",
+			"usage: thimble recipient <add|remove|list|sign-add> [args]",
 		)
 	}
 }

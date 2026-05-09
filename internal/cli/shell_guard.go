@@ -32,13 +32,13 @@ func guardShellEnv(cmdArgs []string, envVar string) error {
 	base := strings.ToLower(filepath.Base(cmdArgs[0]))
 	if shellChildren[base] {
 		return errors.New(
-			"use stdin or --allow-shell-env; child shell will export the value.",
+			"use stdin or --allow-shell-env; child shell will export the value",
 		)
 	}
 	if base == "docker" || base == "podman" {
 		if !dockerRunIsScoped(cmdArgs[1:], envVar) {
 			return errors.New(
-				"use stdin or --allow-shell-env; child shell will export the value.",
+				"use stdin or --allow-shell-env; child shell will export the value",
 			)
 		}
 	}

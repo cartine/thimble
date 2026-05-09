@@ -2,7 +2,6 @@ package web
 
 import (
 	"crypto/subtle"
-	"net"
 	"net/http"
 )
 
@@ -37,6 +36,9 @@ func (s *Server) hasValidSession(r *http.Request) bool {
 // when the bound address is non-loopback because browsers reject Secure
 // cookies on plain HTTP.
 func (s *Server) setSessionCookie(w http.ResponseWriter) {
+	// #nosec G124 -- Secure conditional on non-loopback by design;
+	// HTTP loopback rejects Secure cookies. HttpOnly + SameSite=Strict
+	// are unconditional.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    s.currentToken(),
@@ -50,6 +52,8 @@ func (s *Server) setSessionCookie(w http.ResponseWriter) {
 
 // clearSessionCookie expires the session cookie on the client.
 func (s *Server) clearSessionCookie(w http.ResponseWriter) {
+	// #nosec G124 -- same Secure-on-non-loopback rationale as
+	// setSessionCookie above.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    "",
@@ -61,18 +65,3 @@ func (s *Server) clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
-// isLoopbackHost is the canonical host check for the Secure-cookie
-// decision. A blank host (e.g., ":8787") is treated as loopback because
-// Go's default for an empty host on the listener is all interfaces but
-// the operator's address bar still routes through 127.0.0.1.
-func isLoopbackHost(addr string) bool {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		host = addr
-	}
-	if host == "" || host == "localhost" {
-		return true
-	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
-}
