@@ -63,7 +63,7 @@ verify-release: ## Reproduce a published release and diff SHA-256s. Usage: make 
 	bash scripts/verify-release.sh "$(VERSION)"
 
 demo: ## Print instructions for recording assets/demo.cast.
-	@echo 'Run: asciinema rec -c "bash scripts/demo.sh" assets/demo.cast'
+	@echo 'Run: asciinema rec --overwrite -c "bash scripts/demo.sh" assets/demo.cast'
 	@echo "Then commit assets/demo.cast to capture the recording."
 
 tag-release: ## Bump version, tag, push, watch release. Usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]
