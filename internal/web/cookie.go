@@ -36,6 +36,9 @@ func (s *Server) hasValidSession(r *http.Request) bool {
 // when the bound address is non-loopback because browsers reject Secure
 // cookies on plain HTTP.
 func (s *Server) setSessionCookie(w http.ResponseWriter) {
+	// #nosec G124 -- Secure conditional on non-loopback by design;
+	// HTTP loopback rejects Secure cookies. HttpOnly + SameSite=Strict
+	// are unconditional.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    s.currentToken(),
@@ -49,6 +52,8 @@ func (s *Server) setSessionCookie(w http.ResponseWriter) {
 
 // clearSessionCookie expires the session cookie on the client.
 func (s *Server) clearSessionCookie(w http.ResponseWriter) {
+	// #nosec G124 -- same Secure-on-non-loopback rationale as
+	// setSessionCookie above.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    "",

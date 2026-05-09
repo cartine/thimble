@@ -357,5 +357,8 @@ func redirectWith(w http.ResponseWriter, r *http.Request, key, value string) {
 		q.Set("app", app)
 		q.Set("env", env)
 	}
+	// #nosec G710 -- redirect target is a relative path ("/?...") under
+	// our own origin; q is composed from server-controlled keys, not
+	// arbitrary user-supplied URLs.
 	http.Redirect(w, r, "/?"+q.Encode(), http.StatusSeeOther)
 }

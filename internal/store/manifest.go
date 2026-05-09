@@ -51,6 +51,9 @@ type NamespaceView struct {
 func (s *Store) loadManifest() (Manifest, error) {
 	m := Manifest{Version: 1, Apps: map[string]AppManifest{}}
 	path := filepath.Join(s.root, manifestName)
+	// #nosec G304 -- path is composed from s.root (operator's --store
+	// flag) and the constant manifestName; no user-supplied component
+	// in the leaf.
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return m, nil

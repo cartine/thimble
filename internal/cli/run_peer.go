@@ -239,7 +239,7 @@ func runRsyncJoin(target, storeDir string, stderr io.Writer) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	// #nosec G204 -- rsync resolved via LookPath; src is validated by
+	// #nosec G204 G702 -- rsync resolved via LookPath; src is validated by
 	// peer.ValidatePeer before reaching this call site.
 	cmd := exec.CommandContext(ctx, resolved, "-av", "--delete", src, dst)
 	cmd.Stdout = stderr

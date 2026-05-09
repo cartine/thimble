@@ -101,8 +101,10 @@ func (l *Logger) Append(event Event) error {
 		return err
 	}
 	line = append(line, '\n')
-	// #nosec G304 -- l.path is the audit log inside the store root,
-	// not user input at this layer.
+	// #nosec G304 G302 -- l.path is the audit log inside the store
+	// root, not user input at this layer; 0o640 is intentional per
+	// K-27 design (group read so deploy automation can `tail` the log
+	// without elevating to root).
 	f, err := os.OpenFile(
 		l.path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o640,
 	)

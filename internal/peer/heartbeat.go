@@ -129,7 +129,7 @@ func runSSHTrue(ctx context.Context, host string) error {
 	if err != nil {
 		return fmt.Errorf("ssh not found on PATH: %w", err)
 	}
-	// #nosec G204 -- bin is resolved via LookPath; host comes from
+	// #nosec G204 G702 -- bin is resolved via LookPath; host comes from
 	// peer.ValidatePeer-vetted target.
 	cmd := exec.CommandContext(ctx, resolved,
 		"-o", "BatchMode=yes",
@@ -163,7 +163,7 @@ func fetchRemoteVersions(ctx context.Context, target string) (map[string]int, er
 	tmp.Close()
 	defer os.Remove(tmpName)
 	src := strings.TrimSuffix(target, "/") + "/thimble.json"
-	// #nosec G204 -- bin is resolved via LookPath; src is composed
+	// #nosec G204 G702 -- bin is resolved via LookPath; src is composed
 	// from a target validated by peer.ValidatePeer.
 	cmd := exec.CommandContext(ctx, resolved, "-q", src, tmpName)
 	out, err := cmd.CombinedOutput()
