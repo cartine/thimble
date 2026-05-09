@@ -29,6 +29,11 @@ const (
 	OpDelete          = "delete"
 	OpSet             = "set"
 	OpAndSet          = "and_set"
+	// OpExec is the K-58 read-side operation: a `thimble exec` call
+	// decrypted a namespace and forked it into a child process. The
+	// audit row records the child's basename in Subject (never the
+	// full path — paths can carry context); values are NEVER recorded.
+	OpExec = "exec"
 	// K-55 peer membership operations. The Subject field carries the
 	// peer Name (the human handle), never the rsync target — paths
 	// can carry context. Adding a peer grants only rsync rights;

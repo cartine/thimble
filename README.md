@@ -455,6 +455,7 @@ thimble delete web-api production OLD_TOKEN
 
 thimble list web-api production
 thimble render web-api production
+thimble exec web-api production -- ./web-api
 thimble verify web-api production
 thimble audit web-api production
 thimble doctor
@@ -466,6 +467,139 @@ the bundle's SHA-256 against the manifest and shows the recipient list. `audit`
 prints the local append-only ledger of mutating ops for the namespace; entries
 record an opaque operator thumbprint, never the recipient string or any
 secret value.
+
+## Consuming Secrets From Your App
+
+When your app needs many secrets at startup, the question is: how do they reach
+the process? Five common shapes, ranked from leakiest to tightest:
+
+| Shape                              | Persistent on disk? | Visible in `/proc`? | Survives reboot? |
+|------------------------------------|---------------------|---------------------|------------------|
+| `EnvironmentFile=/etc/svc.env`     | yes (mode 0640)     | env, yes            | yes              |
+| `--env-file /run/svc.env` (tmpfs)  | until reboot        | env, yes            | no               |
+| `--env KEY=value` from a wrapper   | no                  | env, yes            | no               |
+| `thimble exec --env`               | **no**              | env, yes            | no               |
+| `thimble exec` (default, stdin)    | **no**              | **no**              | no               |
+| External secrets API with mTLS     | depends on cache    | depends on app      | depends          |
+
+`thimble exec` is the recommended path for any app whose source you control:
+
+```sh
+thimble exec web-api production -- ./web-api
+```
+
+The default flavor decrypts the namespace, forks `./web-api`, and pipes a
+dotenv-encoded body to the child's stdin. No file is written to the deploy host
+at any point, and the secret never appears in `/proc/<pid>/environ`. Your app
+parses stdin once at startup and discards the buffer.
+
+For apps whose source you do not control — anything that already speaks
+`EnvironmentFile=` or `--env-file` — use the env flavor:
+
+```sh
+thimble exec --env web-api production -- ./legacy-binary
+```
+
+`--env` populates the child's env block instead of stdin. Be aware: anything
+that can read `/proc/<pid>/environ` (root, ptrace, debuggers, anyone in the
+container's pid namespace) can read the values. The shell guard from `and-get`
+applies here too — Thimble refuses `--env` against `sh`/`bash`/`zsh`/`fish`/
+`pwsh`/`cmd.exe`/`powershell`, or `docker run`/`podman run` without
+`--env-file=-`, unless you also pass `--allow-shell-env`. Stdin flavor does not
+trip the guard because no env block is touched.
+
+`exec` decrypts an entire namespace at once. If you need a single key delivered
+to a child (one secret, one consumer), use [`and-get`](#safe-secret-entry)
+instead — same threat-model trade-off, narrower blast radius per call.
+
+### Receiving the dotenv body in your app
+
+The default flavor sends a dotenv-encoded body on the child's stdin. Each line
+is `KEY=value` with values quoted only when needed (whitespace, special chars).
+Read it once at startup; do not re-read.
+
+**Go**:
+
+```go
+package main
+
+import (
+    "bufio"
+    "log"
+    "os"
+    "strings"
+)
+
+func main() {
+    secrets := map[string]string{}
+    scanner := bufio.NewScanner(os.Stdin)
+    scanner.Buffer(make([]byte, 0, 64*1024), 1<<20)
+    for scanner.Scan() {
+        line := strings.TrimSpace(scanner.Text())
+        if line == "" || strings.HasPrefix(line, "#") {
+            continue
+        }
+        eq := strings.IndexByte(line, '=')
+        if eq < 0 {
+            log.Fatalf("malformed dotenv line: %q", line)
+        }
+        key := line[:eq]
+        value := strings.Trim(line[eq+1:], `"`)
+        secrets[key] = value
+    }
+    if err := scanner.Err(); err != nil {
+        log.Fatal(err)
+    }
+    // ... use secrets["DATABASE_URL"], secrets["API_KEY"], ...
+}
+```
+
+**Python**:
+
+```python
+import sys
+
+def parse_dotenv(stream):
+    out = {}
+    for raw in stream:
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        out[key] = value.strip('"')
+    return out
+
+secrets = parse_dotenv(sys.stdin)
+# ... use secrets["DATABASE_URL"], secrets["API_KEY"], ...
+```
+
+**Node.js**:
+
+```js
+const readline = require("readline");
+
+(async () => {
+  const rl = readline.createInterface({ input: process.stdin });
+  const secrets = {};
+  for await (const raw of rl) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq < 0) throw new Error(`malformed dotenv line: ${line}`);
+    const key = line.slice(0, eq);
+    let value = line.slice(eq + 1);
+    if (value.startsWith('"') && value.endsWith('"')) {
+      value = value.slice(1, -1);
+    }
+    secrets[key] = value;
+  }
+  // ... use secrets.DATABASE_URL, secrets.API_KEY, ...
+})();
+```
+
+A real production parser also needs to handle `\n` / `\r` / `\t` / `\\` / `\"`
+escapes inside quoted values — see `internal/dotenv/dotenv.go` for the canonical
+encoder/decoder pair Thimble uses on both sides.
 
 ## Real-Life Flow
 

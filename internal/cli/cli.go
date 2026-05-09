@@ -171,6 +171,8 @@ func dispatchCommand(
 		return runAndSet(st, rest, stdout, stderr)
 	case "and-get":
 		return runAndGet(st, rest, stdout, stderr)
+	case "exec":
+		return runExec(ctx, st, cfg, rest, stdout, stderr)
 	case "delete", "rm":
 		return runDelete(st, rest, stdout)
 	case "list", "ls":
@@ -259,6 +261,11 @@ Commands:
   and-get [--env NAME] [--allow-shell-env] <app> <env> KEY -- <command>
                                           pass a key to a command on stdin
                                           (refuses --env to bare shells unless --allow-shell-env)
+  exec [--env] [--allow-shell-env] <app> <env> -- <command>
+                                          decrypt the whole namespace and
+                                          fork the child with the values
+                                          on stdin (default) or in env
+                                          (--env). No filesystem write.
   delete <app> <env> KEY                  delete one secret key
   list <app> <env>                        list keys only, never values
   render <app> <env> --format dotenv      render decrypted dotenv to stdout
