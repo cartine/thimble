@@ -2,7 +2,6 @@ package web
 
 import (
 	"crypto/subtle"
-	"net"
 	"net/http"
 )
 
@@ -61,18 +60,3 @@ func (s *Server) clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
-// isLoopbackHost is the canonical host check for the Secure-cookie
-// decision. A blank host (e.g., ":8787") is treated as loopback because
-// Go's default for an empty host on the listener is all interfaces but
-// the operator's address bar still routes through 127.0.0.1.
-func isLoopbackHost(addr string) bool {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		host = addr
-	}
-	if host == "" || host == "localhost" {
-		return true
-	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
-}

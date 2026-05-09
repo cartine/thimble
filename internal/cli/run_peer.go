@@ -25,7 +25,7 @@ import (
 func runPeer(cfg cliConfig, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 1 {
 		return errors.New(
-			"usage: thimble peer <add|remove|list|join|ping|status> ...",
+			"usage: thimble peer <add|remove|list|join|ping|status> [args]",
 		)
 	}
 	switch args[0] {

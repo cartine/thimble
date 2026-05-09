@@ -65,7 +65,7 @@ func Parse(input string) (map[string]string, error) {
 	if err := scanner.Err(); err != nil {
 		if errors.Is(err, bufio.ErrTooLong) {
 			return nil, fmt.Errorf(
-				"value on line %d exceeds 1 MiB; store it as a file or split it.",
+				"value on line %d exceeds 1 MiB; store it as a file or split it",
 				lineNo+1,
 			)
 		}

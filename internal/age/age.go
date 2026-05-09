@@ -107,8 +107,8 @@ func CheckIdentityMode(path string, allowUnsafe bool, warn io.Writer) error {
 		return nil
 	}
 	return fmt.Errorf(
-		"identity file %s is mode 0%o; expected 0600. "+
-			"Run `chmod 0600 %s` and retry.",
+		"identity file %s is mode 0%o; expected 0600 "+
+			"(run `chmod 0600 %s` and retry)",
 		path, mode, path,
 	)
 }
@@ -260,7 +260,7 @@ func wrapAgeError(ctx context.Context, op string, deadline time.Duration, stderr
 	if ctx.Err() == context.DeadlineExceeded {
 		return fmt.Errorf(
 			"age timed out after %ds; rerun with %s=N if your hardware "+
-				"is slow or the bundle is large.",
+				"is slow or the bundle is large",
 			int(deadline.Seconds()), EnvTimeoutVar,
 		)
 	}

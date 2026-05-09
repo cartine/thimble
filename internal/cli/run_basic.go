@@ -16,7 +16,7 @@ func runInit(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if len(positional) != 2 {
-		return errors.New("usage: thimble init <app> <env> --recipient age1...")
+		return errors.New("usage: thimble init <app> <env> --recipient <age1-recipient>")
 	}
 	if len(recipients) == 0 {
 		return errors.New("init requires at least one --recipient")
