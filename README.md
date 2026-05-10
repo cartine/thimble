@@ -142,6 +142,76 @@ go build ./cmd/thimble
 
 Run `thimble doctor` after install to verify your setup.
 
+## Quickstart — the secure happy path
+
+If you read nothing else, read this. The end-to-end flow Thimble was designed
+for, secure-by-default, no plaintext on disk:
+
+```sh
+# 1. (one-time) generate an age identity for yourself
+age-keygen -o ~/.config/thimble/identity.txt
+chmod 0600 ~/.config/thimble/identity.txt
+export THIMBLE_AGE_IDENTITY=~/.config/thimble/identity.txt
+MY_RECIPIENT=$(age-keygen -y ~/.config/thimble/identity.txt)
+
+# 2. (per host that needs to read secrets) the host runs the same step;
+#    you collect its public recipient out of band
+HOST_RECIPIENT="age1...whatever the deploy host generated..."
+
+# 3. create the namespace
+thimble init web-api production --recipient "$MY_RECIPIENT"
+thimble recipient add --bootstrap web-api production "$HOST_RECIPIENT"
+
+# 4. populate values. ALWAYS prefer `provision` for high-entropy secrets;
+#    it never touches your terminal scrollback.
+thimble provision | thimble set --origin=provision web-api production SESSION_SECRET
+thimble provision | thimble set --origin=provision web-api production WEBHOOK_SIGNING_KEY
+
+# operator-supplied values use the masked prompt — no flag needed.
+thimble set web-api production DATABASE_URL
+thimble set web-api production STRIPE_SECRET_KEY
+
+# 5. ship the encrypted bundle to the store host (Pattern A)
+rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
+
+# 6. on the deploy host, pull and run YOUR APP via thimble exec.
+#    No secrets are ever written to a file. They go from age decrypt
+#    straight to the child process's stdin via a kernel pipe.
+rsync -av store-host:/srv/abc-secrets/ /etc/thimble/secrets/
+THIMBLE_STORE=/etc/thimble/secrets \
+THIMBLE_AGE_IDENTITY=/etc/thimble/identity.txt \
+  thimble exec web-api production -- /usr/local/bin/web-api
+
+# 7. verify the integrity of what you have at any time
+thimble verify web-api production
+thimble doctor
+```
+
+**That's it.** Step 6 is the punch line: `thimble exec` decrypts the entire
+namespace, forks your app, pipes the values as dotenv to the app's stdin,
+closes the pipe. No `.env` file. No environment variables. The plaintext lives
+in the app's process memory only. Your app reads stdin once at startup and
+parses the dotenv body — see
+[Consuming Secrets From Your App](#consuming-secrets-from-your-app) for
+language-specific snippets.
+
+**Why this is the most secure shape Thimble offers:**
+
+- The encrypted bundle moved over rsync; `age` does the only crypto.
+- The deploy host's identity decrypts in-memory; the plaintext is never on its
+  filesystem.
+- The plaintext is never in the env block; nothing in `/proc/<pid>/environ`
+  to leak.
+- The app's process is the first and only thing to hold the unencrypted values.
+- Every mutation (init, set, recipient add, exec) lands one line in the
+  append-only audit log with the operator's opaque thumbprint.
+
+If your application can read stdin at startup, this is the path. If it cannot
+(legacy binaries, third-party software), use `thimble exec --env` — same
+flow, with the namespace populated in the child's env block instead. Slightly
+leakier (`/proc/<pid>/environ` is readable by root and ptrace), but no file
+ever lands on disk.
+
 ## Requirements
 
 - `age` on `PATH`.
@@ -516,134 +586,246 @@ instead — same threat-model trade-off, narrower blast radius per call.
 
 The default flavor sends a dotenv-encoded body on the child's stdin. Each line
 is `KEY=value` with values quoted only when needed (whitespace, special chars).
-Read it once at startup; do not re-read.
+Read it once at startup; do not re-read; drop the buffer after parsing.
 
-**Go**:
+> **Helper libraries are planned, not yet shipped.** Until they exist, the
+> snippets below are the canonical pattern: ~20 lines of stdin-reading and
+> dotenv-parsing per language, no Thimble dependency added to your app.
+> Track the work-in-progress libraries:
+> [`thimble-py`](tasks/knots/K-60-helper-thimble-py.md) ·
+> [`thimble-ts`](tasks/knots/K-61-helper-thimble-ts.md) ·
+> [`thimble-go`](tasks/knots/K-62-helper-thimble-go.md) ·
+> [`thimble-rust`](tasks/knots/K-63-helper-thimble-rust.md). When they ship,
+> each will expose a one-line `secrets = thimble.read_stdin()` API on top of
+> exactly this protocol.
 
-```go
-package main
+Click a language to expand:
 
-import (
-    "bufio"
-    "log"
-    "os"
-    "strings"
-)
-
-func main() {
-    secrets := map[string]string{}
-    scanner := bufio.NewScanner(os.Stdin)
-    scanner.Buffer(make([]byte, 0, 64*1024), 1<<20)
-    for scanner.Scan() {
-        line := strings.TrimSpace(scanner.Text())
-        if line == "" || strings.HasPrefix(line, "#") {
-            continue
-        }
-        eq := strings.IndexByte(line, '=')
-        if eq < 0 {
-            log.Fatalf("malformed dotenv line: %q", line)
-        }
-        key := line[:eq]
-        value := strings.Trim(line[eq+1:], `"`)
-        secrets[key] = value
-    }
-    if err := scanner.Err(); err != nil {
-        log.Fatal(err)
-    }
-    // ... use secrets["DATABASE_URL"], secrets["API_KEY"], ...
-}
-```
-
-**Python**:
+<details open>
+<summary><b>Python</b></summary>
 
 ```python
+# app.py — receives a dotenv body on stdin from `thimble exec`.
 import sys
 
-def parse_dotenv(stream):
-    out = {}
-    for raw in stream:
+def read_secrets() -> dict[str, str]:
+    """Parse the dotenv body Thimble sends on stdin. Call once at startup."""
+    out: dict[str, str] = {}
+    for raw in sys.stdin:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        key, _, value = line.partition("=")
-        out[key] = value.strip('"')
+        key, sep, value = line.partition("=")
+        if not sep:
+            raise ValueError(f"malformed dotenv line: {line!r}")
+        # Values are unquoted unless they contain whitespace or special chars.
+        if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+            value = (value[1:-1]
+                .replace(r'\n', '\n').replace(r'\r', '\r')
+                .replace(r'\t', '\t').replace(r'\"', '"').replace(r'\\', '\\'))
+        out[key] = value
     return out
 
-secrets = parse_dotenv(sys.stdin)
-# ... use secrets["DATABASE_URL"], secrets["API_KEY"], ...
+secrets = read_secrets()
+db_url = secrets["DATABASE_URL"]
+session_secret = secrets["SESSION_SECRET"]
+# ... use them, then let `secrets` go out of scope.
 ```
 
-**Node.js**:
+Run with: `thimble exec web-api production -- python app.py`
 
-```js
-const readline = require("readline");
+</details>
 
-(async () => {
-  const rl = readline.createInterface({ input: process.stdin });
-  const secrets = {};
-  for await (const raw of rl) {
+<details>
+<summary><b>TypeScript</b></summary>
+
+```ts
+// app.ts — receives a dotenv body on stdin from `thimble exec`.
+// Compile: tsc app.ts && node app.js     (or run via tsx / ts-node)
+async function readSecrets(): Promise<Record<string, string>> {
+  // Read all of stdin into one string, then parse.
+  let buf = "";
+  process.stdin.setEncoding("utf8");
+  for await (const chunk of process.stdin) buf += chunk;
+
+  const out: Record<string, string> = {};
+  for (const raw of buf.split("\n")) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
     const eq = line.indexOf("=");
     if (eq < 0) throw new Error(`malformed dotenv line: ${line}`);
     const key = line.slice(0, eq);
     let value = line.slice(eq + 1);
-    if (value.startsWith('"') && value.endsWith('"')) {
-      value = value.slice(1, -1);
+    if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+      value = value.slice(1, -1)
+        .replace(/\\n/g, "\n").replace(/\\r/g, "\r")
+        .replace(/\\t/g, "\t").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
     }
-    secrets[key] = value;
+    out[key] = value;
   }
-  // ... use secrets.DATABASE_URL, secrets.API_KEY, ...
-})();
+  return out;
+}
+
+const secrets = await readSecrets();
+const dbUrl: string = secrets.DATABASE_URL;
+const sessionSecret: string = secrets.SESSION_SECRET;
+// ... use them; Node strings are immutable, but dropping the reference lets
+// the GC reclaim the underlying buffer.
 ```
 
-A real production parser also needs to handle `\n` / `\r` / `\t` / `\\` / `\"`
-escapes inside quoted values — see `internal/dotenv/dotenv.go` for the canonical
-encoder/decoder pair Thimble uses on both sides.
+Run with: `thimble exec web-api production -- node app.js`
+
+</details>
+
+<details>
+<summary><b>Go</b></summary>
+
+```go
+// app.go — receives a dotenv body on stdin from `thimble exec`.
+package main
+
+import (
+    "fmt"
+    "io"
+    "log"
+    "os"
+    "strings"
+)
+
+func readSecrets() (map[string]string, error) {
+    raw, err := io.ReadAll(os.Stdin)
+    if err != nil {
+        return nil, fmt.Errorf("read stdin: %w", err)
+    }
+    out := map[string]string{}
+    for _, line := range strings.Split(string(raw), "\n") {
+        line = strings.TrimSpace(line)
+        if line == "" || strings.HasPrefix(line, "#") {
+            continue
+        }
+        eq := strings.IndexByte(line, '=')
+        if eq < 0 {
+            return nil, fmt.Errorf("malformed dotenv line: %q", line)
+        }
+        key := line[:eq]
+        value := line[eq+1:]
+        if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
+            unq := value[1 : len(value)-1]
+            r := strings.NewReplacer(
+                `\n`, "\n", `\r`, "\r", `\t`, "\t", `\"`, `"`, `\\`, `\`,
+            )
+            value = r.Replace(unq)
+        }
+        out[key] = value
+    }
+    return out, nil
+}
+
+func main() {
+    secrets, err := readSecrets()
+    if err != nil {
+        log.Fatal(err)
+    }
+    dbURL := secrets["DATABASE_URL"]
+    sessionSecret := secrets["SESSION_SECRET"]
+    _ = dbURL
+    _ = sessionSecret
+    // ... use them, then `secrets = nil` to drop the underlying map.
+}
+```
+
+Run with: `thimble exec web-api production -- ./web-api`
+
+</details>
+
+<details>
+<summary><b>Rust</b></summary>
+
+```rust
+// app.rs — receives a dotenv body on stdin from `thimble exec`.
+// Cargo.toml: just stdlib.
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn read_secrets() -> io::Result<HashMap<String, String>> {
+    let mut buf = String::new();
+    io::stdin().read_to_string(&mut buf)?;
+
+    let mut out = HashMap::new();
+    for raw in buf.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let (key, value) = line.split_once('=').ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidData,
+                format!("malformed dotenv line: {line}"))
+        })?;
+        let value = if value.len() >= 2
+            && value.starts_with('"') && value.ends_with('"')
+        {
+            value[1..value.len() - 1]
+                .replace(r"\n", "\n").replace(r"\r", "\r")
+                .replace(r"\t", "\t").replace(r#"\""#, "\"")
+                .replace(r"\\", r"\")
+        } else {
+            value.to_string()
+        };
+        out.insert(key.to_string(), value);
+    }
+    Ok(out)
+}
+
+fn main() -> io::Result<()> {
+    let secrets = read_secrets()?;
+    let db_url = secrets.get("DATABASE_URL").expect("DATABASE_URL missing");
+    let session_secret = secrets.get("SESSION_SECRET")
+        .expect("SESSION_SECRET missing");
+    let _ = (db_url, session_secret);
+    // ... use them; the HashMap is dropped at end of scope.
+    Ok(())
+}
+```
+
+Run with: `thimble exec web-api production -- ./target/release/web-api`
+
+</details>
+
+The canonical encoder/decoder pair Thimble uses on both sides is at
+[`internal/dotenv/dotenv.go`](internal/dotenv/dotenv.go) — refer to that if
+your parser needs to handle pathological values (multi-line escapes, embedded
+backslashes, etc.).
 
 ## Real-Life Flow
 
-Imagine a small service deployed by one operator and one deploy host.
+The end-to-end flow lives in [Quickstart](#quickstart--the-secure-happy-path)
+above. The shape:
 
-1. The operator creates an age identity and records the public recipient.
-2. The deploy host creates its own age identity and shares only its public
-   recipient.
-3. The operator initializes the production namespace:
-
-   ```sh
-   thimble init web-api production \
-     --recipient age1operator... \
-     --recipient age1deployhost...
-   ```
-
-4. The operator sets required secrets:
-
-   ```sh
-   thimble set web-api production DATABASE_URL
-   thimble provision | thimble set web-api production SESSION_SECRET
-   ```
-
-5. The operator synchronizes the `secrets/` directory to the store host
-   (Pattern A — see [Storing and Syncing](#storing-and-syncing)). The
-   encrypted bundle and manifest now live where the deploy host can pull
-   them:
-
-   ```sh
-   rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
-   ```
-
-6. The deploy host pulls the `secrets/` directory from the store host and
-   renders only at deploy time:
-
-   ```sh
-   rsync -av store-host:/srv/abc-secrets/ /etc/thimble/
-   THIMBLE_AGE_IDENTITY=/etc/thimble/identity.txt \
-     thimble render web-api production > /run/web-api.env
-   chmod 0600 /run/web-api.env
-   ```
+```
+┌──────────────┐        ┌──────────────┐        ┌──────────────┐
+│  operator    │        │  store host  │        │ deploy host  │
+│              │ rsync  │              │ rsync  │              │
+│ identity.txt │  ───►  │ secrets/     │  ───►  │ identity.txt │
+│ thimble set  │        │ (encrypted   │        │ thimble exec │
+│              │        │  bundles +   │        │   ── runs    │
+│              │        │  manifest)   │        │   your app   │
+└──────────────┘        └──────────────┘        └──────────────┘
+   age does the          rsync over ssh           age decrypts
+   only crypto           is just file copy        in-memory; no
+                                                  plaintext on FS
+```
 
 The store host carries encrypted bundles and metadata. The operator laptop and
-deploy host carry private identities. No peer needs another peer's private key.
+deploy host carry private identities. No peer needs another peer's private
+key. Each `thimble exec` decrypts in-memory, forks the app, pipes a dotenv
+body to its stdin, and the plaintext lives only in the app's process memory
+from there. See the [language-specific snippets](#receiving-the-dotenv-body-in-your-app)
+for how the receiving app reads it.
+
+Older docs and shell scripts may still show `thimble render … > /run/x.env` —
+that pattern works but lands plaintext on a tmpfs file for the duration of the
+service. `thimble exec` strictly improves on it; prefer it whenever the app
+can read stdin at startup.
 
 ## Peer-To-Peer Sync
 

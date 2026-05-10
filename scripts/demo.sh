@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 # scripts/demo.sh — replayable Thimble lifecycle demo.
 #
-# Designed for asciinema. The recording covers:
-#   age-keygen -> init -> recipient add --bootstrap -> set --origin=provision
-#                -> list -> render
-#
-# Sample names match README "Real-Life Flow" so a viewer can connect demo→docs.
+# Designed for asciinema. The recording covers the canonical secure-by-
+# default flow:
+#   age-keygen → init → recipient add --bootstrap → set --origin=provision
+#   → list → verify → exec (the punch line: no FS writes, secret on stdin)
+#   → audit
 #
 # Safety:
 # - Everything happens inside a temp dir created by `mktemp -d`.
 # - `provision | set --origin=provision` keeps generated values off the screen.
-# - `render` is piped to /dev/null so no plaintext lands in the recording.
+# - `thimble exec` pipes the dotenv body to a child that reads stdin and
+#   prints "DATABASE_URL is set, length 43" — never the value itself.
 # - The temp dir is removed on EXIT (success or failure).
 #
 # Recording it:
-#   asciinema rec assets/demo.cast bash scripts/demo.sh
+#   asciinema rec --overwrite -c "bash scripts/demo.sh" assets/demo.cast
+#   make demo-gif    # converts to assets/demo.gif via `agg`
 #
 # This is a viewer-paced narrative; the binary itself does no extra waiting.
 
@@ -84,8 +86,30 @@ say "thimble list web-api production"
 "$THIMBLE_BIN" list web-api production
 sleep "$PAUSE"
 
-say "thimble render --format dotenv web-api production > /dev/null   # values stay private"
-"$THIMBLE_BIN" render --format dotenv web-api production > /dev/null
+say "thimble verify web-api production"
+"$THIMBLE_BIN" verify web-api production
+sleep "$PAUSE"
+
+# The punch line: thimble exec hands the entire decrypted namespace to a
+# child via stdin. The child receives a dotenv body and prints only key
+# names + value lengths — values themselves never reach the screen.
+RECEIVER="$DEMO_TMP/receiver.sh"
+cat > "$RECEIVER" <<'RECV'
+#!/usr/bin/env bash
+echo "# child app: reading stdin, never echoing values"
+while IFS='=' read -r k v; do
+  [ -z "$k" ] && continue
+  printf '  %-20s set, length %d\n' "$k" "${#v}"
+done
+RECV
+chmod 0755 "$RECEIVER"
+
+say "thimble exec web-api production -- $RECEIVER   # secret stays in process memory"
+"$THIMBLE_BIN" exec web-api production -- "$RECEIVER"
+sleep "$PAUSE"
+
+say "thimble audit --limit 5 web-api production   # one row per mutation"
+"$THIMBLE_BIN" audit --limit 5 web-api production
 sleep "$PAUSE"
 
 printf '\n# done — temp store at %s removed on exit.\n' "$DEMO_TMP"
