@@ -8,6 +8,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Release tarballs now ship the sigstore attestation bundle as
+  `attestations.intoto.jsonl`. `install.sh` verifies SLSA build
+  provenance against this bundle locally, so a fresh
+  `curl … | sh` invocation gets full provenance without needing
+  `gh auth login`.
+
+### Changed
+
+- `install.sh` provenance failure now emits a `note:` rather than a
+  `warning:` when no verifier is available, no bundle ships, or `gh` is
+  unauthenticated. The SHA-256 check is the floor and already passed;
+  the original warning copy was alarming for what is a soft skip. A
+  real `warning:` is reserved for the case where a configured verifier
+  ran and rejected the asset.
+- `ship-release` skill + `scripts/tag-release.sh` are now branch-protection
+  aware. The script auto-detects a `pull_request` rule on `main` and
+  cuts via a release PR (waiting for required checks, merging, then
+  tagging the post-merge SHA) instead of an atomic main+tag push that
+  rulesets reject.
+
 ## [0.1.0] — 2026-05-19
 Initial public-ready slice. File-first secrets manager wrapping `age`,
 with multi-leader replication, quorum-gated recipient changes, signed

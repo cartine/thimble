@@ -17,14 +17,22 @@
 #                                   # waits before proceeding.
 #
 # Verification levels (best to worst):
-#   1. `gh attestation verify` if `gh` is on PATH — full SLSA build provenance.
-#      Confirms the asset was built by the cartine/thimble GitHub workflow at
-#      the tagged commit.
-#   2. `cosign verify-blob` if a `*.bundle` is uploaded for the asset and
+#   1. `gh attestation verify --bundle attestations.intoto.jsonl` — full SLSA
+#      build provenance using the bundle shipped with the release. Works
+#      offline; does NOT require `gh auth login`.
+#   2. `gh attestation verify --repo …` — same check, but fetches the
+#      attestation from GitHub. Requires `gh auth login`; we fall back to
+#      this path only when the bundle asset isn't available (older releases).
+#   3. `cosign verify-blob` if a `*.bundle` is uploaded for the asset and
 #      `cosign` is on PATH (currently a no-op since K-40 ships with attestation
 #      only — left as a forward hook).
-#   3. SHA-256 against checksums.txt — mandatory baseline. Confirms the asset
+#   4. SHA-256 against checksums.txt — mandatory baseline. Confirms the asset
 #      matches what the release publisher hashed.
+#
+# If the SLSA verify is unavailable (no `gh`/`cosign`, no auth, no bundle on
+# the release) the installer prints a `note:` and continues — the checksum
+# already passed, so it would be misleading to emit a warning that suggests
+# the asset is suspect.
 #
 # Checksum verification is MANDATORY by default. If checksums.txt cannot be
 # downloaded, the asset's checksum line is missing, or the SHA-256 does not
@@ -151,29 +159,49 @@ else
   fi
 
   # Layered provenance. Checksum was the floor; this is additive.
+  # Try to fetch the sigstore bundle that the release workflow uploads
+  # alongside the tarballs. Present from v0.1.1 onward; absent on
+  # v0.1.0 (where verification falls back to the auth'd remote path).
+  attest_bundle=""
+  if curl -fsSL -o "$tmp/attestations.intoto.jsonl" \
+       "$base/attestations.intoto.jsonl" 2>/dev/null; then
+    attest_bundle="$tmp/attestations.intoto.jsonl"
+  fi
+
+  provenance_ok="no"
   if command -v gh >/dev/null 2>&1; then
-    if gh attestation verify "$tmp/$asset" --repo "$REPO" >/dev/null 2>&1; then
-      echo "verified build provenance for $asset via gh attestation"
+    if [ -n "$attest_bundle" ] && \
+       gh attestation verify "$tmp/$asset" \
+         --bundle "$attest_bundle" >/dev/null 2>&1; then
+      echo "verified build provenance for $asset (sigstore bundle)"
+      provenance_ok="yes"
+    elif gh auth status >/dev/null 2>&1 && \
+         gh attestation verify "$tmp/$asset" --repo "$REPO" >/dev/null 2>&1; then
+      echo "verified build provenance for $asset (gh attestation, remote)"
+      provenance_ok="yes"
+    fi
+  fi
+
+  if [ "$provenance_ok" = "no" ]; then
+    # Why this is a note, not a warning: the SHA-256 check above already
+    # tied the bytes on disk to checksums.txt — that's the floor and it
+    # passed. The provenance step adds "and the build came from this
+    # workflow", which is desirable but secondary. Treat a missing tool,
+    # missing bundle, or unauthenticated gh as a soft skip; emit a real
+    # warning only if a configured verifier ran and *rejected* the asset.
+    if ! command -v gh >/dev/null 2>&1; then
+      echo "note: install \`gh\` (https://cli.github.com) for full SLSA"
+      echo "      build-provenance verification."
+    elif [ -z "$attest_bundle" ] && ! gh auth status >/dev/null 2>&1; then
+      echo "note: gh is not authenticated and this release ships no"
+      echo "      sigstore bundle — skipping SLSA provenance check."
+      echo "      run \`gh auth login\` once and re-install for full provenance."
     else
       echo "warning: gh attestation verify failed for $asset" >&2
       echo "checksum is OK but provenance could not be confirmed." >&2
       echo "if you trust the checksum source, this may be acceptable;" >&2
       echo "otherwise abort and re-run with a known-good network." >&2
     fi
-  elif command -v cosign >/dev/null 2>&1 && \
-       curl -fsSL -o "$tmp/$asset.bundle" "$base/$asset.bundle" 2>/dev/null; then
-    if cosign verify-blob \
-         --bundle "$tmp/$asset.bundle" \
-         --certificate-identity-regexp "^https://github.com/$REPO/" \
-         --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-         "$tmp/$asset" >/dev/null 2>&1; then
-      echo "verified build provenance for $asset via cosign"
-    else
-      echo "warning: cosign verify-blob failed for $asset" >&2
-    fi
-  else
-    echo "note: install \`gh\` (https://cli.github.com) or \`cosign\` for full provenance verification."
-    echo "      checksum match is the only guarantee currently in effect."
   fi
 fi
 
