@@ -251,6 +251,29 @@ requires_pr() {
   [ "${out:-0}" != "0" ]
 }
 
+# Poll the PR until GitHub reports at least one check run, so the
+# subsequent `gh pr checks --watch` has something to watch. Gives up
+# after ~60s of polling — at that point either the PR's workflows
+# really don't trigger any checks (which the user must fix in CI
+# config) or `--watch` will fail loudly with the same "no checks
+# reported" message and we surface that.
+wait_for_checks_to_register() {
+  if [ -n "$DRY_RUN" ]; then
+    return 0
+  fi
+  i=0
+  while [ "$i" -lt 12 ]; do
+    count="$(gh pr view "$release_branch" --json statusCheckRollup \
+      --jq '.statusCheckRollup | length' 2>/dev/null || echo 0)"
+    if [ "${count:-0}" -gt 0 ]; then
+      return 0
+    fi
+    sleep 5
+    i=$((i + 1))
+  done
+  return 0
+}
+
 # Pick a merge method gh-CLI flag that the repo actually allows.
 # Prefer --rebase (linear history, no synthetic merge commits), then
 # --merge, then --squash. Returns 1 if none are allowed so the caller
@@ -301,7 +324,13 @@ pushes the tag, which triggers the release workflow."
   run gh pr create --base main --head "$release_branch" \
     --title "release: $NEXT_VERSION" --body "$pr_body"
 
-  # Wait for required status checks to go green.
+  # `gh pr checks --watch` exits non-zero with "no checks reported" if
+  # it runs before GitHub has registered any check runs for the PR.
+  # That's a race we hit on the first cut: push → PR create → watch
+  # happens in seconds, but the checks API takes ~5-15s longer to
+  # populate. Poll briefly until at least one check appears, then
+  # hand off to --watch for the rest.
+  wait_for_checks_to_register
   run gh pr checks "$release_branch" --watch
 
   if ! merge_flag="$(pick_merge_flag)"; then
