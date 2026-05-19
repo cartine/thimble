@@ -1,9 +1,21 @@
 name: release
 
+# The workflow is the release-cutter. A merge to `main` that changes the
+# top-level `VERSION` file triggers a build + tag + GitHub Release.
+# Everything else on `main` is a no-op (detect-release exits with
+# should_release=false). Operators do not run `git tag` or
+# `git push origin <tag>` — the only thing they do locally is bump
+# `VERSION` (via `make bump-version VERSION=patch`) and merge the
+# resulting PR.
+
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to (re)publish (e.g. 0.1.3). Leave blank to use the VERSION file."
+        required: false
 
 permissions:
   contents: write
@@ -12,7 +24,92 @@ permissions:
   packages: write
 
 jobs:
+  detect-release:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.detect.outputs.should_release }}
+      version: ${{ steps.detect.outputs.version }}
+      tag: ${{ steps.detect.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect version bump
+        id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_VERSION}" ]; then
+            current_version="${INPUT_VERSION#v}"
+          else
+            current_version="$(tr -d '[:space:]' < VERSION)"
+          fi
+          if [ -z "${current_version}" ]; then
+            echo "::error::Could not read VERSION." >&2
+            exit 1
+          fi
+
+          # Determine whether this push (or dispatch) is a release.
+          # - workflow_dispatch with input: always release.
+          # - push to main with a VERSION change vs. event.before: release.
+          # - push to main with no VERSION change: not a release.
+          should_release="false"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            should_release="true"
+          else
+            before_sha="${{ github.event.before }}"
+            if [ -z "${before_sha}" ] || [ "${before_sha}" = "0000000000000000000000000000000000000000" ]; then
+              should_release="true"
+            elif git cat-file -e "${before_sha}:VERSION" 2>/dev/null; then
+              previous_version="$(git show "${before_sha}:VERSION" | tr -d '[:space:]')"
+              if [ "${current_version}" != "${previous_version}" ]; then
+                should_release="true"
+              fi
+            else
+              should_release="true"
+            fi
+          fi
+
+          tag="v${current_version}"
+
+          # Idempotency: if the release already exists with every asset
+          # we expect, skip. If partial, continue in recovery mode.
+          release_complete="false"
+          if gh release view "${tag}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --json assets \
+            --jq '.assets[].name' > /tmp/release-assets.txt 2>/dev/null; then
+            release_complete="true"
+            for asset in \
+              "thimble_${current_version}_darwin_amd64.tar.gz" \
+              "thimble_${current_version}_darwin_arm64.tar.gz" \
+              "thimble_${current_version}_linux_amd64.tar.gz" \
+              "thimble_${current_version}_linux_arm64.tar.gz" \
+              "checksums.txt" \
+              "install.sh"; do
+              if ! grep -Fxq "${asset}" /tmp/release-assets.txt; then
+                release_complete="false"
+                break
+              fi
+            done
+          fi
+
+          if [ "${should_release}" = "true" ] && [ "${release_complete}" = "true" ]; then
+            echo "::notice::Release ${tag} already exists with expected assets — skipping."
+            should_release="false"
+          fi
+
+          echo "should_release=${should_release}" >> "${GITHUB_OUTPUT}"
+          echo "version=${current_version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+
   build:
+    needs: detect-release
+    if: needs.detect-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -35,13 +132,14 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
+          RELEASE_VERSION: ${{ needs.detect-release.outputs.version }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          set -euo pipefail
           commit="${GITHUB_SHA:0:7}"
           built="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          name="thimble_${version}_${GOOS}_${GOARCH}"
+          name="thimble_${RELEASE_VERSION}_${GOOS}_${GOARCH}"
           ldflags="-s -w"
-          ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.version=$version"
+          ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.version=$RELEASE_VERSION"
           ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.commit=$commit"
           ldflags="$ldflags -X github.com/cartine/thimble/internal/cli.buildDate=$built"
           mkdir -p "dist/$name"
@@ -54,7 +152,8 @@ jobs:
           path: dist/*.tar.gz
 
   publish:
-    needs: build
+    needs: [detect-release, build]
+    if: needs.detect-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,35 +167,63 @@ jobs:
         run: |
           cd dist
           sha256sum *.tar.gz install.sh > checksums.txt
-      # SLSA build-provenance attestation: signs each tarball +
-      # install.sh + checksums.txt with a Sigstore certificate tied to
-      # this workflow run. The action stores the attestation in GitHub's
-      # attestations store AND emits a sigstore-bundle JSONL file via
-      # the `bundle-path` output. We ship that bundle as a release asset
-      # so `install.sh` can verify provenance offline (with
-      # `gh attestation verify --bundle …`) — the remote path requires
-      # `gh auth login`, which a fresh `curl … | sh` invocation will not
-      # have.
+      # SLSA build-provenance attestation. The bundle is stored in
+      # GitHub's attestations store (queryable via `gh attestation
+      # verify --repo cartine/thimble <asset>` with `gh auth login`).
+      # It is intentionally NOT shipped as a release asset — `install.sh`
+      # verifies SHA-256 only, and we don't want to encourage a
+      # `curl … | sh` invocation that requires gh auth to feel "valid".
       - name: Attest tarballs
-        id: attest
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: |
             dist/*.tar.gz
             dist/install.sh
             dist/checksums.txt
-      - name: Stage attestation bundle
-        run: cp "${{ steps.attest.outputs.bundle-path }}" dist/attestations.intoto.jsonl
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.tar.gz
-            dist/install.sh
-            dist/checksums.txt
-            dist/attestations.intoto.jsonl
+      - name: Prepare release notes
+        env:
+          RELEASE_VERSION: ${{ needs.detect-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Extract the lines between `## [X.Y.Z]` and the next `## [`
+          # heading. Empty body is acceptable but unusual.
+          awk -v ver="$RELEASE_VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > dist/release-notes.md
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.detect-release.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.detect-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --notes-file dist/release-notes.md
+            gh release upload "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --clobber \
+              dist/*.tar.gz \
+              dist/checksums.txt \
+              dist/install.sh
+          else
+            gh release create "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${GITHUB_SHA}" \
+              --title "${RELEASE_TAG}" \
+              --notes-file dist/release-notes.md \
+              dist/*.tar.gz \
+              dist/checksums.txt \
+              dist/install.sh
+          fi
 
   docker:
-    needs: build
+    needs: detect-release
+    if: needs.detect-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -115,10 +242,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Resolve image tags
         id: meta
+        env:
+          RELEASE_TAG: ${{ needs.detect-release.outputs.tag }}
         run: |
-          version="${GITHUB_REF_NAME}"
           repo_lc="$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
-          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG}" >>"$GITHUB_OUTPUT"
           echo "image=ghcr.io/$repo_lc" >>"$GITHUB_OUTPUT"
           echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$GITHUB_OUTPUT"
           echo "commit=${GITHUB_SHA:0:7}" >>"$GITHUB_OUTPUT"

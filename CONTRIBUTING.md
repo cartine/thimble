@@ -134,17 +134,25 @@ install script, or the release pipeline, please:
 
 ## Releases
 
-Cut a release with `make tag-release VERSION=patch` (or `minor`,
-`major`, or an explicit `vX.Y.Z`). The target wraps
-[`scripts/tag-release.sh`](scripts/tag-release.sh): it bumps the
-version, rewrites the `[Unreleased]` block in `CHANGELOG.md`, tags
-the commit, pushes, watches the release workflow with
-`gh run watch`, then verifies each artifact's SHA-256 against the
-published `checksums.txt` and runs `gh attestation verify` (K-40).
-Pass `DRY_RUN=1` to see the full plan without side effects.
+The release flow is split between a local "propose" step and a
+workflow-driven "publish" step:
 
-The same flow is also available as the `/release` agent skill — see
-[.claude/skills/release/SKILL.md](.claude/skills/release/SKILL.md).
+1. **Propose.** `make bump-version VERSION=patch` (or `minor`,
+   `major`, or an explicit `vX.Y.Z`) edits the top-level
+   `VERSION` file, rewrites the `[Unreleased]` block of
+   `CHANGELOG.md` into a versioned section, commits on
+   `release/vX.Y.Z`, pushes, and opens a PR. Pass `DRY_RUN=1`
+   to see the plan without side effects.
+2. **Publish.** When the release PR merges,
+   [`.github/workflows/release.yml`](.github/workflows/release.yml)
+   detects the `VERSION` change on `main`, builds the
+   per-platform tarballs, generates `checksums.txt`, tags
+   `vX.Y.Z`, and creates the GitHub Release. Operators never run
+   `git tag` or push tags by hand.
+
+The same flow is also available as the `/ship-release` agent
+skill — see
+[.claude/skills/ship-release/SKILL.md](.claude/skills/ship-release/SKILL.md).
 
 ## Reporting bugs
 

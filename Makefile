@@ -13,7 +13,7 @@ LDFLAGS     ?= -s -w
 BUILDARGS   ?= -trimpath -ldflags="$(LDFLAGS)"
 INSTALL_DIR ?= $(HOME)/.local/bin
 
-.PHONY: help build install-local uninstall-local test integration lint vuln verify-release demo demo-gif tag-release
+.PHONY: help build install-local uninstall-local test integration lint vuln verify-release demo demo-gif bump-version
 
 help: ## List targets and short descriptions.
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / { \
@@ -84,13 +84,13 @@ demo-gif: ## Convert assets/demo.cast to assets/demo.gif (requires `agg`).
 	agg assets/demo.cast assets/demo.gif
 	@echo "Wrote assets/demo.gif"
 
-tag-release: ## Bump version, tag, push, watch release. Usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]
+bump-version: ## Open a release PR. Usage: make bump-version VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]
 	@if [ -z "$(VERSION)" ]; then \
-	  echo "usage: make tag-release VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]"; \
+	  echo "usage: make bump-version VERSION=patch|minor|major|vX.Y.Z [DRY_RUN=1]"; \
 	  exit 2; \
 	fi
 	@if [ -n "$(DRY_RUN)" ]; then \
-	  bash scripts/tag-release.sh "$(VERSION)" --dry-run; \
+	  bash scripts/bump-version.sh "$(VERSION)" --dry-run; \
 	else \
-	  bash scripts/tag-release.sh "$(VERSION)"; \
+	  bash scripts/bump-version.sh "$(VERSION)"; \
 	fi

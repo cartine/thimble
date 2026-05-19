@@ -6,7 +6,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+### Changed
+
+- **Release flow inverted to match `~/knots`.** The local
+  `scripts/tag-release.sh` (and the `make tag-release` target) are
+  replaced by a much smaller `scripts/bump-version.sh` that does only
+  three things: edit the top-level `VERSION` file, rewrite the
+  `[Unreleased]` block of `CHANGELOG.md` into a versioned section,
+  and open a PR. Operators never run `git tag` or push tags by hand.
+  The release workflow triggers on `push: main`, detects the
+  `VERSION` change, builds the tarballs, tags, and publishes
+  entirely on the GitHub side. This eliminates the three races the
+  old script kept hitting on a protected `main`: atomic-tag-push
+  rejection, `gh pr checks --watch` registration delay, and
+  `gh run list --limit=1` returning the prior tag's run.
+- `make tag-release` removed in favor of `make bump-version`. The
+  `/ship-release` agent skill is rewritten end to end.
+- `install.sh` rewritten as a SHA-256-only verifier, matching the
+  approach in `~/knots/install.sh`. The `gh attestation verify`
+  branch and the `attestations.intoto.jsonl` release asset are
+  gone — the SLSA attestation is still produced by the release
+  workflow (stored in GitHub's attestations store, queryable via
+  `gh attestation verify <asset> --repo cartine/thimble` for
+  authenticated security-conscious operators), but the default
+  `curl … | sh` install path no longer trips on `gh` not being
+  authenticated.
+
+### Removed
+
+- `scripts/tag-release.sh` and `scripts/test_tag_release_bump.sh`.
+- `attestations.intoto.jsonl` from release assets (was added in
+  v0.1.1 as a workaround; the new install.sh doesn't need it).
 
 ## [0.1.2] — 2026-05-19
 ### Fixed

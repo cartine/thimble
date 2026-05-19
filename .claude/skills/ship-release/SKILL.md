@@ -1,9 +1,9 @@
 ---
 name: ship-release
 description: >-
-  Ship a new Thimble release by syncing main, previewing changes since the
-  last tag, running quality gates, cutting the tag, watching the release
-  workflow to green, and verifying published artifacts and attestation.
+  Ship a new Thimble release by opening a VERSION-bump PR, getting it
+  merged, and letting the release workflow detect the change on main
+  and publish the GitHub Release.
 ---
 
 # /ship-release
@@ -13,194 +13,140 @@ Ship a new Thimble release.
 ## Use this skill when
 
 - The user asks to ship, cut, publish, or tag a new Thimble release.
-- The user wants help recovering when a tag was pushed but the release
-  workflow failed or assets did not publish.
+- The user wants to verify or recover a release that didn't fully
+  publish.
 
-## Principles
+## How the flow is split
 
-- Release from `main`, not from a feature branch or worktree.
-- Keep the working tree clean before starting.
-- Sync `main` before previewing or running gates.
-- Let `scripts/tag-release.sh` choose the cut strategy. It detects
-  whether `main` is protected by a `pull_request` ruleset and either
-  pushes the release commit directly (unprotected) or opens a release
-  PR, waits for required checks, merges it, and tags the post-merge
-  commit (protected). Do not bypass it with manual pushes.
-- Do not delete or rewrite a failing tag silently. If the release path
-  fails, fix forward and re-tag.
-- Do not manually create the GitHub Release or upload assets — that is
-  the release workflow's job.
+Thimble's release is workflow-driven, following the same pattern as
+`~/knots`. There are two halves:
+
+1. **Local "propose"** — `make bump-version VERSION=…` edits the
+   top-level `VERSION` file, rewrites `[Unreleased]` →
+   `[X.Y.Z] — YYYY-MM-DD` in `CHANGELOG.md`, commits on a
+   `release/vX.Y.Z` branch, pushes, and opens a PR. That is all
+   the local script does — no `git tag`, no `git push <tag>`, no
+   waiting on workflows.
+2. **Workflow "publish"** — when the PR merges,
+   `.github/workflows/release.yml` triggers on `push: main`,
+   detects the `VERSION` change vs. the previous commit, builds
+   the per-platform tarballs, generates `checksums.txt`, tags
+   `vX.Y.Z`, and creates the GitHub Release. It is idempotent —
+   if the release already exists with every expected asset, it
+   skips; if partial, it completes it.
+
+This split is intentional. The previous tag-release-locally model
+hit three separate races on a protected `main` (atomic tag+main
+push, `gh pr checks --watch`, `gh run list --limit=1`); all three
+disappear when the workflow owns the tag and the release.
 
 ## Steps
 
-1. **Determine bump type** — Ask whether this is a `patch`, `minor`, or
-   `major` release unless already specified (e.g. `/ship-release patch`)
-   or an explicit `vX.Y.Z` was given. Show the latest tag and what each
-   bump would produce:
-
-   ```bash
-   git describe --tags --abbrev=0 2>/dev/null || echo "(no prior tag)"
-   ```
-
-2. **Preflight and sync** — Confirm the repo is on `main`, clean, and
-   current:
+1. **Preflight** — Confirm the repo is on `main`, clean, and current.
 
    ```bash
    git status --porcelain
    git rev-parse --abbrev-ref HEAD
-   git fetch origin main --tags
+   git fetch origin --tags
    git pull --ff-only
-   gh auth status
-   gh run list --workflow=release.yml --limit=1 \
-     --json status --jq '.[0].status'
    ```
 
-   Refuse if the working tree is dirty, the branch is not `main`,
-   `gh` is unauthenticated, or a release workflow is already running.
-   If `git pull --ff-only` updates `main`, continue from the new HEAD.
-   If it fails because the branch diverged, stop and surface the exact
-   remediation.
+   Refuse if dirty, not on `main`, or if `git pull --ff-only` fails.
 
-3. **Preview changes** — After syncing, show what is shipping:
+2. **Determine bump type** — Ask whether this is a `patch`, `minor`,
+   or `major` release unless already specified (e.g.
+   `/ship-release patch`) or an explicit `vX.Y.Z` was given. Show
+   the current `VERSION` and what each bump would produce.
 
-   ```bash
-   git log "$(git describe --tags --abbrev=0)..HEAD" --oneline
-   ```
+3. **Confirm CHANGELOG coverage** — Open `CHANGELOG.md` and verify
+   the `## [Unreleased]` block is non-empty. Refuse to ship if it
+   is. Walk the commits since the last release tag and confirm
+   each user-facing change is reflected in `[Unreleased]`. If a
+   user-facing commit is missing, stop and surface the gap. Offer
+   to author the missing entry before continuing.
 
-   Present a brief summary so the user can confirm scope before the cut.
-
-4. **Confirm CHANGELOG coverage** — Open `CHANGELOG.md` and verify the
-   `## [Unreleased]` block is non-empty between that heading and the
-   next `## [` heading. Refuse to ship if it is empty — an empty
-   `[Unreleased]` means there is nothing to release.
-
-   Walk the commits from step 3 and confirm each user-facing change is
-   reflected somewhere in the `[Unreleased]` block. If a user-facing
-   commit is missing from the changelog, stop and surface the gap.
-   Offer to author the missing entry before continuing. Internal-only
-   changes (refactors, test-only, CI, doc tweaks, dep bumps with no
-   behavior change) do not need a changelog entry.
-
-   `scripts/tag-release.sh` will rewrite this block to
-   `## [X.Y.Z] — YYYY-MM-DD` and refresh the link references at the
-   bottom — do not edit those manually here.
-
-5. **Run quality gates** — Execute in parallel and stop on any failure:
+4. **Run local quality gates** — Optional but recommended:
 
    ```bash
    make lint
    go test -race ./...
    ```
 
-   If integration coverage matters for this release, also run
-   `make integration` (requires `age` + `age-keygen` on PATH).
+   These are also run by required PR checks, so failing locally
+   means the PR will fail too.
 
-6. **Cut the release** — Run `scripts/tag-release.sh` via the Makefile.
-   Prefer a dry-run first if the operator is unsure:
+5. **Open the release PR** — Run:
 
    ```bash
-   make tag-release VERSION=<bump_or_version> DRY_RUN=1   # optional preview
-   make tag-release VERSION=<bump_or_version>
+   make bump-version VERSION=<bump_or_version>           # opens the PR
+   make bump-version VERSION=<bump_or_version> DRY_RUN=1 # rehearsal
    ```
 
-   The script bumps the version, rewrites `CHANGELOG.md`, and then
-   chooses a cut strategy based on `main`'s rulesets:
+   The script edits `VERSION` and `CHANGELOG.md`, commits on
+   `release/vX.Y.Z`, pushes, and opens a PR titled
+   `release: vX.Y.Z`.
 
-   - **Unprotected main** — commits on `main`, tags, atomically pushes
-     `main + tag`.
-   - **Protected main** (any `pull_request` rule applies) — commits on
-     a `release/vX.Y.Z` branch, opens a PR, waits for required checks
-     to go green, merges with the repo's preferred method (rebase →
-     merge → squash), then reads the post-merge SHA back from the PR
-     and tags *that* commit (GitHub's rebase rewrites SHAs even on
-     linear PRs, so tagging the local pre-merge commit would orphan
-     the tag).
+6. **Wait for required checks** — On the PR, wait for the
+   `build-test (*)`, `lint`, `govulncheck`, `integration (real
+   age)` required checks to pass. `gh pr checks <pr> --watch`
+   works once they register (~10s after PR creation).
 
-   Either path then watches the `release.yml` workflow to completion
-   and verifies checksums plus the SLSA build-provenance attestation
-   for each tarball.
+7. **Merge the PR** — `gh pr merge <pr> --rebase --delete-branch`
+   (or via the GitHub UI). The merge triggers the release workflow.
 
-   If the workflow fails, the script exits non-zero. Surface the failing
-   job URL and stop — do not retry blindly.
+8. **Watch the release workflow** — The workflow detects the
+   `VERSION` change, builds, and publishes. Watch it with:
 
-7. **Verify published artifacts** — After the workflow goes green,
-   confirm the GitHub Release for `vX.Y.Z` exists and that the runtime
-   tarballs, `checksums.txt`, and attestations are attached:
+   ```bash
+   sleep 5  # let GitHub register the run
+   run_id=$(gh run list --workflow=release.yml --branch=main \
+     --limit=1 --json databaseId --jq '.[0].databaseId')
+   gh run watch --exit-status "$run_id"
+   ```
+
+   Don't use `--limit=1` without `--branch=main` — that can return
+   an older tag-triggered run from before this refactor.
+
+9. **Verify published outputs** — Confirm the release exists with
+   the expected assets:
 
    ```bash
    gh release view vX.Y.Z --repo cartine/thimble
    ```
 
-   If the script already ran `sha256sum -c` and `gh attestation verify`
-   against the published assets, this is a final sanity check rather
-   than a re-run.
+   Expect: four tarballs (`thimble_X.Y.Z_{linux,darwin}_{amd64,arm64}.tar.gz`),
+   `checksums.txt`, and `install.sh`.
 
-8. **Report** — Print one line on success:
+10. **Report** — One line:
 
-   ```
-   ready: https://github.com/cartine/thimble/releases/tag/vX.Y.Z
-   ```
+    ```
+    ready: https://github.com/cartine/thimble/releases/tag/vX.Y.Z
+    ```
 
-   Include a one- or two-bullet summary lifted from the `[X.Y.Z]`
-   section of `CHANGELOG.md` so the user can see the release story
-   without opening GitHub.
+    Include a one- or two-bullet summary lifted from the
+    `[X.Y.Z]` section of `CHANGELOG.md`.
 
 ## Recovery
 
-- **Tag pushed, workflow failed** — Investigate the failing run, fix
-  forward on `main`, then cut a new patch tag. Do not delete the
-  failing tag silently; operators expect it in `git log --tags` for
-  post-mortem.
-- **Tag pushed, workflow green, assets missing** — Re-run the workflow
-  via `gh workflow run release.yml -f tag=vX.Y.Z` (or via the GitHub
-  UI). The `verify-release` workflow can re-check checksums.
-- **PR opened but checks failed** — Fix forward on the `release/vX.Y.Z`
-  branch, push, let checks re-run. The script's PR path waits on
-  `gh pr checks --watch`, so a fix-and-push will be picked up on
-  re-invocation.
-- **PR merged but tag push failed** — `git fetch origin --tags`,
-  identify the merge commit via `gh pr view release/vX.Y.Z --json
-  mergeCommit`, then `git tag vX.Y.Z <sha> && git push origin
-  vX.Y.Z` manually. The release workflow fires on the tag push.
-- **Orphan tag** (tag exists but isn't an ancestor of `main`) — Means
-  someone tagged a local pre-merge commit. The release artifacts are
-  still valid because the workflow builds from the tag's tree, but
-  `git describe` won't find the tag from `main`. `tag-release.sh`
-  uses `git tag --sort=-version:refname` so it still recognizes the
-  prior version; do not force-move the tag, as the SLSA attestation
-  is bound to the original commit SHA.
-- **Dirty working tree after CHANGELOG rewrite** — `git restore
-  CHANGELOG.md` to discard the in-progress rewrite, then start over
-  from step 4.
-- **Tag collision** — A `vX.Y.Z` tag already exists. Either pick a
-  different bump or coordinate with maintainers; never force-push an
-  existing release tag.
+The workflow is idempotent. If publish fails partway:
 
-## How to test without cutting a real release
-
-`scripts/tag-release.sh` supports `--dry-run`, which prints every
-git/gh side effect with a `[dry-run]` prefix and exits without touching
-the repo or GitHub:
-
-```bash
-make tag-release VERSION=patch DRY_RUN=1
-# or directly:
-bash scripts/tag-release.sh patch --dry-run
-```
-
-The bump algorithm has its own test:
-
-```bash
-bash scripts/test_tag_release_bump.sh
-```
+- **Release exists but assets missing** — Re-run the workflow
+  with `gh workflow run release.yml -f version=X.Y.Z`. The
+  detect step sees the partial release and re-enters publish to
+  complete it.
+- **VERSION on main matches an unreleased tag** — Workflow will
+  detect and publish. No manual intervention.
+- **Wrong version landed on main** — Open a new bump PR with the
+  intended version (don't try to "fix" the existing tag). The
+  workflow only fires when `VERSION` *changes*, so a same-version
+  re-push is a no-op.
 
 ## Don't
 
-- Don't ship from a branch other than `main` — the release workflow
-  only fires on tag pushes that descend from `main`.
-- Don't push tags that don't match `^v[0-9]+\.[0-9]+\.[0-9]+$`. The
-  verify and attestation steps assume strict semver.
-- Don't ship with an empty `[Unreleased]` block in `CHANGELOG.md`.
-- Don't manually create the GitHub Release or upload `tar.gz` /
-  `checksums.txt` — the release workflow owns those artifacts and the
-  build-provenance attestation only matches the workflow-built copies.
+- Don't `git tag` or `git push origin <tag>` locally. The
+  workflow owns tags.
+- Don't manually create the GitHub Release or upload assets —
+  the workflow's idempotent recovery will fight you.
+- Don't bypass the release PR by editing `VERSION` directly on
+  `main` (would skip code review and CI gates on the bump).
+- Don't ship with an empty `[Unreleased]` block.
