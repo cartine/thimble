@@ -8,6 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+## [0.1.1] — 2026-05-19
+### Added
+
 - Release tarballs now ship the sigstore attestation bundle as
   `attestations.intoto.jsonl`. `install.sh` verifies SLSA build
   provenance against this bundle locally, so a fresh
@@ -131,5 +134,6 @@ release tarballs, and a 49-knot hardening pass.
   checks, manifest version + flock, web cookie auth, host-header
   allowlist.
 
-[Unreleased]: https://github.com/cartine/thimble/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cartine/thimble/compare/v0.1.1...HEAD
 [0.1.0]: https://github.com/cartine/thimble/releases/tag/v0.1.0
+[0.1.1]: https://github.com/cartine/thimble/releases/tag/v0.1.1
