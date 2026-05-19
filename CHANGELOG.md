@@ -6,7 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+### Fixed
+
+- `install.sh` now passes `--repo` alongside `--bundle` when calling
+  `gh attestation verify`. Without it, gh exits non-zero with
+  "at least one of the flags in the group [owner repo] is required"
+  and falls through to the misleading provenance warning — which is
+  the exact failure mode v0.1.1 was supposed to fix. `--repo` with
+  `--bundle` is a cert-identity constraint, not an API target, so
+  no `gh auth login` is needed.
+- `tag-release.sh` now waits for PR check runs to register before
+  calling `gh pr checks --watch`. The freshly-opened PR's checks API
+  takes 5–15s to populate after `gh pr create` returns, and `--watch`
+  exits non-zero with "no checks reported" if it polls during that
+  window. New `wait_for_checks_to_register` helper polls every 5s for
+  up to 60s before handing off.
 
 ## [0.1.1] — 2026-05-19
 ### Added
