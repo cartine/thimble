@@ -17,9 +17,10 @@
 #                                   # waits before proceeding.
 #
 # Verification levels (best to worst):
-#   1. `gh attestation verify --bundle attestations.intoto.jsonl` — full SLSA
-#      build provenance using the bundle shipped with the release. Works
-#      offline; does NOT require `gh auth login`.
+#   1. `gh attestation verify --bundle attestations.intoto.jsonl --repo …` —
+#      full SLSA build provenance using the bundle shipped with the release.
+#      Works offline; does NOT require `gh auth login`. `--repo` here is a
+#      cert-identity constraint, not an API target — no auth call is made.
 #   2. `gh attestation verify --repo …` — same check, but fetches the
 #      attestation from GitHub. Requires `gh auth login`; we fall back to
 #      this path only when the bundle asset isn't available (older releases).
@@ -168,11 +169,18 @@ else
     attest_bundle="$tmp/attestations.intoto.jsonl"
   fi
 
+  # `gh attestation verify` requires `--owner` or `--repo` even when
+  # `--bundle` is supplied (the flag's role with `--bundle` is to
+  # constrain the certificate identity; no API call is made for it,
+  # so no `gh auth login` is needed). Omitting it makes the command
+  # exit non-zero with the misleading error
+  #   "at least one of the flags in the group [owner repo] is required"
+  # which is what was happening in v0.1.1.
   provenance_ok="no"
   if command -v gh >/dev/null 2>&1; then
     if [ -n "$attest_bundle" ] && \
        gh attestation verify "$tmp/$asset" \
-         --bundle "$attest_bundle" >/dev/null 2>&1; then
+         --bundle "$attest_bundle" --repo "$REPO" >/dev/null 2>&1; then
       echo "verified build provenance for $asset (sigstore bundle)"
       provenance_ok="yes"
     elif gh auth status >/dev/null 2>&1 && \
