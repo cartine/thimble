@@ -68,25 +68,32 @@ jobs:
         run: |
           cd dist
           sha256sum *.tar.gz install.sh > checksums.txt
-      # SLSA build-provenance attestation: signs each tarball + checksums.txt
-      # with a Sigstore certificate tied to this workflow run. Verifiable
-      # post-release with `gh attestation verify <asset> --repo cartine/thimble`.
-      # TODO: layer cosign sign-blob keyless on top once we want a path that
-      # does not require a github CLI install — left out of v0 to keep the
-      # surface minimal.
+      # SLSA build-provenance attestation: signs each tarball +
+      # install.sh + checksums.txt with a Sigstore certificate tied to
+      # this workflow run. The action stores the attestation in GitHub's
+      # attestations store AND emits a sigstore-bundle JSONL file via
+      # the `bundle-path` output. We ship that bundle as a release asset
+      # so `install.sh` can verify provenance offline (with
+      # `gh attestation verify --bundle …`) — the remote path requires
+      # `gh auth login`, which a fresh `curl … | sh` invocation will not
+      # have.
       - name: Attest tarballs
+        id: attest
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: |
             dist/*.tar.gz
             dist/install.sh
             dist/checksums.txt
+      - name: Stage attestation bundle
+        run: cp "${{ steps.attest.outputs.bundle-path }}" dist/attestations.intoto.jsonl
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.tar.gz
             dist/install.sh
             dist/checksums.txt
+            dist/attestations.intoto.jsonl
 
   docker:
     needs: build
