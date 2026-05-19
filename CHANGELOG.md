@@ -6,6 +6,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+## [0.1.0] — 2026-05-19
 Initial public-ready slice. File-first secrets manager wrapping `age`,
 with multi-leader replication, quorum-gated recipient changes, signed
 release tarballs, and a 49-knot hardening pass.
@@ -108,4 +111,5 @@ release tarballs, and a 49-knot hardening pass.
   checks, manifest version + flock, web cookie auth, host-header
   allowlist.
 
-[Unreleased]: https://github.com/cartine/thimble/compare/HEAD...HEAD
+[Unreleased]: https://github.com/cartine/thimble/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/cartine/thimble/releases/tag/v0.1.0
