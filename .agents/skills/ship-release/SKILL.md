@@ -21,8 +21,11 @@ Ship a new Thimble release.
 - Release from `main`, not from a feature branch or worktree.
 - Keep the working tree clean before starting.
 - Sync `main` before previewing or running gates.
-- Do not use a PR workflow for the version bump — Thimble ships from
-  `main` via `scripts/tag-release.sh`.
+- Let `scripts/tag-release.sh` choose the cut strategy. It detects
+  whether `main` is protected by a `pull_request` ruleset and either
+  pushes the release commit directly (unprotected) or opens a release
+  PR, waits for required checks, merges it, and tags the post-merge
+  commit (protected). Do not bypass it with manual pushes.
 - Do not delete or rewrite a failing tag silently. If the release path
   fails, fix forward and re-tag.
 - Do not manually create the GitHub Release or upload assets — that is
@@ -100,10 +103,22 @@ Ship a new Thimble release.
    make tag-release VERSION=<bump_or_version>
    ```
 
-   The script bumps the version, rewrites `CHANGELOG.md`, commits, tags
-   `vX.Y.Z`, pushes `main` and the tag atomically, then watches the
-   `release.yml` workflow to completion and verifies checksums plus the
-   SLSA build-provenance attestation for each tarball.
+   The script bumps the version, rewrites `CHANGELOG.md`, and then
+   chooses a cut strategy based on `main`'s rulesets:
+
+   - **Unprotected main** — commits on `main`, tags, atomically pushes
+     `main + tag`.
+   - **Protected main** (any `pull_request` rule applies) — commits on
+     a `release/vX.Y.Z` branch, opens a PR, waits for required checks
+     to go green, merges with the repo's preferred method (rebase →
+     merge → squash), then reads the post-merge SHA back from the PR
+     and tags *that* commit (GitHub's rebase rewrites SHAs even on
+     linear PRs, so tagging the local pre-merge commit would orphan
+     the tag).
+
+   Either path then watches the `release.yml` workflow to completion
+   and verifies checksums plus the SLSA build-provenance attestation
+   for each tarball.
 
    If the workflow fails, the script exits non-zero. Surface the failing
    job URL and stop — do not retry blindly.
@@ -139,6 +154,21 @@ Ship a new Thimble release.
 - **Tag pushed, workflow green, assets missing** — Re-run the workflow
   via `gh workflow run release.yml -f tag=vX.Y.Z` (or via the GitHub
   UI). The `verify-release` workflow can re-check checksums.
+- **PR opened but checks failed** — Fix forward on the `release/vX.Y.Z`
+  branch, push, let checks re-run. The script's PR path waits on
+  `gh pr checks --watch`, so a fix-and-push will be picked up on
+  re-invocation.
+- **PR merged but tag push failed** — `git fetch origin --tags`,
+  identify the merge commit via `gh pr view release/vX.Y.Z --json
+  mergeCommit`, then `git tag vX.Y.Z <sha> && git push origin
+  vX.Y.Z` manually. The release workflow fires on the tag push.
+- **Orphan tag** (tag exists but isn't an ancestor of `main`) — Means
+  someone tagged a local pre-merge commit. The release artifacts are
+  still valid because the workflow builds from the tag's tree, but
+  `git describe` won't find the tag from `main`. `tag-release.sh`
+  uses `git tag --sort=-version:refname` so it still recognizes the
+  prior version; do not force-move the tag, as the SLSA attestation
+  is bound to the original commit SHA.
 - **Dirty working tree after CHANGELOG rewrite** — `git restore
   CHANGELOG.md` to discard the in-progress rewrite, then start over
   from step 4.
