@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0da3-02bb-72c2-8a10-2c0923f55d28",
+  "occurred_at": "2026-05-09T16:47:27.419817Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-a9f3",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "thimble exec — fork app with whole namespace as stdin or env, no FS",
+    "type": "work",
+    "updated_at": "2026-05-09T16:47:27.419817Z",
+    "workflow_id": "work_sdlc"
+  }
+}

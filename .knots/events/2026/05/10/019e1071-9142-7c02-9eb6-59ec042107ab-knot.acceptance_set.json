@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1071-9142-7c02-9eb6-59ec042107ab",
+  "occurred_at": "2026-05-10T05:52:18.744346Z",
+  "knot_id": "thimble-1969",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. New repo cartine/thimble-py with single-function API: thimble.read_secrets().\n2. Parser matches Thimble's internal/dotenv encoder/decoder.\n3. ZERO third-party deps.\n4. README shows the canonical pattern; links to Thimble's main README.\n5. Distribution channel works: pip install thimble."
+  }
+}

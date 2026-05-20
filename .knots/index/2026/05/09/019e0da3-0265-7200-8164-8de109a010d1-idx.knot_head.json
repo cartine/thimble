@@ -1,0 +1,37 @@
+{
+  "event_id": "019e0da3-0265-7200-8164-8de109a010d1",
+  "occurred_at": "2026-05-09T16:47:27.333068Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-a9f3",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "thimble exec — fork app with whole namespace as stdin or env, no FS",
+    "type": "work",
+    "updated_at": "2026-05-09T16:47:27.333068Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0da2-ddb4-73b3-bbbe-37862c8cfd3b"
+  }
+}

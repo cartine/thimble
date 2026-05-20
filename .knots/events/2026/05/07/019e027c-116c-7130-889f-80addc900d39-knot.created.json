@@ -1,0 +1,17 @@
+{
+  "event_id": "019e027c-116c-7130-889f-80addc900d39",
+  "occurred_at": "2026-05-07T12:49:05.900205Z",
+  "knot_id": "thimble-6a86",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nGit was never the intended transport for Thimble bundles. The original\ndesign (thimble.md non-goals: \"Do not require a central server\") is\nfile-first, peer-to-peer, transport-agnostic. Several README and\nthimble.md examples ended up using git push/pull as if it were canonical;\nstrip those out everywhere and replace with transport-agnostic prose.\n\nVerification:\n1. `grep -rn \"git push\\|git pull\\|git commit\\|git add\\|git remote\\|git fetch\" README.md SECURITY.md CONTRIBUTING.md thimble.md tasks/knots/ docs/` returns zero matches in any *user-facing operational example*. Source-control mentions for *Thimble's own development* (clone, tests, releases) are fine and stay; only secret/bundle transport prose is stripped.\n2. Replaced prose names \"any file transport\" rather than committing to git. Pattern A (designated store host) is the recommended default, with one-line nods to Pattern B (object storage) and Pattern C (direct host-to-host) for context.\n3. README's \"Real-Life Flow\" no longer shows `git add secrets/...` — the deploy-host pull step uses a transport-neutral phrase like \"synchronize the secrets/ directory to your store host\".\n4. README's \"Peer-To-Peer Sync\" section title and content are reworked: \"Peer-to-peer\" stays as a concept, but git as the example is replaced with the store-host pattern.\n5. thimble.md design-doc status header updated if needed; the \"Peer-to-peer shape\" section continues to emphasize that the encrypted bundle is the durable object, transport is a separate concern.\n6. CHANGELOG entry under [Unreleased] notes the strip-out as a documentation correction.\n\nConstraints:\n- Knot ref: K-53; depends on no other knot.\n- Files: README.md, thimble.md, SECURITY.md, CONTRIBUTING.md, tasks/knots/K-NN-*.md (any that mention git as a transport — most likely K-12, K-22, K-37 drafts), docs/*.\n- Do NOT remove git references that describe Thimble's *own* repository (the source code repo). Those are fine and shouldn't change.\n- Do NOT touch the kno-managed knots system; its use of a `knots` git branch for tool state is independent of Thimble.\n- Notes: this is a doc/correction knot, not a code change. No Go files modified. No tests added or modified.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Strip git as a transport from docs and examples",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

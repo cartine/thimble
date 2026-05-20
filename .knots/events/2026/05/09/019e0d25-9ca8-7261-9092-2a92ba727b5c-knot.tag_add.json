@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0d25-9ca8-7261-9092-2a92ba727b5c",
+  "occurred_at": "2026-05-09T14:30:29.28893Z",
+  "knot_id": "thimble-a9f3",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "plan:run_exec.go+audit.opexec+readme+security"
+  }
+}

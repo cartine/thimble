@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1071-916f-7ad1-bf85-ef21812cd97f",
+  "occurred_at": "2026-05-10T05:52:18.790253Z",
+  "knot_id": "thimble-acbc",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. New repo cartine/thimble-ts with single-function API: await thimble.readSecrets().\n2. Parser matches Thimble's internal/dotenv encoder/decoder.\n3. ZERO third-party deps.\n4. README shows the canonical pattern; links to Thimble's main README.\n5. Distribution channel works: npm install @thimble/secrets."
+  }
+}

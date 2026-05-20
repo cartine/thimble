@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0d2e-ece1-7c81-86a1-2abe86afaf61",
+  "occurred_at": "2026-05-09T14:40:39.649519Z",
+  "knot_id": "thimble-a9f3",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "blocked-by:lint-infra-pre-existing"
+  }
+}

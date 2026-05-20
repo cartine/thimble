@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1071-91c9-7802-a401-16db5dfeba94",
+  "occurred_at": "2026-05-10T05:52:18.880414Z",
+  "knot_id": "thimble-7588",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. New repo cartine/thimble-rust with single-function API: let secrets = thimble::read_secrets()?;.\n2. Parser matches Thimble's internal/dotenv encoder/decoder.\n3. ZERO third-party deps.\n4. README shows the canonical pattern; links to Thimble's main README.\n5. Distribution channel works: cargo add thimble."
+  }
+}

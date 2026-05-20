@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0d2c-5827-7af2-822e-10ca1c1d7bd6",
+  "occurred_at": "2026-05-09T14:37:50.503224Z",
+  "knot_id": "thimble-a9f3",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "commit:a9fc4c1"
+  }
+}

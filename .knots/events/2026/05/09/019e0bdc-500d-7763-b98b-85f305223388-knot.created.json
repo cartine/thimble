@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0bdc-500d-7763-b98b-85f305223388",
+  "occurred_at": "2026-05-09T08:30:48.333234Z",
+  "knot_id": "thimble-a4fd",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "lease",
+    "state": "lease_ready",
+    "title": "Lease: claim-thimble-1b14",
+    "type": "lease",
+    "workflow_id": "lease_sdlc"
+  }
+}

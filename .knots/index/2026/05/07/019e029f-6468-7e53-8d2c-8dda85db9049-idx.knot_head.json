@@ -1,0 +1,21 @@
+{
+  "event_id": "019e029f-6468-7e53-8d2c-8dda85db9049",
+  "occurred_at": "2026-05-07T13:27:40.904847Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-98d5",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Peer heartbeats and status reporting",
+    "type": "work",
+    "updated_at": "2026-05-07T13:27:40.904847Z",
+    "workflow_id": "work_sdlc"
+  }
+}

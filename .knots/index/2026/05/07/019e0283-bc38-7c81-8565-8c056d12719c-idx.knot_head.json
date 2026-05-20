@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0283-bc38-7c81-8565-8c056d12719c",
+  "occurred_at": "2026-05-07T12:57:28.376115Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-6a86",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Strip git as a transport from docs and examples",
+    "type": "work",
+    "updated_at": "2026-05-07T12:57:28.376115Z",
+    "workflow_id": "work_sdlc"
+  }
+}

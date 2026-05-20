@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0c4e-89d8-78e3-b60d-94b267b964f6",
+  "occurred_at": "2026-05-09T10:35:34.232107Z",
+  "knot_id": "thimble-209a",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "evidence:tasks/reports/k-52-branch-protection.md"
+  }
+}

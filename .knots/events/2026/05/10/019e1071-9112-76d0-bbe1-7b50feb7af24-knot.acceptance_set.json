@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1071-9112-76d0-bbe1-7b50feb7af24",
+  "occurred_at": "2026-05-10T05:52:18.695039Z",
+  "knot_id": "thimble-0263",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. README Quickstart section walks the secure happy path end-to-end with `thimble exec` as the climax.\n2. Consuming Secrets section uses <details>-collapsible tabs for Python, TypeScript, Go, Rust.\n3. Helper-library note links to K-60..K-63 trackers; no third-party vault product names.\n4. Real-Life Flow trimmed; references Quickstart instead of duplicating it.\n5. scripts/demo.sh demonstrates `thimble exec` with a stdin-reading receiver and ends with `thimble audit`.\n6. PAUSE=0 bash scripts/demo.sh runs end-to-end without errors."
+  }
+}

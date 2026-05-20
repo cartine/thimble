@@ -1,0 +1,17 @@
+{
+  "event_id": "019e1071-9138-7470-927e-10d142ca6f04",
+  "occurred_at": "2026-05-10T05:52:18.744346Z",
+  "knot_id": "thimble-1969",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nShip a tiny official Python client library that wraps the\n`thimble exec` stdin protocol. The library exposes a single\nfunction — `thimble.read_secrets()` — that reads the dotenv body\nfrom sys.stdin once at startup and returns a dict/object/HashMap.\n\nThe library does NOT call `age` or speak to the store directly. It\njust parses what `thimble exec` already pipes into the child process.\nThe full security model is unchanged.\n\nVerification:\n1. Repository at github.com/cartine/thimble-py with LICENSE, README, tests.\n2. Single public API: `thimble.read_secrets()`. No other config knobs in v0.\n3. Distribution: `pip install thimble` works.\n4. Parser handles the same dotenv subset as\n   `internal/dotenv/dotenv.go`: empty lines, # comments, unquoted\n   simple values, quoted values with \\n / \\r / \\t / \\\\ / \\\" escapes.\n5. Tests cover: happy path, malformed line, empty stdin, large value\n   (>64 KiB), trailing newlines.\n6. README example shows the canonical pattern: child app calls\n   `thimble.read_secrets()` once at startup, uses the returned values, drops the\n   reference.\n7. README links back to Thimble's main README \"Consuming Secrets\"\n   section. Thimble's README \"Helper libraries\" note links here.\n\nConstraints:\n- Knot ref: K-60; follow-up to K-58 + K-59.\n- Files: a NEW repository at cartine/thimble-py, not in the thimble repo.\n- ZERO third-party deps. Stdlib only.\n- API surface MUST stay tiny — one function. Resist adding \"load\n  from file\", \"merge with env vars\", etc. Those defeat the point.\n- No mention of third-party vault products (Vault, AWS SM, etc.).\n- Versioning: ship v0.1.0 once Thimble itself ships v0.1.0+ — until\n  then, this knot stays READY_FOR_PLANNING.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Ship thimble-py helper library",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

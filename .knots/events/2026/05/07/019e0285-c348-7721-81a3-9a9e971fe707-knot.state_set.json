@@ -1,0 +1,13 @@
+{
+  "event_id": "019e0285-c348-7721-81a3-9a9e971fe707",
+  "occurred_at": "2026-05-07T12:59:41.256415Z",
+  "knot_id": "thimble-a352",
+  "type": "knot.state_set",
+  "data": {
+    "force": true,
+    "from": "lease_active",
+    "profile_id": "lease",
+    "to": "lease_terminated",
+    "workflow_id": "lease_sdlc"
+  }
+}

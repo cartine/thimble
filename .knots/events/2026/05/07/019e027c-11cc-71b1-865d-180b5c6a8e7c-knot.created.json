@@ -1,0 +1,17 @@
+{
+  "event_id": "019e027c-11cc-71b1-865d-180b5c6a8e7c",
+  "occurred_at": "2026-05-07T12:49:05.996604Z",
+  "knot_id": "thimble-ef3d",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nNow that git is gone (K-53), give the docs a real story for how files\nmove between leaders and from leaders to deploy hosts. Pattern A\n(designated store host with sshd + rsync) is the recommended default;\nmention B (object storage) and C (direct push) as alternatives. Name\nthe existing safety nets (K-21 manifest version, K-27 audit log merge)\nso multi-leader operators understand why the model is safe under\nconcurrent writes.\n\nVerification:\n1. README gains a \"Storing and Syncing\" (or \"Replication\") section, one screen long, that shows:\n   - The Pattern A topology: leaders rsync to a store host; hosts rsync from it.\n   - One-line concrete example using rsync over ssh.\n   - Pattern B / Pattern C named in a few sentences as alternatives.\n   - A \"Concurrency safety\" subsection naming K-21's version check (concurrent writes detected, loser retries) and K-27's audit log merge semantics (union by event UUID).\n   - A pointer to the future replication subcommands (K-55..K-57) without preempting their final shape.\n2. thimble.md \"Peer-to-peer shape\" section rewritten to match: file-first, transport-agnostic, store-host as the simple-multi-leader pattern.\n3. CONTRIBUTING.md gains a \"Running multi-leader\" pointer to the README section.\n4. No code changes. CHANGELOG entry under [Unreleased].\n\nConstraints:\n- Knot ref: K-54; depends on K-53.\n- Files: README.md, thimble.md, CONTRIBUTING.md, CHANGELOG.md.\n- Notes: this is doc-only. The replication primitives the doc references (peers.toml, on-mutate push, heartbeats) are forward references to K-55, K-56, K-57; it's fine to gesture at them as \"coming soon\" without committing to exact CLI shape.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Document Pattern A transport + replication semantics",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

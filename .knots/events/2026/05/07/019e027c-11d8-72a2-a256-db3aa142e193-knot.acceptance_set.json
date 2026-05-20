@@ -1,0 +1,9 @@
+{
+  "event_id": "019e027c-11d8-72a2-a256-db3aa142e193",
+  "occurred_at": "2026-05-07T12:49:05.996604Z",
+  "knot_id": "thimble-ef3d",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. README has a \"Storing and Syncing\" section showing Pattern A as default, B/C as alternatives, with concrete rsync-over-ssh examples.\n2. Concurrency safety paragraph names K-21 version check and K-27 audit merge as the existing protections.\n3. thimble.md \"Peer-to-peer shape\" aligns with the new model.\n4. CHANGELOG records the addition under [Unreleased]."
+  }
+}

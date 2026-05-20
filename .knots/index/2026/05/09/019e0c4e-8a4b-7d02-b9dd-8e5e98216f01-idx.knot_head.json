@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0c4e-8a4b-7d02-b9dd-8e5e98216f01",
+  "occurred_at": "2026-05-09T10:35:34.347786Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "human"
+    },
+    "invariants": [],
+    "knot_id": "thimble-209a",
+    "profile_id": "evaluate",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Configure branch protection on main",
+    "type": "gate",
+    "updated_at": "2026-05-09T10:35:34.347786Z",
+    "workflow_id": "gate_sdlc"
+  }
+}

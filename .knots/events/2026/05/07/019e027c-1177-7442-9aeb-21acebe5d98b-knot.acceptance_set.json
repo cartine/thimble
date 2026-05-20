@@ -1,0 +1,9 @@
+{
+  "event_id": "019e027c-1177-7442-9aeb-21acebe5d98b",
+  "occurred_at": "2026-05-07T12:49:05.900205Z",
+  "knot_id": "thimble-6a86",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. No user-facing operational example references git push/pull/commit/add for moving secrets, bundles, or recipient changes.\n2. README's transport language is Pattern-A-default with B/C as alternatives, no git as canonical.\n3. CHANGELOG records the strip-out under [Unreleased].\n4. Mentions of git for Thimble source development (cloning the repo, dev workflow) untouched."
+  }
+}

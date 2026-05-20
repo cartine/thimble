@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0298-5bd0-7d03-9411-3b683f893258",
+  "occurred_at": "2026-05-07T13:19:59.952356Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-cd1d",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "On-mutate notify: best-effort rsync push to peers",
+    "type": "work",
+    "updated_at": "2026-05-07T13:19:59.952356Z",
+    "workflow_id": "work_sdlc"
+  }
+}

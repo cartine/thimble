@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0291-17f0-73d0-9fba-73372975439c",
+  "occurred_at": "2026-05-07T13:12:03.82479Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-96aa",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "thimble peer add/list/remove and join (bootstrap)",
+    "type": "work",
+    "updated_at": "2026-05-07T13:12:03.82479Z",
+    "workflow_id": "work_sdlc"
+  }
+}

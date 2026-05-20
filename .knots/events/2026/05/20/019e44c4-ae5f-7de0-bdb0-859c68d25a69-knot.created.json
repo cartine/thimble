@@ -1,0 +1,17 @@
+{
+  "event_id": "019e44c4-ae5f-7de0-bdb0-859c68d25a69",
+  "occurred_at": "2026-05-20T09:43:20.927281Z",
+  "knot_id": "thimble-c99e",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nMake Thimble intuitive for operators who work across multiple repositories, products, and deploy destinations by replacing the implicit ./secrets mental model with a clearly discoverable store-selection model. The user should be able to tell which store and identity are active before mutating secrets, choose between one store per trust domain and separate stores for unrelated projects, and attach a repository to the intended store without committing secret material.\n\nVerification:\n1. Run the new or updated status command from a repo with an attached store; it prints the active store name/path, how it was selected, the active identity path or missing-identity warning, and namespace summary without printing secret values.\n2. Run a mutating command from a repo with no selected/attached store and no existing local ./secrets store; the CLI gives a clear next action instead of silently creating or targeting an unexpected store.\n3. Create or configure at least two stores locally, switch/attach between them, and confirm commands target the intended store without relying on shell-wide THIMBLE_STORE.\n4. Read the README documentation for the common multi-repo use case and confirm it explains when to use one product/security-domain store versus multiple isolated stores, including an example with several repos and deploy destinations.\n\nConstraints:\nDo not change Thimble's encrypted bundle format unless strictly necessary. Do not print secret values in status, diagnostics, or examples. Preserve --store and THIMBLE_STORE for scripts and backwards compatibility. Prefer terminology from TAXONOMY.md: store directory, namespace, identity, recipient, operator, deploy host.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Make store selection explicit",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

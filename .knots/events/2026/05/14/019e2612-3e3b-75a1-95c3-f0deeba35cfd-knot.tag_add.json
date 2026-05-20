@@ -1,0 +1,9 @@
+{
+  "event_id": "019e2612-3e3b-75a1-95c3-f0deeba35cfd",
+  "occurred_at": "2026-05-14T10:39:50.33104Z",
+  "knot_id": "thimble-0263",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/k-59-docs-realign"
+  }
+}

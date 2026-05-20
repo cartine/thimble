@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0d2c-5827-7af2-822e-10d35a495655",
+  "occurred_at": "2026-05-09T14:37:50.503224Z",
+  "knot_id": "thimble-a9f3",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/k-58-thimble-exec"
+  }
+}

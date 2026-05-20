@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0d20-3ed2-7eb1-a857-40194beced2a",
+  "occurred_at": "2026-05-09T14:24:37.575606Z",
+  "knot_id": "thimble-a9f3",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `thimble exec <app> <env> -- <cmd> [args...]` decrypts the full namespace and forks the child.\n2. Default flavor: dotenv-encoded body delivered via the child's stdin; no filesystem write.\n3. `--env` flavor: full namespace populates the child's env block; no filesystem write; no stdin write.\n4. K-24 shell-guard logic reused — sh/bash/zsh/etc and docker/podman without proper scoping are refused unless --allow-shell-env.\n5. Audit log records the exec event with the operator thumbprint (no values).\n6. README \"Consuming Secrets\" section covers stdin and env flavors with Go/Python/Node/Ruby code, plus an honest trade-off table.\n7. Tests cover: stdin delivery, env delivery, shell-guard refusal, child exit code propagation, no secret in argv.\n8. Integration test exercises the real `age` binary end-to-end."
+  }
+}

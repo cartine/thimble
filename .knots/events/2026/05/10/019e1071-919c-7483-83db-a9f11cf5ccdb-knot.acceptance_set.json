@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1071-919c-7483-83db-a9f11cf5ccdb",
+  "occurred_at": "2026-05-10T05:52:18.834614Z",
+  "knot_id": "thimble-86cf",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. New repo cartine/thimble-go with single-function API: secrets, err := thimble.ReadSecrets().\n2. Parser matches Thimble's internal/dotenv encoder/decoder.\n3. ZERO third-party deps.\n4. README shows the canonical pattern; links to Thimble's main README.\n5. Distribution channel works: go get github.com/cartine/thimble-go."
+  }
+}

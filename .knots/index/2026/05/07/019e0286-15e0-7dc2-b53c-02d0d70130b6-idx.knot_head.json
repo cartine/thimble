@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0286-15e0-7dc2-b53c-02d0d70130b6",
+  "occurred_at": "2026-05-07T13:00:02.400426Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "thimble-ef3d",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Document Pattern A transport + replication semantics",
+    "type": "work",
+    "updated_at": "2026-05-07T13:00:02.400426Z",
+    "workflow_id": "work_sdlc"
+  }
+}

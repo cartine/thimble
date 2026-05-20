@@ -1,0 +1,17 @@
+{
+  "event_id": "019e027c-1261-7771-bf6a-bf9e3d3aac5f",
+  "occurred_at": "2026-05-07T12:49:06.145595Z",
+  "knot_id": "thimble-cd1d",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nAfter every successful local mutation, push the changed files to each\nknown peer in peers.toml via rsync over ssh, best-effort. If a peer is\nunreachable, log a warning to stderr and record the failure in the\npeer state file (K-57); do NOT block or roll back the local mutation.\nThis is the \"leader notifies other leaders\" half of the design.\n\nVerification:\n1. After every Store mutation (init, recipient add/remove, set, create, update, delete, set with origin, recipient remove --rotate), Thimble triggers a `pushToPeers` step.\n2. pushToPeers iterates peers.toml entries and runs rsync -av --delete `<store>/secrets/<app>/` <peer.target>/<app>/`. Each per-peer push is bounded by a context timeout (default 30s, configurable via THIMBLE_PEER_PUSH_TIMEOUT).\n3. On peer push failure: emit one stderr line per failed peer (\"peer push failed: <name> <reason>\"); update `secrets/.peer-state.json` (K-57's file) with last-seen + last-error.\n4. Receiving peer's flock + manifest version check (K-21) is what catches conflicts: if our push lands an older version than the peer's, the rsync still copies the bytes but the next mutation on the peer will see version skew and refuse.\n5. New flag `--no-peer-push` on every mutating subcommand suppresses the broadcast (useful for batch ops).\n6. New env var `THIMBLE_PEER_PUSH=off` globally disables the broadcast (single-leader mode).\n7. Tests: mock rsync via a stub binary; assert push happens after a mutation, push respects timeout, failure surfaces correctly.\n\nConstraints:\n- Knot ref: K-56; depends on K-55.\n- Files: internal/peer/push.go (new), internal/store/* hook integration, internal/cli/* flag wiring.\n- Push happens AFTER the local commit succeeds, NOT as part of the flock'd critical section. A peer being slow must not slow the local mutation more than the push timeout.\n- Failures DO NOT roll back local state. The local store is the source of truth for the leader; peers reconcile on next push or manual catch-up.\n- This is synchronous-but-bounded: a `thimble set` blocks until peer pushes complete or time out. This is a deliberate trade-off — admin operations are not hot-path.\n- Do NOT introduce a daemon. No background process, no goroutine that outlives the command.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "On-mutate notify: best-effort rsync push to peers",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

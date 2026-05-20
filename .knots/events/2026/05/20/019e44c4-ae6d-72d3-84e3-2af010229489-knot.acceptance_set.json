@@ -1,0 +1,9 @@
+{
+  "event_id": "019e44c4-ae6d-72d3-84e3-2af010229489",
+  "occurred_at": "2026-05-20T09:43:20.927281Z",
+  "knot_id": "thimble-c99e",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A CLI surface exists for inspecting the active store before secret operations, such as `thimble status` or `thimble store status`, and it shows store path/source, identity path/status, and namespace names without rendering secret values.\n2. A first-class store-selection workflow exists, such as named stores and/or repo attachment, so an operator can associate a repo with a store without exporting THIMBLE_STORE in every shell.\n3. The CLI warns or guides when no store is selected and `./secrets` does not already exist, with actionable commands to create, select, or attach a store.\n4. Existing `--store` and `THIMBLE_STORE` behavior remains supported and documented as the scripting/override path.\n5. README docs include a dedicated multi-repo/multi-destination section covering the likely common case: several repos, related deploy namespaces, one store per trust domain, and separate stores/identities for unrelated clients or higher blast-radius isolation.\n6. README examples include concrete paths for a global store location, e.g. `~/.local/share/thimble/stores/<name>`, and a repo-local attachment/config example that does not contain secret material.\n7. Automated tests or documented manual verification cover store selection precedence, no-secret-value output, missing-store guidance, and backwards compatibility for `--store` and THIMBLE_STORE."
+  }
+}

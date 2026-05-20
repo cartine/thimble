@@ -1,0 +1,17 @@
+{
+  "event_id": "019e027c-1296-74c2-9814-8e9b49daceba",
+  "occurred_at": "2026-05-07T12:49:06.198741Z",
+  "knot_id": "thimble-98d5",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nAdd the visibility layer: each peer's last-seen time, version skew, and\nrecent failures are recorded locally and surfaced via `thimble peer\nstatus` and the existing `thimble doctor`. Heartbeats are pull-based\n(\"am I able to reach you?\"); they record state but do NOT trigger\ncatch-up automatically (an operator decides what to do when a peer is\nunreachable).\n\nVerification:\n1. New file `secrets/.peer-state.json` (gitignored, local-only, mode 0640) records per-peer: name, last_seen (RFC3339), last_error (string|null), version_skew (int — how far ahead/behind their manifest version was at last contact).\n2. New subcommand `thimble peer ping [<name>]` runs an SSH no-op (`ssh <target> \"true\"`) plus reads the peer's manifest version via rsync, updates .peer-state.json, prints a one-line status.\n3. New subcommand `thimble peer status` reads .peer-state.json and prints a tabular view: name | target | last_seen | version_skew | last_error.\n4. `thimble doctor` (K-29) gains a \"peers\" check that calls into peer status: ok if all peers contacted in the last hour, warn if any contacted >1h ago, fail if any never contacted or last_error is non-null.\n5. Optional cron-friendly: `thimble peer ping --all --quiet` for use in scheduled jobs (cron every 5 min). Document this in README.\n6. Tests: stub the ssh+rsync; verify state-file updates, status output, doctor integration.\n\nConstraints:\n- Knot ref: K-57; depends on K-56.\n- Files: internal/peer/heartbeat.go (new), internal/peer/state.go (new), internal/cli/run_peer.go (extension), internal/doctor/check_peers.go (new).\n- Heartbeats are NOT a daemon. Operator runs `thimble peer ping --all` from cron, or implicitly via `thimble peer status` reads (which can be configured to refresh stale entries).\n- .peer-state.json must be add to .gitignore (defensive, even though we're not using git as transport — operators may still have the secrets/ dir under git for backup of *encrypted* artifacts).\n- Notes: this knot does NOT do automatic catch-up. If peer-state shows alice is 100 versions behind, it's the operator's call to manually `peer join` or rsync-replace. Auto-catch-up is a future knot.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Peer heartbeats and status reporting",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
