@@ -1,8 +1,8 @@
 name: verify-release
 
-# Reproduce the published release tarballs and diff their SHA-256 hashes
-# against the published checksums.txt. Runs on every release tag (after
-# the release workflow has finished publishing) and on a monthly schedule
+# Rebuild the published release payloads and compare them with the
+# checksummed release assets. Runs on every release tag (after the
+# release workflow has finished publishing) and on a monthly schedule
 # against the latest release as a long-tail integrity check.
 
 on:
@@ -38,7 +38,8 @@ jobs:
           elif [ "${{ github.event_name }}" = "release" ]; then
             echo "version=${{ github.event.release.tag_name }}" >>"$GITHUB_OUTPUT"
           else
-            tag="$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest \
+            api="https://api.github.com/repos/${{ github.repository }}/releases/latest"
+            tag="$(curl -fsSL "$api" \
               | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)"
             echo "version=$tag" >>"$GITHUB_OUTPUT"
           fi

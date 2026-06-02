@@ -65,7 +65,7 @@ vuln: ## Install govulncheck (if missing) and scan for known CVEs.
 	  $(GO) install golang.org/x/vuln/cmd/govulncheck@latest
 	govulncheck ./...
 
-verify-release: ## Reproduce a published release and diff SHA-256s. Usage: make verify-release VERSION=vX.Y.Z
+verify-release: ## Reproduce published release payloads. Usage: make verify-release VERSION=vX.Y.Z
 	@if [ -z "$(VERSION)" ]; then \
 	  echo "usage: make verify-release VERSION=vX.Y.Z"; \
 	  exit 2; \
