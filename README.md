@@ -103,23 +103,24 @@ The image runs as a non-root user (`distroless/static:nonroot`) so any
 file it writes is owned by the host user with UID 65532 unless you pass
 `--user $(id -u):$(id -g)`.
 
-### Verifying a release rebuilds bit-for-bit
+### Verifying a release
 
-Thimble's release build is deterministic given the source tag and the Go
-toolchain version pinned in `go.mod`. To prove that the binaries on the
-GitHub release match what would come out of building the tag yourself:
+Thimble's release binaries are deterministic given the source tag, the Go
+toolchain version pinned in `go.mod`, and the build metadata embedded by
+the release workflow. To prove that the binaries on the GitHub release
+match what would come out of building the tag yourself:
 
 ```sh
 git fetch --tags
 make verify-release VERSION=vX.Y.Z
 ```
 
-`make verify-release` checks out the tag in a temp worktree, rebuilds the
-linux/darwin × amd64/arm64 matrix with `-trimpath -ldflags="-s -w"` and
-the same `-X` ldflag values the workflow embeds, then diffs the resulting
-tarball SHA-256s against the published `checksums.txt`. A mismatch on
-`buildDate` alone will produce a SHA-256 difference; pass
-`THIMBLE_BUILD_DATE=<value-from-release-notes>` to remove it. See
+`make verify-release` prepares temp source checkouts, downloads the
+release tarballs, verifies each tarball against the published
+`checksums.txt`, extracts the payloads, rebuilds the linux/darwin x
+amd64/arm64 matrix with the same `-trimpath` and `-X` ldflag values, then
+compares the rebuilt binaries and bundled docs byte-for-byte. The check
+extracts each artifact's embedded build date automatically. See
 [scripts/verify-release.sh](scripts/verify-release.sh) for the details.
 
 From a checkout:
