@@ -177,6 +177,8 @@ func dispatchCommand(
 		return runDelete(st, rest, stdout)
 	case "list", "ls":
 		return runList(st, rest, stdout)
+	case "get":
+		return runGet(st, rest, stdout, stderr)
 	case "render":
 		return runRender(st, rest, stdout, stderr)
 	case "verify":
@@ -268,6 +270,8 @@ Commands:
                                           (--env). No filesystem write.
   delete <app> <env> KEY                  delete one secret key
   list <app> <env>                        list keys only, never values
+  get <app> <env> [KEY]                   print one decrypted value, or all
+                                          set key names when KEY is omitted
   render <app> <env> --format dotenv      render decrypted dotenv to stdout
   verify <app> <env>                      print bundle SHA + recipient list
   audit [--limit N] <app> <env>           print audit log entries for namespace

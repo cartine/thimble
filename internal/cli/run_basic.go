@@ -177,7 +177,13 @@ func runList(st *store.Store, args []string, stdout io.Writer) error {
 	if len(args) != 2 {
 		return errors.New("usage: thimble list <app> <env>")
 	}
-	keys, err := st.ListSecrets(args[0], args[1])
+	return printKeyNames(st, args[0], args[1], stdout)
+}
+
+// printKeyNames prints the sorted key names of a namespace, one per
+// line, never values. Shared by `list` and the key-less `get` mode.
+func printKeyNames(st *store.Store, app, env string, stdout io.Writer) error {
+	keys, err := st.ListSecrets(app, env)
 	if err != nil {
 		return err
 	}

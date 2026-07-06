@@ -49,9 +49,14 @@ Aliases: `app` (used everywhere in code/CLI as the short form).
 - thimble.md uses both forms.
 
 ### audit log <!-- auto -->
-⚠ stale — referenced in `SECURITY.md` Residual Risks and planned by
-[K-27](tasks/knots/K-27-audit-log.md), not yet implemented in code.
-- `SECURITY.md:42-43`
+Append-only JSONL ledger of mutating operations, written to
+`<store>/.thimble-audit.log`. Records timestamps, operator
+thumbprints, and the operation's namespace and subject — never
+values. Shipped by [K-27](tasks/knots/K-27-audit-log.md); read back
+via the `audit` subcommand.
+- `internal/audit/audit.go:1-9` — package doc
+- `internal/store/audit_hook.go` — store-side append hook
+- `internal/cli/cli.go:184` — `audit` dispatch
 
 ### bundle <!-- auto -->
 The encrypted dotenv file written to disk. One per namespace. The
@@ -345,8 +350,8 @@ Terms needing human attention. Resolve and remove.
 - ⚠ ambiguous: **set** (CLI verb that absorbs create+update; some prose
   also uses "set" loosely for any write).
 - ⚠ overloaded: **peer** vs **deploy host** in deployment-flow prose.
-- ⚠ stale: **audit log** is in SECURITY.md residual risks but not
-  implemented; lands with K-27.
+- Resolved in K-27: **audit log** (append-only `.thimble-audit.log`
+  in `internal/audit/`, surfaced by the `audit` subcommand).
 - ⚠ divergence: thimble.md early sections use `thimble.toml` and a
   flat per-environment layout; the implementation uses
   `thimble.json` and `application/environment` namespaces. README is

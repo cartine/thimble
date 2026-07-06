@@ -19,6 +19,58 @@ recipient-based encryption, and keeps the working model intentionally narrow:
 an application, an environment, a set of keys, and the public recipients allowed
 to decrypt that bundle.
 
+## Why Thimble (and why not SOPS / Vault / Doppler)?
+
+Thimble exists for the team that has real production secrets but no
+appetite for running a secrets *service*: one or a few operators, a
+handful of deploy hosts, and a deployment story that is mostly "files
+and ssh". The existing tools each solve a different problem:
+
+- **SOPS** encrypts files well, and if that is all you need, use it.
+  Thimble adds the workflow around the file: named `<app>/<env>`
+  namespaces with per-namespace recipient lists, quorum-gated
+  recipient changes, an append-only audit log, origin-tracked
+  rotation (`recipient remove --rotate`), and `thimble exec` piping
+  plaintext straight into your app's stdin so it never lands on disk.
+  With SOPS you build those conventions yourself.
+- **Vault / OpenBao** give you dynamic secrets, leases, and per-path
+  policy — at the cost of an always-on server you must deploy, unseal,
+  back up, upgrade, and monitor. Thimble has no server: the encrypted
+  bundle is the durable object, replication is `rsync`, and the only
+  long-running attack surface is the one that doesn't exist.
+- **Doppler / Infisical** are pleasant hosted dashboards, but the
+  trust anchor is their SaaS (plus a per-seat bill). Thimble's trust
+  anchor is `age` identities you generate and hold; nothing leaves
+  your machines but ciphertext, and the vendor cannot be breached
+  because there is no vendor.
+
+| | Thimble | SOPS | Vault / OpenBao | Doppler / Infisical |
+|---|---|---|---|---|
+| Server to operate | none | none | yes (+ unseal, HA, upgrades) | vendor-hosted |
+| Trust anchor | your `age` keys | your KMS/age/PGP keys | server token + seal keys | SaaS account |
+| Namespace / recipient workflow | built in | build your own | policies (server-side) | dashboard |
+| Exec injection (no plaintext on disk) | `thimble exec` (stdin) | no | agent/template sidecars | CLI wrapper |
+| Audit log / quorum-gated access changes | built in, file-based | git history only | server audit devices | SaaS audit page |
+| Dynamic secrets, leases, per-key RBAC | no | no | yes | partial |
+| Cost | free, Apache-2.0 | free | free–$$$ | per-seat SaaS |
+
+**Trade-offs Thimble accepts, deliberately:**
+
+- **No per-key RBAC.** Access is per namespace: a recipient decrypts
+  all of `web-api/production` or none of it. Split applications or
+  environments if you need finer grain.
+- **No secret versioning yet.** The bundle is current-state; use your
+  transport's history (git, S3 versioning) for point-in-time recovery.
+- **CLI-only.** There is no API server for apps to query at runtime —
+  secrets reach processes via `exec`, `and-get`, or rendered files,
+  by design.
+
+If you need dynamic database credentials, short-lived leases, or
+hundreds of engineers with distinct permissions, run Vault or OpenBao.
+If you need a file encrypted, SOPS is fine. If you want the safe path
+to feel like editing `.env` — with rotation, audit, and team onboarding
+already worked out — that's Thimble.
+
 ## Demo
 
 ![Thimble demo](assets/demo.gif)
@@ -201,6 +253,10 @@ flow, with the namespace populated in the child's env block instead. Slightly
 leakier (`/proc/<pid>/environ` is readable by root and ptrace), but no file
 ever lands on disk.
 
+Running this flow from a pipeline instead of a laptop? The one-root-secret
+pattern, a full GitHub Actions workflow, and log-safety cautions are in
+[docs/ci-cd.md](docs/ci-cd.md).
+
 ## Requirements
 
 - `age` on `PATH`.
@@ -358,7 +414,9 @@ does not distribute it, so each operator manages their own copy.
 
 Adding a peer grants only **rsync rights**; granting decrypt access
 is still a `thimble recipient add` against the namespace and is
-quorum-gated when `recipients.signed.toml` is present (K-36).
+quorum-gated when `recipients.signed.toml` is present (K-36). The
+full onboarding runbook for new operators and deploy hosts is
+[docs/team-onboarding.md](docs/team-onboarding.md).
 
 ### Concurrency safety
 
@@ -513,6 +571,8 @@ thimble update web-api production DATABASE_URL
 thimble delete web-api production OLD_TOKEN
 
 thimble list web-api production
+thimble get web-api production
+thimble get web-api production DATABASE_URL
 thimble render web-api production
 thimble exec web-api production -- ./web-api
 thimble verify web-api production
@@ -520,7 +580,15 @@ thimble audit web-api production
 thimble doctor
 ```
 
-`list` shows keys only. `render` is the deliberate escape hatch for deployment
+`list` shows keys only. `get` with a KEY decrypts the namespace and prints
+just that key's value to stdout with a trailing newline — made for piping
+(`thimble get web-api production DATABASE_URL | psql ...`); it exits non-zero
+with `KEY is not set in app/env` when the key is absent. Without a KEY, `get`
+prints all set key *names* (never values), sorted one per line — the same
+output as `list`, with no decryption needed — so
+`thimble get web-api production | grep STRIPE` answers "which keys exist?"
+cheaply. `get` is read-only: it never mutates the store and never triggers a
+peer push. `render` is the deliberate escape hatch for deployment
 or local debugging, so treat its stdout as secret material. `verify` recomputes
 the bundle's SHA-256 against the manifest and shows the recipient list. `audit`
 prints the local append-only ledger of mutating ops for the namespace; entries
@@ -831,6 +899,12 @@ backup machine   ->  rsync over ssh  ->  store host
 Object storage (S3, MinIO, GCS) and direct host-to-host scp/rsync are equally
 valid; the encrypted bundle is the durable object and any byte-faithful
 transport will do.
+
+For the step-by-step operator and deploy-host onboarding (and offboarding)
+runbook — including the quorum sign-add flow and
+`recipient remove --rotate` — see
+[docs/team-onboarding.md](docs/team-onboarding.md). Wiring a CI runner in
+as a recipient is covered in [docs/ci-cd.md](docs/ci-cd.md).
 
 Adding a peer securely:
 
