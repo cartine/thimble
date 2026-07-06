@@ -10,8 +10,8 @@ import (
 )
 
 // runGet prints one decrypted value (with KEY) or, with KEY omitted,
-// the sorted key names of the namespace — same output as `list`, no
-// decryption needed.
+// the sorted key names of the namespace — same output as `list`;
+// values never reach stdout in that mode.
 func runGet(st *store.Store, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("get", flag.ContinueOnError)
 	fs.SetOutput(stderr)

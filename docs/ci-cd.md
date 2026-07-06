@@ -30,10 +30,10 @@ file.
    identity to a `0600` file, and run your command under
    `thimble exec`. No plaintext ever touches the workspace.
 
-A useful property while wiring this up: key **names** are plaintext
-manifest metadata, so `thimble list web-api production` works without
-any identity — handy for pipeline steps that only need to know what
-keys exist. Values always require the identity.
+Note that `thimble list web-api production` prints key **names** only,
+never values — but it decrypts the bundle to enumerate them, so it
+still requires the identity. Every read command needs the identity;
+only the *output* differs in sensitivity.
 
 ## GitHub Actions
 

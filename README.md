@@ -585,7 +585,7 @@ just that key's value to stdout with a trailing newline — made for piping
 (`thimble get web-api production DATABASE_URL | psql ...`); it exits non-zero
 with `KEY is not set in app/env` when the key is absent. Without a KEY, `get`
 prints all set key *names* (never values), sorted one per line — the same
-output as `list`, with no decryption needed — so
+output as `list`; values never reach stdout — so
 `thimble get web-api production | grep STRIPE` answers "which keys exist?"
 cheaply. `get` is read-only: it never mutates the store and never triggers a
 peer push. `render` is the deliberate escape hatch for deployment
