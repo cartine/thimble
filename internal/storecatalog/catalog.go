@@ -169,6 +169,7 @@ func splitPath(path string) []string {
 
 func initializeManifest(path string) error {
 	manifestPath := filepath.Join(path, manifestName)
+	// #nosec G304 -- path is resolved beneath the catalog root from a validated name.
 	file, err := os.OpenFile(manifestPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if errors.Is(err, os.ErrExist) {
 		return nil
@@ -182,6 +183,7 @@ func initializeManifest(path string) error {
 }
 
 func inspectManifest(path string) Status {
+	// #nosec G304 -- callers pass a catalog-resolved or explicitly selected store root.
 	b, err := os.ReadFile(filepath.Join(path, manifestName))
 	if errors.Is(err, os.ErrNotExist) {
 		return StatusEmpty

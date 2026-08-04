@@ -9,7 +9,9 @@ import (
 )
 
 func TestWebStoreCatalogListsCreatesAndSelectsManagedStores(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	configRoot := t.TempDir()
+	t.Setenv("HOME", configRoot)
+	t.Setenv("XDG_CONFIG_HOME", configRoot)
 	catalog, err := storecatalog.NewDefault()
 	if err != nil {
 		t.Fatal(err)
