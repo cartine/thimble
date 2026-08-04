@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -20,8 +21,9 @@ import (
 // SecretEntry names one key visible in a namespace; the Set bool is a
 // hook for future "value present?" UI without ever exposing the value.
 type SecretEntry struct {
-	Key string
-	Set bool
+	Key        string
+	Set        bool
+	GetCommand string
 }
 
 // Server bundles the Thimble store, the UI access token, and the
@@ -29,11 +31,14 @@ type SecretEntry struct {
 // to mount handlers. The token is mutex-guarded (K-33) so rotation
 // can run concurrently with handler reads.
 type Server struct {
-	store     *store.Store
-	mu        sync.RWMutex
-	token     string
-	loopback  bool
-	templates *template.Template
+	stores     StoreCatalog
+	identity   string
+	executable string
+	canSet     bool
+	mu         sync.RWMutex
+	token      string
+	loopback   bool
+	templates  *template.Template
 	// activity is a 1-buffered channel signaling that an authorized
 	// request just landed. RunIdleRotation drains it to reset the
 	// idle timer. Allocated in New so request handlers can publish
@@ -47,13 +52,41 @@ type Server struct {
 // drives the Secure attribute on the session cookie: true when bound
 // to 127.0.0.1/::1/localhost (where browsers reject Secure on HTTP).
 func New(st *store.Store, token string, loopback bool) *Server {
+	server := NewWithCatalog(newStaticStoreCatalog(st), token, loopback, "", false)
+	server.canSet = true
+	return server
+}
+
+// NewWithCatalog creates the managed-store web UI used by the CLI.
+func NewWithCatalog(
+	stores StoreCatalog, token string, loopback bool, identity string, allowUnsafe bool,
+) *Server {
 	return &Server{
-		store:     st,
-		token:     token,
-		loopback:  loopback,
-		templates: Template(),
-		activity:  make(chan struct{}, 1),
+		stores:     stores,
+		identity:   identity,
+		executable: "thimble",
+		canSet:     identityReady(identity, allowUnsafe),
+		token:      token,
+		loopback:   loopback,
+		templates:  Template(),
+		activity:   make(chan struct{}, 1),
 	}
+}
+
+// SetExecutable makes generated CLI commands invoke the same binary that
+// launched the web server. An empty value retains the portable default.
+func (s *Server) SetExecutable(executable string) {
+	if executable != "" {
+		s.executable = executable
+	}
+}
+
+func identityReady(identity string, allowUnsafe bool) bool {
+	info, err := os.Stat(identity)
+	if err != nil || !info.Mode().IsRegular() {
+		return false
+	}
+	return allowUnsafe || info.Mode().Perm()&0o077 == 0
 }
 
 // currentToken returns the active token under read-lock. Use this
@@ -81,6 +114,7 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/login", s.handleLogin)
 	mux.HandleFunc("/logout", s.handleLogout)
 	mux.HandleFunc("/namespace", s.handleNamespace)
+	mux.HandleFunc("/store", s.handleStore)
 	mux.HandleFunc("/secret", s.handleSecret)
 	mux.HandleFunc("/recipient", s.handleRecipient)
 }
@@ -90,6 +124,10 @@ type pageData struct {
 	Notice     string
 	Namespaces []store.NamespaceView
 	Selected   *selectedNamespace
+	Stores     []StoreInfo
+	Active     StoreInfo
+	Identity   string
+	CanSet     bool
 }
 
 type loginData struct {
@@ -101,6 +139,7 @@ type selectedNamespace struct {
 	Env        string
 	Keys       []SecretEntry
 	Recipients []string
+	SavedKey   string
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -169,79 +208,19 @@ func (s *Server) handleNamespace(w http.ResponseWriter, r *http.Request) {
 	recipients := strings.FieldsFunc(r.FormValue("recipients"), func(r rune) bool {
 		return r == '\n' || r == '\r' || r == ','
 	})
-	if err := s.store.Init(app, env, recipients); err != nil {
+	st, _, err := s.stores.Current()
+	if err != nil || st == nil {
+		if err == nil {
+			err = errors.New("select or create a store first")
+		}
+		s.redirectErr(w, r, err)
+		return
+	}
+	if err := st.Init(app, env, recipients); err != nil {
 		s.redirectErr(w, r, err)
 		return
 	}
 	s.redirectNotice(w, r, "namespace created")
-}
-
-func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
-	if !s.requireSession(w, r) {
-		return
-	}
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		s.redirectErr(w, r, err)
-		return
-	}
-	if msg, ok := strictPlaintextReject(r); ok {
-		http.Error(w, msg, http.StatusBadRequest)
-		return
-	}
-	if err := s.runSecretAction(r); err != nil {
-		s.redirectErr(w, r, err)
-		return
-	}
-	s.redirectNotice(w, r, "secret changed")
-}
-
-// strictPlaintextReject implements K-34: web UI never accepts secret
-// values. If a create/update arrives with a non-empty `value` form
-// field, return a 400 message that points the operator at the CLI
-// command — without echoing the submitted value.
-func strictPlaintextReject(r *http.Request) (string, bool) {
-	action := r.FormValue("action")
-	if action != "create" && action != "update" {
-		return "", false
-	}
-	if r.FormValue("value") == "" {
-		return "", false
-	}
-	app := safeArg(r.FormValue("app"))
-	env := safeArg(r.FormValue("env"))
-	key := safeArg(r.FormValue("key"))
-	cmd := "thimble set " + app + " " + env + " " + key
-	return "web UI does not accept secret values; use the CLI:\n  " + cmd, true
-}
-
-// safeArg returns a placeholder when an app/env/key form field is
-// missing, so the suggested CLI command is still copy-pasteable.
-func safeArg(v string) string {
-	if v == "" {
-		return "<missing>"
-	}
-	return v
-}
-
-func (s *Server) runSecretAction(r *http.Request) error {
-	app, env, key := r.FormValue("app"), r.FormValue("env"), r.FormValue("key")
-	switch r.FormValue("action") {
-	case "create", "update":
-		// K-34: web UI is strict-mode. The CLI is the only path that
-		// accepts plaintext values. Any non-empty value would have
-		// been rejected upstream by strictPlaintextReject; we treat
-		// this branch as a no-op to keep the form valid for the
-		// "delete" case.
-		return errors.New("web UI cannot create or update values; use the CLI")
-	case "delete":
-		return s.store.DeleteSecret(app, env, key)
-	default:
-		return errors.New("unknown secret action")
-	}
 }
 
 func (s *Server) handleRecipient(w http.ResponseWriter, r *http.Request) {
@@ -265,11 +244,18 @@ func (s *Server) handleRecipient(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) runRecipientAction(r *http.Request) error {
 	app, env, recipient := r.FormValue("app"), r.FormValue("env"), r.FormValue("recipient")
+	st, _, err := s.stores.Current()
+	if err != nil {
+		return err
+	}
+	if st == nil {
+		return errors.New("select or create a store first")
+	}
 	switch r.FormValue("action") {
 	case "add":
-		return s.store.AddRecipient(app, env, recipient)
+		return st.AddRecipient(app, env, recipient)
 	case "remove":
-		return s.store.RemoveRecipient(app, env, recipient)
+		return st.RemoveRecipient(app, env, recipient)
 	default:
 		return errors.New("unknown recipient action")
 	}
@@ -290,15 +276,26 @@ func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) bool {
 // CLI's render verb (TAXONOMY: store.Render, runRender) and the page
 // writer no longer share a name.
 func (s *Server) writePage(w http.ResponseWriter, r *http.Request, data pageData) {
-	namespaces, err := s.store.ListNamespaces()
+	st, active, err := s.stores.Current()
+	data.Active = active
+	data.Identity = s.identity
+	data.CanSet = s.canSet && s.loopback
 	if err != nil {
 		data.Error = err.Error()
-	} else {
-		data.Namespaces = namespaces
+	}
+	data.Stores, err = s.stores.List()
+	if err != nil {
+		data.Error = err.Error()
+	}
+	if st != nil {
+		data.Namespaces, err = st.ListNamespaces()
+		if err != nil {
+			data.Error = err.Error()
+		}
 	}
 	app, env := r.URL.Query().Get("app"), r.URL.Query().Get("env")
-	if app != "" && env != "" {
-		keys, meta, err := s.selected(app, env)
+	if app != "" && env != "" && st != nil {
+		keys, meta, err := s.selected(st, active, app, env)
 		if err != nil {
 			data.Error = err.Error()
 		} else {
@@ -307,6 +304,7 @@ func (s *Server) writePage(w http.ResponseWriter, r *http.Request, data pageData
 				Env:        env,
 				Keys:       keys,
 				Recipients: meta.Recipients,
+				SavedKey:   r.URL.Query().Get("saved"),
 			}
 		}
 	}
@@ -324,18 +322,25 @@ func (s *Server) writeLogin(w http.ResponseWriter, data loginData) {
 	}
 }
 
-func (s *Server) selected(app, env string) ([]SecretEntry, store.EnvManifest, error) {
-	keys, err := s.store.ListSecrets(app, env)
+func (s *Server) selected(
+	st *store.Store, active StoreInfo, app, env string,
+) ([]SecretEntry, store.EnvManifest, error) {
+	keys, err := st.ListSecrets(app, env)
 	if err != nil {
 		return nil, store.EnvManifest{}, err
 	}
-	meta, err := s.store.Find(app, env)
+	meta, err := st.Find(app, env)
 	if err != nil {
 		return nil, store.EnvManifest{}, err
 	}
 	entries := make([]SecretEntry, 0, len(keys))
 	for _, key := range keys {
-		entries = append(entries, SecretEntry{Key: key, Set: true})
+		entries = append(entries, SecretEntry{
+			Key: key, Set: true,
+			GetCommand: retrievalCommand(
+				s.executable, active, s.identity, app, env, key,
+			),
+		})
 	}
 	return entries, meta, nil
 }

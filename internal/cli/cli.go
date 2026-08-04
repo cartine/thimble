@@ -18,11 +18,11 @@ import (
 	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/audit"
 	"github.com/cartine/thimble/internal/store"
+	"github.com/cartine/thimble/internal/storecatalog"
 )
 
 const (
-	defaultStoreDir = "secrets"
-	defaultAddr     = "127.0.0.1:8787"
+	defaultAddr = "127.0.0.1:8787"
 )
 
 type cliConfig struct {
@@ -32,6 +32,7 @@ type cliConfig struct {
 	ageSHA256         string
 	verbose           bool
 	allowUnsafeIDMode bool
+	selection         storecatalog.Selection
 }
 
 // Run is the CLI entry point. argv is the program's args (no exe
@@ -52,17 +53,21 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if rest[0] == "version" {
 		return runVersion(stdout)
 	}
-	st, tool, err := buildStoreAndTool(cfg, stderr)
-	if err != nil {
+	if rest[0] == "store" {
+		return runStore(cfg, rest[1:], stdout)
+	}
+	if err := requireManagedStore(cfg, rest[0]); err != nil {
 		return err
 	}
 	ctx, stop := signal.NotifyContext(
 		context.Background(), os.Interrupt, syscall.SIGTERM,
 	)
 	defer stop()
-	st.SetContext(ctx)
-	st.SetNoticeWriter(stderr)
-	st.SetAuditLogger(audit.New(cfg.storeDir, stderr))
+	st, tool, err := buildStoreAndTool(cfg, stderr)
+	if err != nil {
+		return err
+	}
+	configureStore(st, cfg.storeDir, ctx, stderr)
 	return dispatch(ctx, st, tool, cfg, rest, stdout, stderr)
 }
 
@@ -81,8 +86,14 @@ func isVersionFlag(args []string) bool {
 }
 
 func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error) {
+	storeValue := storecatalog.DefaultName
+	storeSource := storecatalog.SourceDefault
+	if fromEnv := os.Getenv("THIMBLE_STORE"); fromEnv != "" {
+		storeValue = fromEnv
+		storeSource = storecatalog.SourceEnv
+	}
 	cfg := cliConfig{
-		storeDir:  envOrDefault("THIMBLE_STORE", defaultStoreDir),
+		storeDir:  storeValue,
 		identity:  os.Getenv("THIMBLE_AGE_IDENTITY"),
 		ageBinary: os.Getenv("THIMBLE_AGE_BINARY"),
 		ageSHA256: os.Getenv("THIMBLE_AGE_SHA256"),
@@ -100,6 +111,17 @@ func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error)
 	if err := fs.Parse(args); err != nil {
 		return cliConfig{}, nil, err
 	}
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "store" {
+			storeSource = storecatalog.SourceFlag
+		}
+	})
+	selection, err := storecatalog.Resolve(cfg.storeDir, storeSource)
+	if err != nil {
+		return cliConfig{}, nil, err
+	}
+	cfg.selection = selection
+	cfg.storeDir = selection.Path
 	rest := fs.Args()
 	if len(rest) == 0 {
 		return cfg, nil, nil
@@ -129,6 +151,14 @@ func buildStoreAndTool(cfg cliConfig, stderr io.Writer) (*store.Store, *age.Tool
 		tool.AllowUnsafeIdentityMode(stderr)
 	}
 	return store.NewWithAge(cfg.storeDir, tool), tool, nil
+}
+
+func configureStore(
+	st *store.Store, root string, ctx context.Context, stderr io.Writer,
+) {
+	st.SetContext(ctx)
+	st.SetNoticeWriter(stderr)
+	st.SetAuditLogger(audit.New(root, stderr))
 }
 
 func dispatch(
@@ -188,7 +218,7 @@ func dispatchCommand(
 	case "doctor":
 		return runDoctor(ctx, st, tool, rest, stdout, stderr, cfg)
 	case "web":
-		return runWeb(st, rest, stdout, stderr)
+		return runWeb(ctx, st, tool, cfg, rest, stdout, stderr)
 	case "peer":
 		return runPeer(cfg, rest, stdout, stderr)
 	case "help", "-h", "--help":
@@ -227,7 +257,7 @@ func printUsage(w io.Writer) {
 const usageText = `Thimble keeps app/environment scoped dotenv secrets encrypted with age.
 
 Usage:
-  thimble [--store secrets] [--identity ~/.config/thimble/key.txt]
+  thimble [--store NAME|/absolute/path] [--identity ~/.config/thimble/key.txt]
           [--age-binary /path/to/age] [--verbose] <command>
 
 Top-level flags (or env):
@@ -276,8 +306,14 @@ Commands:
   verify <app> <env>                      print bundle SHA + recipient list
   audit [--limit N] <app> <env>           print audit log entries for namespace
   doctor [--json] [--addr ...]            run setup/health diagnostics
+  store create <name>                      create a managed store
+  store list                               list installed managed stores
+  store status                             inspect the active store and identity
   web [--addr 127.0.0.1:8787] [--allow-host foo.local:8787]
-                                          run the local web UI
+                                          run the local redacted web UI
+                                          (loopback masked create/update +
+                                           hyphenated-4w-gt30c generate-and-set;
+                                           values are never rendered)
                                           (--allow-host is repeatable;
                                            default Hosts cover loopback + --addr)
   peer add <name> <ssh-target>            add a leader to the peers list
