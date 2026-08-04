@@ -46,6 +46,7 @@ func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
 		for _, key := range writtenKeys {
 			q.Add("saved", key)
 		}
+		// #nosec G710 -- the redirect path is fixed; only encoded query values vary.
 		http.Redirect(w, r, "/?"+q.Encode(), http.StatusSeeOther)
 		return
 	}
