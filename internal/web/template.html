@@ -193,7 +193,7 @@
         <thead><tr><th>Key</th><th>Reveal</th><th>Delete</th></tr></thead>
         <tbody>
           {{range .Selected.Keys}}
-          <tr{{if eq $.Selected.SavedKey .Key}} class="saved"{{end}}>
+          <tr{{if index $.Selected.SavedKeys .Key}} class="saved"{{end}}>
             <td><code>{{.Key}}</code></td>
             <td><button class="secondary copy-command" type="button" data-key="{{.Key}}" data-command="{{.GetCommand}}">Copy command</button></td>
             <td>
@@ -282,7 +282,7 @@
         try {
           await navigator.clipboard.writeText(button.dataset.command);
           button.textContent = "Copied!";
-          showToast(`Copies CLI Reveal for ${button.dataset.key}`);
+          showToast(`Copied the CLI reveal command for ${button.dataset.key}`);
         } catch {
           button.textContent = "Copy failed";
           showToast("Could not copy the CLI reveal command", "error");

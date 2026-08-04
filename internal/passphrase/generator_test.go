@@ -45,6 +45,19 @@ func TestGenerateReportsRandomnessFailure(t *testing.T) {
 	}
 }
 
+func TestCompoundSpaceIsCollisionFree(t *testing.T) {
+	seen := make(map[string]struct{}, len(wordStarts)*len(wordEnds))
+	for _, left := range wordStarts {
+		for _, right := range wordEnds {
+			seen[left+right] = struct{}{}
+		}
+	}
+	if want := len(wordStarts) * len(wordEnds); len(seen) != want {
+		t.Fatalf("distinct compounds = %d, want %d (README claims 56 bits)",
+			len(seen), want)
+	}
+}
+
 type errorReader struct{}
 
 func (errorReader) Read([]byte) (int, error) {

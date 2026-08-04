@@ -94,7 +94,7 @@ func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error)
 	}
 	cfg := cliConfig{
 		storeDir:  storeValue,
-		identity:  os.Getenv("THIMBLE_AGE_IDENTITY"),
+		identity:  defaultIdentityPath(),
 		ageBinary: os.Getenv("THIMBLE_AGE_BINARY"),
 		ageSHA256: os.Getenv("THIMBLE_AGE_SHA256"),
 	}
@@ -116,7 +116,7 @@ func parseTopFlags(args []string, stderr io.Writer) (cliConfig, []string, error)
 			storeSource = storecatalog.SourceFlag
 		}
 	})
-	selection, err := storecatalog.Resolve(cfg.storeDir, storeSource)
+	selection, err := resolveStoreSelection(cfg.storeDir, storeSource)
 	if err != nil {
 		return cliConfig{}, nil, err
 	}
@@ -242,14 +242,6 @@ func isMutatingCommand(cmd string) bool {
 	return false
 }
 
-func envOrDefault(name, fallback string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		return fallback
-	}
-	return value
-}
-
 func printUsage(w io.Writer) {
 	fmt.Fprintln(w, usageText)
 }
@@ -308,7 +300,7 @@ Commands:
   doctor [--json] [--addr ...]            run setup/health diagnostics
   store create <name>                      create a managed store
   store list                               list installed managed stores
-  store status                             inspect the active store and identity
+  store status [--path]                    inspect the active store and identity
   web [--addr 127.0.0.1:8787] [--allow-host foo.local:8787]
                                           run the local redacted web UI
                                           (loopback masked create/update +
@@ -319,8 +311,8 @@ Commands:
   peer add <name> <ssh-target>            add a leader to the peers list
   peer remove <name>                      remove a leader from the peers list
   peer list                               list configured peer leaders
-  peer join [--replace] <ssh-target>      bootstrap this leader by rsync'ing
-                                          secrets/ from an existing peer
+  peer join [--replace] <ssh-target>      bootstrap the active store by rsync'ing
+                                          from an existing peer
   peer ping [<name>] [--quiet]            ping one or all peers; updates
                                           .peer-state.json (cron-friendly)
   peer status                             tabular view of peer health

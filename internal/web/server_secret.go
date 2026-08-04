@@ -32,16 +32,20 @@ func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
 		s.redirectErr(w, r, errors.New(secretSetUnavailable(s.loopback)))
 		return
 	}
-	if err := s.runSecretAction(r, action); err != nil {
+	writtenKeys, err := s.runSecretAction(r, action)
+	if err != nil {
 		s.redirectErr(w, r, err)
 		return
 	}
 	if isSecretWriteAction(action) {
 		q := r.URL.Query()
-		q.Set("notice", secretSavedNotice(action, len(r.Form["key"])))
+		q.Set("notice", secretSavedNotice(action, len(writtenKeys)))
 		q.Set("app", r.FormValue("app"))
 		q.Set("env", r.FormValue("env"))
-		q.Set("saved", r.FormValue("key"))
+		q.Del("saved")
+		for _, key := range writtenKeys {
+			q.Add("saved", key)
+		}
 		http.Redirect(w, r, "/?"+q.Encode(), http.StatusSeeOther)
 		return
 	}
@@ -63,37 +67,43 @@ func secretSavedNotice(action string, count int) string {
 	return "secret saved; use the retrieval command below"
 }
 
-func (s *Server) runSecretAction(r *http.Request, action string) error {
+func (s *Server) runSecretAction(r *http.Request, action string) ([]string, error) {
 	app, env, key := r.FormValue("app"), r.FormValue("env"), r.FormValue("key")
 	st, _, err := s.stores.Current()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if st == nil {
-		return errors.New("select or create a store first")
+		return nil, errors.New("select or create a store first")
 	}
 	switch action {
 	case "set":
 		value := r.FormValue("value")
 		if strings.TrimSpace(value) == "" {
-			return errors.New("empty secret values are not accepted")
+			return nil, errors.New("empty secret values are not accepted")
 		}
-		return st.SetSecret(app, env, key, value)
+		if err := st.SetSecret(app, env, key, value); err != nil {
+			return nil, err
+		}
+		return []string{key}, nil
 	case "generate-passphrase":
 		if r.FormValue("generator") != passphrase.PresetHyphenated4WGT30C {
-			return errors.New("unsupported secret generator")
+			return nil, errors.New("unsupported secret generator")
 		}
 		value, generateErr := passphrase.Generate()
 		if generateErr != nil {
-			return generateErr
+			return nil, generateErr
 		}
-		return st.SetSecret(app, env, key, value)
+		if err := st.SetSecret(app, env, key, value); err != nil {
+			return nil, err
+		}
+		return []string{key}, nil
 	case "generate-passphrases":
 		return generatePassphrases(st, app, env, r.Form["key"], r.FormValue("generator"))
 	case "delete":
-		return st.DeleteSecret(app, env, key)
+		return nil, st.DeleteSecret(app, env, key)
 	default:
-		return errors.New("unknown secret action")
+		return nil, errors.New("unknown secret action")
 	}
 }
 
@@ -102,27 +112,25 @@ func generatePassphrases(
 	app, env string,
 	rawKeys []string,
 	generator string,
-) error {
+) ([]string, error) {
 	if generator != passphrase.PresetHyphenated4WGT30C {
-		return errors.New("unsupported secret generator")
+		return nil, errors.New("unsupported secret generator")
 	}
 	keys, err := uniqueSecretKeys(rawKeys)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	values := make([]string, len(keys))
-	for index := range keys {
-		values[index], err = passphrase.Generate()
+	values := make(map[string]string, len(keys))
+	for _, key := range keys {
+		values[key], err = passphrase.Generate()
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	for index, key := range keys {
-		if err := st.SetSecret(app, env, key, values[index]); err != nil {
-			return err
-		}
+	if err := st.SetSecrets(app, env, values); err != nil {
+		return nil, err
 	}
-	return nil
+	return keys, nil
 }
 
 func uniqueSecretKeys(rawKeys []string) ([]string, error) {

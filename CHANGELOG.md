@@ -8,6 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Store selection now supports named managed stores while preserving the
+  original `./secrets` default for existing checkouts. With no explicit
+  selection, Thimble prefers an existing `./secrets`, then an existing
+  `~/.config/thimble/store`, then the managed store named `default`.
+  `thimble store status --path` prints the resolved directory for sync scripts.
+  Identity discovery likewise accepts `~/.config/thimble/identity` and the
+  documented legacy `~/.config/thimble/identity.txt`; flags and environment
+  variables retain highest precedence.
 - **Release flow inverted to match `~/knots`.** The local
   `scripts/tag-release.sh` (and the `make tag-release` target) are
   replaced by a much smaller `scripts/bump-version.sh` that does only

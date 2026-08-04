@@ -3,6 +3,7 @@ package web
 import (
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -37,8 +38,49 @@ func (g *HostGuard) Middleware(next http.Handler) http.Handler {
 			http.Error(w, "host not allowed", http.StatusBadRequest)
 			return
 		}
+		if !g.sameOrigin(r) {
+			http.Error(w, "cross-origin request rejected", http.StatusForbidden)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// sameOrigin blocks same-site, cross-port form submissions from other local
+// web applications. SameSite cookies do not isolate localhost ports, so every
+// state-changing browser request must also prove an exact origin match.
+func (g *HostGuard) sameOrigin(r *http.Request) bool {
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		return true
+	}
+	if site := r.Header.Get("Sec-Fetch-Site"); site != "" {
+		return site == "same-origin" || site == "none"
+	}
+	origin, err := url.Parse(r.Header.Get("Origin"))
+	if err != nil || origin.Scheme == "" || origin.Host == "" || origin.User != nil ||
+		origin.Path != "" || origin.RawQuery != "" || origin.Fragment != "" {
+		return false
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return strings.EqualFold(origin.Scheme, scheme) &&
+		normalizeAuthority(origin.Host) == normalizeAuthority(r.Host)
+}
+
+func normalizeAuthority(raw string) string {
+	raw = strings.TrimSpace(raw)
+	host, port, err := net.SplitHostPort(raw)
+	if err != nil {
+		host, port = raw, ""
+	}
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	host = strings.TrimPrefix(strings.TrimSuffix(host, "]"), "[")
+	if port == "" {
+		return host
+	}
+	return net.JoinHostPort(host, port)
 }
 
 // allow reports whether host is on the allowlist. Comparison is

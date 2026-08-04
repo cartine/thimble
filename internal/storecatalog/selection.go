@@ -16,6 +16,8 @@ const (
 	SourceEnv     = "THIMBLE_STORE"
 	SourceFlag    = "--store"
 	SourceWeb     = "web UI"
+	SourceLegacy  = "legacy ./secrets"
+	SourceHome    = "~/.config/thimble/store"
 )
 
 // Selection is one resolved store directory. Managed selections are named

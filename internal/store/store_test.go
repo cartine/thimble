@@ -77,6 +77,36 @@ func TestNamespacedCRUDAndRender(t *testing.T) {
 	}
 }
 
+func TestSetSecretsCommitsBatchAtomically(t *testing.T) {
+	st := newTestStore(t)
+	if err := st.Init("api", "prod", []string{testRecipientOperator}); err != nil {
+		t.Fatal(err)
+	}
+	batch := map[string]string{"FIRST_KEY": "first", "SECOND_KEY": "second"}
+	if err := st.SetSecrets("api", "prod", batch); err != nil {
+		t.Fatalf("set batch: %v", err)
+	}
+	values, _, err := st.ReadEnv("api", "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if values["FIRST_KEY"] != "first" || values["SECOND_KEY"] != "second" {
+		t.Fatalf("batch values = %#v", values)
+	}
+
+	invalid := map[string]string{"THIRD_KEY": "third", "invalid-key": "bad"}
+	if err := st.SetSecrets("api", "prod", invalid); err == nil {
+		t.Fatal("invalid batch succeeded")
+	}
+	values, _, err = st.ReadEnv("api", "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := values["THIRD_KEY"]; exists {
+		t.Fatalf("part of invalid batch was committed: %#v", values)
+	}
+}
+
 func TestRecipientsRewriteBundle(t *testing.T) {
 	st := newTestStore(t)
 

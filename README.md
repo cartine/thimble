@@ -217,7 +217,8 @@ thimble set web-api production DATABASE_URL
 thimble set web-api production STRIPE_SECRET_KEY
 
 # 5. ship the encrypted bundle to the store host (Pattern A)
-rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
+STORE_PATH=$(thimble --store personal store status --path)
+rsync -av --delete "$STORE_PATH/" store-host:/srv/abc-secrets/
 
 # 6. on the deploy host, pull and run YOUR APP via thimble exec.
 #    No secrets are ever written to a file. They go from age decrypt
@@ -283,7 +284,15 @@ thimble --store personal store status
 A relative `--store` or `THIMBLE_STORE` value selects a managed name. An
 absolute value selects that exact directory and is never included in
 `thimble store list`. Selection precedence is `--store`, then
-`THIMBLE_STORE`, then the managed store named `default`.
+`THIMBLE_STORE`. Without either, Thimble preserves an existing `./secrets`
+store, then accepts an existing `~/.config/thimble/store`, and otherwise uses
+the managed store named `default`.
+
+Identity selection follows `--identity`, then `THIMBLE_AGE_IDENTITY`, then
+`~/.config/thimble/identity`, then the documented legacy
+`~/.config/thimble/identity.txt`. Thimble never looks for an identity inside
+the store directory: keep the private decryption key separate from material
+that may be synced or committed.
 
 Thimble will not silently create a missing managed store. Absolute paths remain
 the explicit scripting and deployment escape hatch:
@@ -368,8 +377,9 @@ managed store: acme         -> api repo, worker repo, acme deploy hosts
 managed store: high-risk    -> isolated production operators and identities
 ```
 
-Store selection is independent of the current repository, so commands do not
-accidentally target `./secrets`. Use `--store <name>` for a one-off command or
+Named store selection is independent of the current repository. Existing
+checkouts with `./secrets` remain backward compatible until they explicitly
+select or create a managed store. Use `--store <name>` for a one-off command or
 set `THIMBLE_STORE` in a repository-specific environment loader. Neither
 selection method stores secret material in the repository.
 
@@ -392,7 +402,8 @@ operator-C    /                       \  backup-host
 
 ```sh
 # From any operator laptop after a mutating command.
-rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
+STORE_PATH=$(thimble store status --path)
+rsync -av --delete "$STORE_PATH/" store-host:/srv/abc-secrets/
 
 # On a deploy host before render.
 rsync -av store-host:/srv/abc-secrets/ /etc/thimble/
@@ -411,7 +422,8 @@ controls who can decrypt. Useful when you already operate object storage
 and want a managed, replicated, versioned backing store:
 
 ```sh
-aws s3 sync ./secrets/ s3://abc-secrets/ --delete
+STORE_PATH=$(thimble store status --path)
+aws s3 sync "$STORE_PATH/" s3://abc-secrets/ --delete
 aws s3 sync s3://abc-secrets/ /etc/thimble/
 ```
 
@@ -424,8 +436,9 @@ For a single leader and a small fleet, scp/rsync from the leader to each
 host directly works fine and adds no infrastructure:
 
 ```sh
+STORE_PATH=$(thimble store status --path)
 for host in deploy-1 deploy-2 deploy-3; do
-  rsync -av ./secrets/ "$host:/etc/thimble/"
+  rsync -av "$STORE_PATH/" "$host:/etc/thimble/"
 done
 ```
 
@@ -436,7 +449,7 @@ once you have more than one operator.
 ### Onboarding a new leader
 
 Multiple operators can run leaders in parallel. Membership is just a
-TOML file: each leader keeps its own `secrets/thimble.peers.toml`
+TOML file: each leader keeps its own `<store>/thimble.peers.toml`
 listing the other leaders it knows about. There is no service
 discovery, no daemon, and no shared registry — peers are addresses
 typed in by an operator who already trusts them.
@@ -447,7 +460,7 @@ Bring up a new leader from an existing one:
 # 1. On the new leader, configure ssh access to an existing peer.
 ssh-copy-id alice@store-host
 
-# 2. Bootstrap by rsync'ing secrets/ from the existing peer.
+# 2. Bootstrap the active store from the existing peer.
 thimble peer join alice@store-host:/srv/abc-secrets
 
 # 3. Tell this leader about the others (and tell them about you).
@@ -473,7 +486,7 @@ full onboarding runbook for new operators and deploy hosts is
 Two protections make concurrent writes safe regardless of transport:
 
 - **K-21 — manifest version + flock.** Every mutating command takes an
-  exclusive lock on `secrets/thimble.json` and bumps a monotonic
+  exclusive lock on `<store>/thimble.json` and bumps a monotonic
   version. If operator A and operator B both render their changes from
   the same starting version, the second one to push lands on a store
   whose manifest has already moved forward. The next pull-and-mutate on
@@ -501,14 +514,14 @@ A peer push failure does **not** fail the local mutation — the local
 store is the source of truth for the leader and peers reconcile on
 the next push or operator-initiated catch-up. Failures emit one
 stderr line per peer (`peer push failed: <name>: <reason>`) and are
-recorded in `secrets/.peer-state.json` for `thimble peer status` and
+recorded in `<store>/.peer-state.json` for `thimble peer status` and
 `thimble doctor`. Pass `--no-peer-push` to suppress the broadcast for
 batch operations; set `THIMBLE_PEER_PUSH=off` to disable globally
 (single-leader mode).
 
 ### Health monitoring
 
-Peer health is recorded in a local `secrets/.peer-state.json` file
+Peer health is recorded in a local `<store>/.peer-state.json` file
 (K-57). The file is gitignored — it is local health state, not
 bundle content. Two commands surface it:
 
@@ -917,7 +930,7 @@ above. The shape:
 ┌──────────────┐        ┌──────────────┐        ┌──────────────┐
 │  operator    │        │  store host  │        │ deploy host  │
 │              │ rsync  │              │ rsync  │              │
-│ identity.txt │  ───►  │ secrets/     │  ───►  │ identity.txt │
+│ identity.txt │  ───►  │ store/       │  ───►  │ identity.txt │
 │ thimble set  │        │ (encrypted   │        │ thimble exec │
 │              │        │  bundles +   │        │   ── runs    │
 │              │        │  manifest)   │        │   your app   │
@@ -967,7 +980,7 @@ Adding a peer securely:
 2. The peer shares only the public recipient.
 3. An existing operator verifies that recipient out of band, such as in a call
    or an already trusted channel.
-4. **If `secrets/recipients.signed.toml` is present**, the addition is
+4. **If `<store>/recipients.signed.toml` is present**, the addition is
    gated by an M-of-N quorum. The flow is:
 
    ```sh
@@ -982,7 +995,7 @@ Adding a peer securely:
    ```
 
    The first `recipient add` writes per-operator challenge files into
-   `secrets/.pending-recipient-adds/`. After M operators have run
+   `<store>/.pending-recipient-adds/`. After M operators have run
    `sign-add` against their own identities, the second `recipient add`
    verifies the signatures and commits. See
    [docs/recipient-quorum.md](docs/recipient-quorum.md) for the
@@ -1020,7 +1033,8 @@ Removing a peer:
 
 ```sh
 thimble recipient remove --rotate web-api production age1peer...
-rsync -av --delete ./secrets/ store-host:/srv/abc-secrets/
+STORE_PATH=$(thimble store status --path)
+rsync -av --delete "$STORE_PATH/" store-host:/srv/abc-secrets/
 ```
 
 `--rotate` regenerates every value whose origin is `provision` (the high-entropy
@@ -1034,7 +1048,7 @@ If you skip `--rotate`, values are left as-is. Recipient removal prevents future
 decrypts of newly encrypted bundles; it cannot erase copies a former recipient
 already had, so high-risk values still need to be rotated out of band.
 
-The `secrets/<app>/<env>.origins.json` file records which values came from
+The `<store>/<app>/<env>.origins.json` file records which values came from
 `thimble provision` (safe to auto-rotate) versus from operators (cannot be
 auto-rotated). It is plaintext metadata, never a secret value, and is created
 lazily on the next mutating operation for legacy namespaces.
@@ -1135,7 +1149,7 @@ PR workflow. Run `make lint` before committing.
 | Threat | Mitigation |
 |---|---|
 | Lost laptop with an identity file | Recipients in encrypted bundles + `age` ChaCha20 — bundles at rest in any store remain unreadable to a finder without a listed identity. Run `thimble recipient remove --rotate` to drop the lost peer and atomically regenerate every provisioned value in one step. |
-| Store write-access attacker smuggling a recipient | Quorum-signed recipient list — when `secrets/recipients.signed.toml` is present, M of N existing operators must produce signatures over the addition before it applies. See [docs/recipient-quorum.md](docs/recipient-quorum.md). |
+| Store write-access attacker smuggling a recipient | Quorum-signed recipient list — when `<store>/recipients.signed.toml` is present, M of N existing operators must produce signatures over the addition before it applies. See [docs/recipient-quorum.md](docs/recipient-quorum.md). |
 | Network MITM during install | `scripts/install.sh` verifies SHA-256 against the published checksums file (mandatory after K-38). |
 | Sigstore-style provenance attacks on releases | `gh attestation verify` + cosign verification (post-K-40). |
 | Accidental argv leak via shell history / `ps` | CLI rejects secret values as command arguments. Use the masked prompt, pipes, `provision`, or `and-set`. |

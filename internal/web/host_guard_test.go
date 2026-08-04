@@ -70,3 +70,40 @@ func TestHostGuardCustomAllowList(t *testing.T) {
 			rec.Body.String(), "host not allowed\n")
 	}
 }
+
+func TestHostGuardRejectsCrossOriginWrites(t *testing.T) {
+	cases := []struct {
+		name       string
+		method     string
+		fetchSite  string
+		origin     string
+		wantStatus int
+	}{
+		{"read needs no origin", http.MethodGet, "", "", http.StatusOK},
+		{"same origin metadata", http.MethodPost, "same-origin", "", http.StatusOK},
+		{"browser initiated metadata", http.MethodPost, "none", "", http.StatusOK},
+		{"same site is not same origin", http.MethodPost, "same-site", "", http.StatusForbidden},
+		{"cross site metadata", http.MethodPost, "cross-site", "", http.StatusForbidden},
+		{"exact origin fallback", http.MethodPost, "", "http://localhost:8787", http.StatusOK},
+		{"different port fallback", http.MethodPost, "", "http://localhost:3000", http.StatusForbidden},
+		{"missing metadata", http.MethodPost, "", "", http.StatusForbidden},
+	}
+	guard := web.NewHostGuard(web.LoopbackAuthorities("8787"))
+	handler := guard.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(tc.method, "http://localhost:8787/secret", nil)
+			req.Host = "localhost:8787"
+			req.Header.Set("Sec-Fetch-Site", tc.fetchSite)
+			req.Header.Set("Origin", tc.origin)
+			handler.ServeHTTP(rec, req)
+			if rec.Code != tc.wantStatus {
+				t.Fatalf("status = %d, want %d body=%q", rec.Code, tc.wantStatus,
+					rec.Body.String())
+			}
+		})
+	}
+}
