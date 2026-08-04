@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `thimble get <app> <env> [KEY]` prints one decrypted value when a key is
+  supplied, or lists the namespace's key names when it is omitted.
+- The loopback web UI now supports personal secret management: installed-store
+  discovery, namespace creation, masked create/update, atomic multi-key
+  generation with the `hyphenated-4w-gt30c` preset, copyable CLI reveal
+  commands, and confirmed deletion. Stored values are never rendered in the
+  browser, and state-changing requests require an exact same-origin proof.
+
 ### Changed
 
 - Store selection now supports named managed stores while preserving the
