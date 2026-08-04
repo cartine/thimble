@@ -7,6 +7,7 @@ package store
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/cartine/thimble/internal/dotenv"
 )
@@ -86,6 +87,41 @@ func (s *Store) SetSecretWithOrigin(
 		return err
 	}
 	s.recordEvent(auditOpSet, app, env, key)
+	return nil
+}
+
+// SetSecretsWithOrigin writes a complete key/value batch under one flock and
+// one decrypt/encrypt cycle. Validation happens before the rewrite begins.
+func (s *Store) SetSecretsWithOrigin(
+	app, env string, batch map[string]string, origin Origin,
+) error {
+	if len(batch) == 0 {
+		return fmt.Errorf("secret batch is empty")
+	}
+	keys := make([]string, 0, len(batch))
+	for key := range batch {
+		if err := dotenv.ValidateKey(key); err != nil {
+			return err
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	err := s.rewriteEnvWithOrigins(app, env, func(
+		_ *EnvManifest, values map[string]string,
+		origins map[string]Origin,
+	) error {
+		for _, key := range keys {
+			values[key] = batch[key]
+			origins[key] = origin
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		s.recordEvent(auditOpSet, app, env, key)
+	}
 	return nil
 }
 

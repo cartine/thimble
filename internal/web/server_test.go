@@ -26,7 +26,7 @@ func TestWebUICookieFlowAndRedaction(t *testing.T) {
 		t.Fatalf("set: %v", err)
 	}
 
-	server := web.New(st, "test-token", true)
+	server := web.NewForTest(st, "test-token", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	// Wrap with NoStoreMiddleware so cache-control headers are
@@ -46,6 +46,9 @@ func TestWebUICookieFlowAndRedaction(t *testing.T) {
 	t.Run("authorized session shows redacted UI", func(t *testing.T) {
 		assertAuthorizedView(t, handler, cookie)
 	})
+	t.Run("cross-origin write with valid cookie is rejected", func(t *testing.T) {
+		assertCrossOriginWriteRejected(t, handler, st, cookie)
+	})
 	t.Run("masked set stores without reflecting plaintext", func(t *testing.T) {
 		assertMaskedSetNoReflection(t, handler, st, cookie)
 	})
@@ -62,6 +65,36 @@ func TestWebUICookieFlowAndRedaction(t *testing.T) {
 		assertNoStoreHeaders(t, handler, http.MethodGet, "/?app=webapp&env=dev",
 			cookie)
 	})
+}
+
+func assertCrossOriginWriteRejected(
+	t *testing.T, handler http.Handler, st *store.Store, cookie *http.Cookie,
+) {
+	t.Helper()
+	guard := web.NewHostGuard(web.LoopbackAuthorities("8787"))
+	protected := guard.Middleware(handler)
+	form := url.Values{
+		"app": {"webapp"}, "env": {"dev"}, "key": {"API_KEY"},
+		"value": {"attacker-value"}, "action": {"set"},
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(
+		http.MethodPost, "http://localhost:8787/secret", strings.NewReader(form.Encode()),
+	)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", "http://localhost:3000")
+	req.AddCookie(cookie)
+	protected.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("cross-origin status = %d, want 403; body=%q", rec.Code, rec.Body.String())
+	}
+	values, _, err := st.ReadEnv("webapp", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if values["API_KEY"] != "browser secret" {
+		t.Fatalf("cross-origin write changed API_KEY to %q", values["API_KEY"])
+	}
 }
 
 func assertMissingCookieResponses(t *testing.T, mux http.Handler) {
@@ -146,7 +179,8 @@ func assertAuthorizedView(t *testing.T, mux http.Handler, cookie *http.Cookie) {
 	}
 	if !strings.Contains(body, `id="staged-key-list"`) ||
 		!strings.Contains(body, `class="secondary copy-command"`) ||
-		!strings.Contains(body, `id="delete-secret-dialog"`) {
+		!strings.Contains(body, `id="delete-secret-dialog"`) ||
+		!strings.Contains(body, "Copied the CLI reveal command for") {
 		t.Fatalf("web UI secret controls missing: %s", body)
 	}
 	if !strings.Contains(body, `.toast-region { position:fixed; right:24px; bottom:24px`) {
@@ -211,7 +245,7 @@ func assertGeneratedPassphraseNoReflection(
 	t.Helper()
 	form := url.Values{
 		"app": {"webapp"}, "env": {"dev"},
-		"key":       {"GENERATED_PHRASE", "GENERATED_SECOND"},
+		"key":       {"GENERATED_PHRASE", "GENERATED_PHRASE", "GENERATED_SECOND"},
 		"action":    {"generate-passphrases"},
 		"generator": {"hyphenated-4w-gt30c"},
 	}
@@ -240,6 +274,17 @@ func assertGeneratedPassphraseNoReflection(
 		}
 	}
 	location := rec.Header().Get("Location")
+	redirectURL, err := url.Parse(location)
+	if err != nil {
+		t.Fatal(err)
+	}
+	notice := redirectURL.Query().Get("notice")
+	if !strings.HasPrefix(notice, "2 four-word secrets generated") {
+		t.Fatalf("notice = %q", notice)
+	}
+	if saved := redirectURL.Query()["saved"]; len(saved) != 2 {
+		t.Fatalf("saved keys = %#v, want two", saved)
+	}
 	for _, phrase := range phrases {
 		if strings.Contains(rec.Body.String(), phrase) || strings.Contains(location, phrase) {
 			t.Fatalf("generate response reflected plaintext: body=%q location=%q",
@@ -254,6 +299,9 @@ func assertGeneratedPassphraseNoReflection(
 		if strings.Contains(body, phrase) {
 			t.Fatalf("post-generate page leaked generated value")
 		}
+	}
+	if count := strings.Count(body, `class="saved"`); count != 2 {
+		t.Fatalf("highlighted rows = %d, want 2", count)
 	}
 	auditBody, err := os.ReadFile(filepath.Join(st.Root(), ".thimble-audit.log"))
 	if err != nil {
@@ -313,7 +361,7 @@ func assertLogoutClears(t *testing.T, mux http.Handler, cookie *http.Cookie) {
 
 func TestWebUINonLoopbackSetsSecureCookie(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "test-token", false)
+	server := web.NewForTest(st, "test-token", false)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 

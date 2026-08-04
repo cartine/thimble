@@ -47,6 +47,20 @@ func TestStoreCreateListAndStatusWithoutAge(t *testing.T) {
 			t.Fatalf("status missing %q: %s", want, status)
 		}
 	}
+	stdout.Reset()
+	if err := Run(
+		[]string{"--store", "personal", "store", "status", "--path"},
+		&stdout, &stderr,
+	); err != nil {
+		t.Fatalf("status --path: %v", err)
+	}
+	root, err := storecatalog.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := strings.TrimSpace(stdout.String()), filepath.Join(root, "personal"); got != want {
+		t.Fatalf("status --path = %q, want %q", got, want)
+	}
 }
 
 func TestStoreStatusShowsNamespacesWithoutValues(t *testing.T) {
@@ -130,5 +144,28 @@ func TestMissingManagedStoreGuidesMutation(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(root, "missing")); !os.IsNotExist(statErr) {
 		t.Fatalf("missing store was created: %v", statErr)
+	}
+}
+
+func TestMissingManagedStoreReportsLegacyStore(t *testing.T) {
+	home := t.TempDir()
+	t.Chdir(home)
+	t.Setenv("HOME", home)
+	t.Setenv("PATH", "")
+	if err := os.Mkdir("secrets", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	writeTestManifest(t, "secrets")
+	var stdout, stderr strings.Builder
+	err := Run(
+		[]string{
+			"--store", "missing", "init", "personal", "main",
+			"--recipient", testRecipientOperator,
+		},
+		&stdout, &stderr,
+	)
+	if err == nil || !strings.Contains(err.Error(), "found an existing store") ||
+		!strings.Contains(err.Error(), "--store") {
+		t.Fatalf("missing-store error = %v", err)
 	}
 }

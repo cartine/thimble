@@ -27,7 +27,7 @@ type SecretEntry struct {
 }
 
 // Server bundles the Thimble store, the UI access token, and the
-// parsed HTML template. Construct one with New, then call Routes(mux)
+// parsed HTML template. Construct one with NewWithCatalog, then call Routes(mux)
 // to mount handlers. The token is mutex-guarded (K-33) so rotation
 // can run concurrently with handler reads.
 type Server struct {
@@ -47,11 +47,9 @@ type Server struct {
 	activity chan struct{}
 }
 
-// New returns a Server backed by st and gated on token. The HTML
-// template is embedded; callers do not pass one in. The loopback bool
-// drives the Secure attribute on the session cookie: true when bound
-// to 127.0.0.1/::1/localhost (where browsers reject Secure on HTTP).
-func New(st *store.Store, token string, loopback bool) *Server {
+// NewForTest returns a Server with secret entry unconditionally enabled.
+// Production code must use NewWithCatalog, which gates on identityReady.
+func NewForTest(st *store.Store, token string, loopback bool) *Server {
 	server := NewWithCatalog(newStaticStoreCatalog(st), token, loopback, "", false)
 	server.canSet = true
 	return server
@@ -82,6 +80,9 @@ func (s *Server) SetExecutable(executable string) {
 }
 
 func identityReady(identity string, allowUnsafe bool) bool {
+	if identity == "" {
+		return false
+	}
 	info, err := os.Stat(identity)
 	if err != nil || !info.Mode().IsRegular() {
 		return false
@@ -139,7 +140,7 @@ type selectedNamespace struct {
 	Env        string
 	Keys       []SecretEntry
 	Recipients []string
-	SavedKey   string
+	SavedKeys  map[string]bool
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -299,12 +300,16 @@ func (s *Server) writePage(w http.ResponseWriter, r *http.Request, data pageData
 		if err != nil {
 			data.Error = err.Error()
 		} else {
+			savedKeys := make(map[string]bool)
+			for _, key := range r.URL.Query()["saved"] {
+				savedKeys[key] = true
+			}
 			data.Selected = &selectedNamespace{
 				App:        app,
 				Env:        env,
 				Keys:       keys,
 				Recipients: meta.Recipients,
-				SavedKey:   r.URL.Query().Get("saved"),
+				SavedKeys:  savedKeys,
 			}
 		}
 	}

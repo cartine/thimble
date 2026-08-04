@@ -14,23 +14,24 @@ func runStore(cfg cliConfig, args []string, stdout io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("usage: thimble store <create|list|status>")
 	}
-	catalog, err := storecatalog.NewDefault()
-	if err != nil {
-		return err
-	}
 	switch args[0] {
 	case "create":
+		catalog, err := storecatalog.NewDefault()
+		if err != nil {
+			return err
+		}
 		return runStoreCreate(catalog, args[1:], stdout)
 	case "list":
 		if len(args) != 1 {
 			return errors.New("usage: thimble store list")
 		}
+		catalog, err := storecatalog.NewDefault()
+		if err != nil {
+			return err
+		}
 		return runStoreList(catalog, stdout)
 	case "status":
-		if len(args) != 1 {
-			return errors.New("usage: thimble store status")
-		}
-		return runStoreStatus(catalog, cfg, stdout)
+		return runStoreStatus(storecatalog.New(""), cfg, args[1:], stdout)
 	default:
 		return fmt.Errorf("unknown store command %q", args[0])
 	}
@@ -67,9 +68,17 @@ func runStoreList(catalog *storecatalog.Catalog, stdout io.Writer) error {
 }
 
 func runStoreStatus(
-	catalog *storecatalog.Catalog, cfg cliConfig, stdout io.Writer,
+	catalog *storecatalog.Catalog, cfg cliConfig, args []string, stdout io.Writer,
 ) error {
+	pathOnly := len(args) == 1 && args[0] == "--path"
+	if len(args) > 1 || len(args) == 1 && !pathOnly {
+		return errors.New("usage: thimble store status [--path]")
+	}
 	selection := cfg.selection
+	if pathOnly {
+		fmt.Fprintln(stdout, selection.Path)
+		return nil
+	}
 	entry := catalog.Inspect(selection)
 	name := selection.Name
 	if !selection.Managed {
@@ -121,9 +130,16 @@ func requireManagedStore(cfg cliConfig, command string) error {
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	return fmt.Errorf(
+	message := fmt.Sprintf(
 		"managed store %q is not installed; run `thimble store create %s`, "+
 			"`thimble store list`, or select an absolute path with --store",
 		cfg.selection.Name, cfg.selection.Name,
 	)
+	if legacy, ok, _ := existingLegacyStore(); ok {
+		message += fmt.Sprintf(
+			" (found an existing store at %s; select it with --store %q)",
+			legacy.Path, legacy.Path,
+		)
+	}
+	return errors.New(message)
 }

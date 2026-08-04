@@ -13,7 +13,9 @@ import (
 const (
 	PresetHyphenated4WGT30C = "hyphenated-4w-gt30c"
 	WordCount               = 4
-	MinimumLength           = 31
+	// MinimumLength is a defensive contract. The component lists currently
+	// guarantee a 35-character floor, and tests pin that stronger invariant.
+	MinimumLength = 31
 )
 
 // Generate returns four hyphen-separated compound words. Each compound is

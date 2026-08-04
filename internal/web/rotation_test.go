@@ -46,7 +46,7 @@ func TestRotateInvalidatesExistingCookie(t *testing.T) {
 	if err := st.Init("webapp", "dev", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	handler := web.NoStoreMiddleware(mux)
@@ -96,7 +96,7 @@ func TestIdleRotationFiresWithinSmallWindow(t *testing.T) {
 	if err := st.Init("webapp", "dev", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	handler := web.NoStoreMiddleware(mux)
@@ -137,7 +137,7 @@ func TestIdleRotationFiresWithinSmallWindow(t *testing.T) {
 // canceled. Tested by waiting on a done channel after cancel.
 func TestRunIdleRotationStopsOnContextCancel(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
@@ -158,7 +158,7 @@ func TestRunIdleRotationStopsOnContextCancel(t *testing.T) {
 // up a timer.
 func TestRunIdleRotationDisabledWhenZero(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	start := time.Now()
 	if err := server.RunIdleRotation(context.Background(), 0,
 		io.Discard); err != nil {
@@ -178,7 +178,7 @@ func TestActivityResetsIdleTimer(t *testing.T) {
 	if err := st.Init("webapp", "dev", []string{testRecipientOperator}); err != nil {
 		t.Fatalf("init: %v", err)
 	}
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	handler := web.NoStoreMiddleware(mux)
@@ -209,7 +209,7 @@ func TestActivityResetsIdleTimer(t *testing.T) {
 // caller passing nil should not crash the server.
 func TestRotateWithNilWriterDoesNotPanic(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	if err := server.Rotate(nil); err != nil {
 		t.Fatalf("rotate(nil): %v", err)
 	}
@@ -220,7 +220,7 @@ func TestRotateWithNilWriterDoesNotPanic(t *testing.T) {
 // even when called back-to-back.
 func TestRotateLogsOncePerCall(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	var stdout strings.Builder
 	if err := server.Rotate(&stdout); err != nil {
 		t.Fatalf("rotate1: %v", err)
@@ -255,7 +255,7 @@ func loginPostStatus(t *testing.T, mux http.Handler, token string) int {
 // to TestRotateInvalidatesExistingCookie focused on issued cookies.
 func TestRotateUpdatesLoginToken(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "T1", true)
+	server := web.NewForTest(st, "T1", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 

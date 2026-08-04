@@ -11,7 +11,7 @@ import (
 
 func TestNoStoreMiddlewareSetsHeaders(t *testing.T) {
 	st := newTestStore(t)
-	server := web.New(st, "test-token", true)
+	server := web.NewForTest(st, "test-token", true)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	handler := web.NoStoreMiddleware(mux)

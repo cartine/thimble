@@ -205,6 +205,12 @@ func (s *Store) SetSecret(app, env, key, value string) error {
 	return s.SetSecretWithOrigin(app, env, key, value, OriginSet)
 }
 
+// SetSecrets creates or updates every key in one atomic namespace rewrite.
+// Either the complete batch is committed or the namespace remains unchanged.
+func (s *Store) SetSecrets(app, env string, values map[string]string) error {
+	return s.SetSecretsWithOrigin(app, env, values, OriginSet)
+}
+
 // DeleteSecret removes key from (app, env), failing if missing.
 // Routes through DeleteSecretWithOrigin (K-37) so the origins file
 // is updated under the same exclusive flock as the manifest.
@@ -445,4 +451,3 @@ func mergeInto(m *Manifest, disk Manifest, app, env string, meta EnvManifest) {
 	appMeta.Environments[env] = meta
 	m.Apps[app] = appMeta
 }
-

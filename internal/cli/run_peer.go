@@ -127,7 +127,7 @@ func runPeerList(cfg cliConfig, args []string, stdout io.Writer) error {
 }
 
 // runPeerJoin implements `thimble peer join <ssh-target>`. The
-// command rsyncs the entire secrets/ tree from the target into the
+// command rsyncs the target's entire store tree into the active local
 // local store. Bootstrap refuses to overwrite an existing
 // non-trivial store unless --replace is passed; the operator must
 // opt in to losing local state.
@@ -196,7 +196,7 @@ func refuseIfStorePopulated(storeDir string) error {
 	// #nosec G304 -- storeDir is the configured store root.
 	if info, err := os.Stat(manifestPath); err == nil && info.Size() > 2 {
 		return fmt.Errorf(
-			"%s is non-empty; refusing to overwrite. " +
+			"%s is non-empty; refusing to overwrite. "+
 				"Pass --replace to bootstrap on top of existing state",
 			manifestPath,
 		)
@@ -207,7 +207,7 @@ func refuseIfStorePopulated(storeDir string) error {
 	}
 	if len(bundles) > 0 {
 		return fmt.Errorf(
-			"local store has %d encrypted bundle(s); refusing to overwrite. " +
+			"local store has %d encrypted bundle(s); refusing to overwrite. "+
 				"Pass --replace to bootstrap on top of existing state",
 			len(bundles),
 		)
@@ -215,7 +215,7 @@ func refuseIfStorePopulated(storeDir string) error {
 	return nil
 }
 
-// runRsyncJoin shells out to rsync to mirror target's secrets/ into
+// runRsyncJoin shells out to rsync to mirror the target store into
 // storeDir. The trailing slash on src is intentional — without it
 // rsync nests an extra directory level. We bound the call with a
 // 5-minute context so a stuck transport eventually fails the
