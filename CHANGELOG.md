@@ -8,6 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+## [0.2.0] — 2026-08-04
+### Added
+
 - `thimble get <app> <env> [KEY]` prints one decrypted value when a key is
   supplied, or lists the namespace's key names when it is omitted.
 - The loopback web UI now supports personal secret management: installed-store
@@ -199,7 +202,8 @@ release tarballs, and a 49-knot hardening pass.
   checks, manifest version + flock, web cookie auth, host-header
   allowlist.
 
-[Unreleased]: https://github.com/cartine/thimble/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/cartine/thimble/compare/v0.2.0...HEAD
 [0.1.0]: https://github.com/cartine/thimble/releases/tag/v0.1.0
 [0.1.1]: https://github.com/cartine/thimble/releases/tag/v0.1.1
 [0.1.2]: https://github.com/cartine/thimble/releases/tag/v0.1.2
+[0.2.0]: https://github.com/cartine/thimble/releases/tag/v0.2.0
