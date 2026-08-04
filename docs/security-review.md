@@ -16,12 +16,15 @@ slice when used with `age` and normal operator hygiene.
 - Encrypted bundles and metadata are written with atomic rename.
 - Files are created with restrictive modes: store directories `0700`, files
   `0600`.
-- Listing and web UI views expose keys and metadata only, not values.
+- Listing and web UI views expose keys and metadata only, not stored values.
 - Secret values are rejected when supplied as command arguments.
 - CLI create, update, and set read from a pipe or a masked terminal prompt.
 - `provision` refuses weak generated values and is designed for piping into
   storage flows.
 - `and-set` captures a command's stdout and stores it without echoing the value.
+- The web UI's `hyphenated-4w-gt30c` preset generates inside the server with
+  `crypto/rand`, passes the result directly to encrypted storage, and does not
+  return it in HTML, JavaScript, redirects, notices, logs, or audit subjects.
 - `and-get` passes a value to a child command on stdin by default; environment
   variable exposure is explicit with `--env`.
 - Web UI requires a token. Non-loopback binds are rejected unless a token is
@@ -39,11 +42,20 @@ slice when used with `age` and normal operator hygiene.
   environments. Prefer stdin where tools allow it.
 - The web UI is an operator tool, not a multi-user hosted service. Use it on
   loopback or behind a trusted tunnel.
+- Loopback web forms may submit a new value through a masked password field.
+  Plaintext exists transiently in browser memory and the loopback request, then
+  is encrypted immediately. It is never reflected through HTML, redirects,
+  notices, logs, or audit subjects. Non-loopback binds cannot set values.
+- The four-word preset provides 56 bits of randomness. It is intended for
+  memorable passwords, not as a replacement for the 256-bit `provision`
+  output used for opaque machine credentials.
+- Managed-store selection in the browser accepts validated catalog names only;
+  absolute paths, traversal, and symlink-discovered stores are rejected.
 - Decryption requires an authorized age identity. A compromised operator machine
   or deploy host can read any secret that identity can decrypt.
 - Removing a recipient does not invalidate plaintext or encrypted copies they
   already obtained. Rotate high-risk values after access removal.
-- This does not yet provide audit logs, policy approval workflows, or automatic
+- This does not provide general policy approval workflows or scheduled automatic
   rotation.
 
 ## Reviewer Notes

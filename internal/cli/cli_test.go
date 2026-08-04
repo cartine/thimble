@@ -111,6 +111,18 @@ func TestProvisionRequiresStrongTokenAndWritesToPipe(t *testing.T) {
 	}
 }
 
+func TestUsageDescribesWebSecretEntry(t *testing.T) {
+	for _, phrase := range []string{
+		"loopback masked create/update",
+		"hyphenated-4w-gt30c generate-and-set",
+		"values are never rendered",
+	} {
+		if !strings.Contains(usageText, phrase) {
+			t.Fatalf("CLI help is missing %q", phrase)
+		}
+	}
+}
+
 type ioDiscardFile struct{}
 
 func (ioDiscardFile) Write(p []byte) (int, error) { return len(p), nil }

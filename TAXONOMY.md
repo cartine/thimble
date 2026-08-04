@@ -130,6 +130,15 @@ machine).
 - `README.md:134-173`
 - `thimble.md:96-103`
 
+### passphrase preset <!-- human -->
+A named server-side generator for a human-typeable secret. The first preset,
+`hyphenated-4w-gt30c`, selects four compound words with `crypto/rand`, joins
+them with hyphens, and guarantees more than 30 characters. It provides 56 bits
+of randomness and is distinct from the 256-bit machine-token output of
+**provision**.
+- `internal/passphrase/generator.go`
+- `README.md` — Web UI
+
 ### recipient <!-- auto -->
 A public age (or ssh) key authorized to decrypt a bundle. Stored in the
 manifest per namespace. Aliases: `public recipient`,
@@ -151,9 +160,11 @@ plaintext only briefly (in memory during one command).
 
 ### store <!-- auto -->
 Two senses, now disambiguated by package qualifier (K-04 / K-12):
-- (1) The on-disk secrets directory (default `secrets/`). Configured by
-  `--store` or `THIMBLE_STORE`. `internal/cli/cli.go:18`,
-  `internal/cli/cli.go:46`.
+- (1) The on-disk secrets directory. A **managed store** is a named directory
+  under the user configuration root at `thimble/stores/<name>`; an **explicit
+  path store** is selected by an absolute `--store` or `THIMBLE_STORE` value.
+  Relative values select managed stores and the default name is `default`.
+  `internal/storecatalog/selection.go`.
 - (2) The Go type wrapping disk operations: `store.Store` in
   `internal/store/store.go`. The package qualifier `store.` is what
   resolves the historic ambiguity — bare `store` in code now always
@@ -171,8 +182,10 @@ binds; required explicitly for non-loopback. Compared with
 
 ### web UI <!-- auto -->
 The local HTTP server bound by default to `127.0.0.1:8787`. Operator
-convenience for namespace/recipient/key management. Never displays
-existing values.
+convenience for managed-store/namespace/recipient/key management. It accepts
+masked new values only on loopback, never returns existing values, and displays
+the CLI retrieval command for deliberate reveal. Its **passphrase preset**
+generates and stores a value entirely inside the server process.
 - `cmd/thimble/main.go:377-404` — `runWeb`
 - `cmd/thimble/main.go:1027-1394` — server, routes, template
 - `README.md:219-232`

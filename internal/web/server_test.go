@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cartine/thimble/internal/age"
+	"github.com/cartine/thimble/internal/audit"
 	"github.com/cartine/thimble/internal/store"
 	"github.com/cartine/thimble/internal/web"
 )
@@ -44,8 +46,11 @@ func TestWebUICookieFlowAndRedaction(t *testing.T) {
 	t.Run("authorized session shows redacted UI", func(t *testing.T) {
 		assertAuthorizedView(t, handler, cookie)
 	})
-	t.Run("strict mode rejects plaintext POST", func(t *testing.T) {
-		assertStrictModeRejection(t, handler, cookie)
+	t.Run("masked set stores without reflecting plaintext", func(t *testing.T) {
+		assertMaskedSetNoReflection(t, handler, st, cookie)
+	})
+	t.Run("generated passphrase stores without reaching browser", func(t *testing.T) {
+		assertGeneratedPassphraseNoReflection(t, handler, st, cookie)
 	})
 	t.Run("authorized delete still works", func(t *testing.T) {
 		assertAuthorizedDelete(t, handler, st, cookie)
@@ -121,7 +126,7 @@ func assertAuthorizedView(t *testing.T, mux http.Handler, cookie *http.Cookie) {
 		t.Fatalf("web UI did not show key: %s", body)
 	}
 	if !strings.Contains(body, `aria-label="Thimble"`) ||
-		!strings.Contains(body, "Safe entry") {
+		!strings.Contains(body, `data-secret-editor`) {
 		t.Fatalf("web UI polish elements missing: %s", body)
 	}
 	if strings.Contains(body, "browser secret") {
@@ -130,48 +135,133 @@ func assertAuthorizedView(t *testing.T, mux http.Handler, cookie *http.Cookie) {
 	if strings.Contains(body, "token=") {
 		t.Fatalf("web UI still passes token in URL: %s", body)
 	}
-	// K-34 strict mode: no <input name="value"> field should ever
-	// render. Recipient and namespace fields are unaffected.
-	if strings.Contains(body, `name="value"`) {
-		t.Fatalf("web UI still has a value input: %s", body)
+	if !strings.Contains(body, `type="password" name="value"`) ||
+		!strings.Contains(body, `autocomplete="off"`) {
+		t.Fatalf("web UI masked value input missing: %s", body)
 	}
-	if !strings.Contains(body, "thimble set webapp dev API_KEY") {
-		t.Fatalf("web UI did not surface CLI suggestion: %s", body)
+	if !strings.Contains(body, "Create or update without revealing") ||
+		!strings.Contains(body, `value="generate-passphrases"`) ||
+		!strings.Contains(body, `value="hyphenated-4w-gt30c"`) {
+		t.Fatalf("web UI secret creation choices missing: %s", body)
 	}
-	// K-35 in-page banner above the namespace list.
-	if !strings.Contains(body,
-		"single-operator local tool · use CLI for shared/production") {
-		t.Fatalf("web UI missing K-35 scope banner: %s", body)
+	if !strings.Contains(body, `id="staged-key-list"`) ||
+		!strings.Contains(body, `class="secondary copy-command"`) ||
+		!strings.Contains(body, `id="delete-secret-dialog"`) {
+		t.Fatalf("web UI secret controls missing: %s", body)
+	}
+	if !strings.Contains(body, `.toast-region { position:fixed; right:24px; bottom:24px`) {
+		t.Fatalf("web UI bottom-right toast styling missing: %s", body)
+	}
+	if !strings.Contains(body, "thimble --store") ||
+		!strings.Contains(body, "get webapp dev API_KEY") {
+		t.Fatalf("web UI did not surface retrieval command: %s", body)
 	}
 }
 
-// assertStrictModeRejection covers K-34: any non-empty value posted to
-// /secret with action=create or action=update must return 400 with a
-// CLI suggestion and must never echo the submitted value back.
-func assertStrictModeRejection(t *testing.T, mux http.Handler, cookie *http.Cookie) {
+func assertMaskedSetNoReflection(
+	t *testing.T, mux http.Handler, st *store.Store, cookie *http.Cookie,
+) {
 	t.Helper()
-	for _, action := range []string{"create", "update"} {
-		form := url.Values{
-			"app": {"webapp"}, "env": {"dev"}, "key": {"API_KEY"},
-			"value": {"super-secret-attempt"}, "action": {action},
+	const marker = "unique-browser-secret-marker-8472"
+	st.SetAuditLogger(audit.New(st.Root(), io.Discard))
+	form := url.Values{
+		"app": {"webapp"}, "env": {"dev"}, "key": {"BROWSER_SET"},
+		"value": {marker}, "action": {"set"},
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/secret", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(cookie)
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("set status = %d, want 303; body=%q", rec.Code, rec.Body.String())
+	}
+	location := rec.Header().Get("Location")
+	if strings.Contains(rec.Body.String(), marker) || strings.Contains(location, marker) {
+		t.Fatalf("set response reflected plaintext: body=%q location=%q",
+			rec.Body.String(), location)
+	}
+	body, status := getBodyWithCookie(mux, location, cookie)
+	if status != http.StatusOK || strings.Contains(body, marker) {
+		t.Fatalf("post-set page status=%d leaked marker=%v", status,
+			strings.Contains(body, marker))
+	}
+	if !strings.Contains(body, "get webapp dev BROWSER_SET") {
+		t.Fatalf("post-set retrieval command missing: %s", body)
+	}
+	values, _, err := st.ReadEnv("webapp", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if values["BROWSER_SET"] != marker {
+		t.Fatalf("stored value = %q", values["BROWSER_SET"])
+	}
+	auditBody, err := os.ReadFile(filepath.Join(st.Root(), ".thimble-audit.log"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(auditBody), marker) {
+		t.Fatalf("audit log reflected plaintext: %s", auditBody)
+	}
+}
+
+func assertGeneratedPassphraseNoReflection(
+	t *testing.T, mux http.Handler, st *store.Store, cookie *http.Cookie,
+) {
+	t.Helper()
+	form := url.Values{
+		"app": {"webapp"}, "env": {"dev"},
+		"key":       {"GENERATED_PHRASE", "GENERATED_SECOND"},
+		"action":    {"generate-passphrases"},
+		"generator": {"hyphenated-4w-gt30c"},
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/secret", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(cookie)
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("generate status = %d, want 303; body=%q", rec.Code, rec.Body.String())
+	}
+
+	values, _, err := st.ReadEnv("webapp", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	phrases := []string{values["GENERATED_PHRASE"], values["GENERATED_SECOND"]}
+	for _, phrase := range phrases {
+		if len(phrase) < 31 || len(strings.Split(phrase, "-")) != 4 {
+			t.Fatalf("generated value has wrong shape: %q", phrase)
 		}
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/secret",
-			strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(cookie)
-		mux.ServeHTTP(rec, req)
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("%s plaintext status = %d, want 400; body=%q",
-				action, rec.Code, rec.Body.String())
+		for _, char := range phrase {
+			if (char < 'a' || char > 'z') && char != '-' {
+				t.Fatalf("generated value contains unexpected character %q", char)
+			}
 		}
-		body := rec.Body.String()
-		if !strings.Contains(body, "web UI does not accept secret values") ||
-			!strings.Contains(body, "thimble set webapp dev API_KEY") {
-			t.Fatalf("%s rejection body missing CLI hint: %q", action, body)
+	}
+	location := rec.Header().Get("Location")
+	for _, phrase := range phrases {
+		if strings.Contains(rec.Body.String(), phrase) || strings.Contains(location, phrase) {
+			t.Fatalf("generate response reflected plaintext: body=%q location=%q",
+				rec.Body.String(), location)
 		}
-		if strings.Contains(body, "super-secret-attempt") {
-			t.Fatalf("%s rejection echoed plaintext value: %q", action, body)
+	}
+	body, status := getBodyWithCookie(mux, location, cookie)
+	if status != http.StatusOK {
+		t.Fatalf("post-generate page status=%d", status)
+	}
+	for _, phrase := range phrases {
+		if strings.Contains(body, phrase) {
+			t.Fatalf("post-generate page leaked generated value")
+		}
+	}
+	auditBody, err := os.ReadFile(filepath.Join(st.Root(), ".thimble-audit.log"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, phrase := range phrases {
+		if strings.Contains(string(auditBody), phrase) {
+			t.Fatalf("audit log reflected generated value: %s", auditBody)
 		}
 	}
 }
@@ -229,6 +319,20 @@ func TestWebUINonLoopbackSetsSecureCookie(t *testing.T) {
 
 	cookie := loginAndExtractCookie(t, mux, "test-token")
 	assertCookieAttrs(t, cookie, true)
+	form := url.Values{
+		"app": {"webapp"}, "env": {"dev"}, "key": {"KEY"},
+		"value": {"must-not-store"}, "action": {"set"},
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/secret", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(cookie)
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther ||
+		!strings.Contains(rec.Header().Get("Location"), "loopback") {
+		t.Fatalf("non-loopback set response = %d %q",
+			rec.Code, rec.Header().Get("Location"))
+	}
 }
 
 func loginAndExtractCookie(t *testing.T, mux http.Handler, token string) *http.Cookie {
@@ -286,7 +390,6 @@ func postFormStatus(mux http.Handler, path string, form url.Values,
 	mux.ServeHTTP(rec, req)
 	return rec.Code
 }
-
 
 // testRecipientOperator is a real-shape 62-char age recipient (Bech32
 // charset only). Used to satisfy ValidateRecipient under K-20.

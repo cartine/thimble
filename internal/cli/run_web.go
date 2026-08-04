@@ -13,7 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cartine/thimble/internal/age"
 	"github.com/cartine/thimble/internal/store"
+	"github.com/cartine/thimble/internal/storecatalog"
 	"github.com/cartine/thimble/internal/web"
 )
 
@@ -22,13 +24,16 @@ import (
 // idle rotation pass --idle-rotate=0.
 const defaultIdleRotate = 15 * time.Minute
 
-func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
-	cfg, err := parseWebFlags(args, stderr)
+func runWeb(
+	ctx context.Context, st *store.Store, tool *age.Tool, cliCfg cliConfig,
+	args []string, stdout, stderr io.Writer,
+) error {
+	webCfg, err := parseWebFlags(args, stderr)
 	if err != nil {
 		return err
 	}
-	loopback := isLoopbackAddr(cfg.addr)
-	if cfg.token == "" {
+	loopback := isLoopbackAddr(webCfg.addr)
+	if webCfg.token == "" {
 		if !loopback {
 			return errors.New("non-loopback web UI requires --token or THIMBLE_WEB_TOKEN")
 		}
@@ -36,22 +41,42 @@ func runWeb(st *store.Store, args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		cfg.token = generated
+		webCfg.token = generated
 	}
-	guard := buildHostGuard(cfg.addr, cfg.allowHosts)
-	server := web.New(st, cfg.token, loopback)
+	guard := buildHostGuard(webCfg.addr, webCfg.allowHosts)
+	catalog, err := storecatalog.NewDefault()
+	if err != nil {
+		return err
+	}
+	openStore := func(path string) *store.Store {
+		if path == cliCfg.storeDir {
+			return st
+		}
+		opened := store.NewWithAge(path, tool)
+		configureStore(opened, path, ctx, stderr)
+		return opened
+	}
+	stores := newWebStoreCatalog(catalog, cliCfg.selection, openStore)
+	server := web.NewWithCatalog(
+		stores, webCfg.token, loopback, cliCfg.identity, cliCfg.allowUnsafeIDMode,
+	)
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("resolve thimble executable: %w", err)
+	}
+	server.SetExecutable(executable)
 	mux := http.NewServeMux()
 	server.Routes(mux)
 	handler := guard.Middleware(web.NoStoreMiddleware(mux))
 	httpServer := &http.Server{
-		Addr:              cfg.addr,
+		Addr:              webCfg.addr,
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	printWebBanner(stdout, cfg.idleRotate)
-	fmt.Fprintf(stdout, "Thimble web UI: http://%s/\n", cfg.addr)
-	fmt.Fprintf(stdout, "Token: %s\n", cfg.token)
-	return runWebServer(server, httpServer, cfg.idleRotate, stdout)
+	printWebBanner(stdout, webCfg.idleRotate)
+	fmt.Fprintf(stdout, "Thimble web UI: http://%s/\n", webCfg.addr)
+	fmt.Fprintf(stdout, "Token: %s\n", webCfg.token)
+	return runWebServer(server, httpServer, webCfg.idleRotate, stdout)
 }
 
 // runWebServer wires the rotation goroutines (idle timer + SIGUSR1

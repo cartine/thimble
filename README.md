@@ -61,9 +61,9 @@ and ssh". The existing tools each solve a different problem:
   environments if you need finer grain.
 - **No secret versioning yet.** The bundle is current-state; use your
   transport's history (git, S3 versioning) for point-in-time recovery.
-- **CLI-only.** There is no API server for apps to query at runtime —
-  secrets reach processes via `exec`, `and-get`, or rendered files,
-  by design.
+- **No runtime secrets API.** The web UI is a local operator tool, not a service
+  for applications. Secrets reach processes via `exec`, `and-get`, or rendered
+  files, by design.
 
 If you need dynamic database credentials, short-lived leases, or
 hundreds of engineers with distinct permissions, run Vault or OpenBao.
@@ -189,6 +189,10 @@ If you read nothing else, read this. The end-to-end flow Thimble was designed
 for, secure-by-default, no plaintext on disk:
 
 ```sh
+# 0. create and select a managed store for this trust domain
+thimble store create personal
+export THIMBLE_STORE=personal
+
 # 1. (one-time) generate an age identity for yourself
 age-keygen -o ~/.config/thimble/identity.txt
 chmod 0600 ~/.config/thimble/identity.txt
@@ -264,6 +268,31 @@ pattern, a full GitHub Actions workflow, and log-safety cautions are in
 - `THIMBLE_AGE_IDENTITY=/path/to/identity.txt` or `--identity` when rendering,
   updating, or running the web UI against an existing namespace.
 
+## Selecting a Store
+
+Thimble uses named managed stores for interactive work. They live under the
+operating system user-config directory at `thimble/stores/<name>`. Create one
+before the first mutation:
+
+```sh
+thimble store create personal
+thimble store list
+thimble --store personal store status
+```
+
+A relative `--store` or `THIMBLE_STORE` value selects a managed name. An
+absolute value selects that exact directory and is never included in
+`thimble store list`. Selection precedence is `--store`, then
+`THIMBLE_STORE`, then the managed store named `default`.
+
+Thimble will not silently create a missing managed store. Absolute paths remain
+the explicit scripting and deployment escape hatch:
+
+```sh
+thimble --store personal list personal main
+thimble --store /srv/team-secrets list web-api production
+```
+
 > **The `age` binary is a runtime trust boundary.** Thimble shells out to
 > whichever `age` resolves on `PATH`. A malicious binary earlier in the path
 > would silently capture plaintext on encrypt and the identity-file path on
@@ -298,7 +327,7 @@ check; a warning is logged to stderr each run.
 Thimble namespaces are `<application>/<environment>`.
 
 ```text
-secrets/
+<store-directory>/
   thimble.json
   web-api/
     production.env.age
@@ -327,6 +356,27 @@ current value was set: `provision` (random, safe to auto-rotate), `and-set`
 Thimble's durable object is the encrypted bundle on disk. Moving bundles
 between operators and deploy hosts is a separate concern; any byte-faithful
 file transport works. Three patterns cover the common cases.
+
+### Choosing stores across projects
+
+Use one store for repositories and deploy destinations that share a trust
+domain, then separate unrelated clients or higher-blast-radius systems:
+
+```text
+managed store: personal     -> dotfiles, homelab, personal automation
+managed store: acme         -> api repo, worker repo, acme deploy hosts
+managed store: high-risk    -> isolated production operators and identities
+```
+
+Store selection is independent of the current repository, so commands do not
+accidentally target `./secrets`. Use `--store <name>` for a one-off command or
+set `THIMBLE_STORE` in a repository-specific environment loader. Neither
+selection method stores secret material in the repository.
+
+For a phone backup, copy the complete managed store directory. Bundles remain
+encrypted, but namespace and key metadata are plaintext. Keep a recovery age
+identity separately in protected storage; a store backup is unrecoverable if
+every authorized identity is lost.
 
 ### Pattern A — store host (recommended default)
 
@@ -535,6 +585,11 @@ shows it (truncated and redacted). Pass `--show-stderr` if you need to see the
 producer's stderr live for debugging — useful when the producer runs under
 `set -x` and you trust your terminal not to be over the shoulder of someone
 who shouldn't see it.
+
+For personal, interactive work, `thimble web` provides the same create-or-update
+choice through a masked local form. It also offers the
+`hyphenated-4w-gt30c` preset for a memorable generated password. See
+[Web UI](#web-ui) for its guarantees and the difference from `provision`.
 
 Use `and-get` to pass a secret to a command on stdin:
 
@@ -1009,8 +1064,29 @@ thimble web
 The UI binds to `127.0.0.1:8787` by default and prints a one-time token. The
 first visit serves a paste-token form; on submit the server sets an HttpOnly,
 SameSite=Strict session cookie. The UI can create namespaces, manage recipients,
-and delete or list redacted keys. Binding to a non-loopback address requires
-`--token` or `THIMBLE_WEB_TOKEN`.
+set masked values, and delete or list redacted keys. It also lists, creates, and
+switches installed managed stores. Binding to a non-loopback address requires
+`--token` or `THIMBLE_WEB_TOKEN`; secret entry remains disabled there.
+
+Select a namespace, then choose one of two explicit write paths:
+
+- **Generate and set** stages up to 50 key names, such as `SOME_SECRET_KEY`,
+  without generating anything yet. **Create and set** then gives every staged
+  key an independent `hyphenated-4w-gt30c` value: four lowercase compound
+  words separated by hyphens and always more than 30 characters.
+- **Set a value** accepts one key and value through a masked password field and
+  encrypts it immediately.
+
+For example, the generated value has the shape
+`roadwork-nightdog-malaise-lamb`, but that text is only a UI example. The real
+value is selected inside the Thimble process with `crypto/rand`, encrypted, and
+never placed in HTML or JavaScript.
+
+The preset chooses four independent words from a 16,384-entry compound-word
+space, for 56 bits of randomness. Its length makes it convenient for passwords
+an operator may need to type, but length alone does not make it equivalent to a
+256-bit token. Prefer `thimble provision | thimble set --origin=provision ...`
+for opaque API keys, session secrets, and other machine-only credentials.
 
 A Host-header allowlist guards against DNS rebinding: requests are accepted
 only when `Host` matches `127.0.0.1`, `[::1]`, `localhost`, or the configured
@@ -1026,12 +1102,18 @@ into a shared terminal or screen recording. Each rotation prints
 on stdout, and any cookies issued before the rotation stop authorizing
 immediately, so existing browser tabs land back on the login form.
 
-The web UI is **strict-mode only** for secret values: the browser never
-accepts plaintext. Each key shown in the UI is paired with the exact CLI
-command needed to set or update it (e.g. `thimble set api production
-DB_URL`). Form bodies, browser autofill, refresh-resubmit, and DevTools
-network panels are all out of scope for typing secrets — the CLI's masked
-prompt or a pipe is the only path.
+On a loopback bind, the web UI accepts new values through a password field and
+encrypts them immediately. Existing values are never returned to the browser.
+The plaintext exists transiently in browser memory and the local POST body, so
+use this only as the documented single-operator local tool. Forms disable
+autofill, responses use `no-store`, and values are never placed in URLs,
+notices, logs, or audit subjects.
+
+After a save, **Copy command** copies the exact active-store-aware `thimble get`
+command for that key. Running the command is the deliberate reveal step; the
+browser continues to show only the key name. Deletes require confirmation, and
+copy/delete results appear as short-lived toasts. Start the UI with `--identity`
+or `THIMBLE_AGE_IDENTITY` to enable masked entry.
 
 The browser UI is an operator convenience. Existing values are never displayed;
 use `render` or `and-get` only when a deployment or command really needs the
@@ -1058,7 +1140,7 @@ PR workflow. Run `make lint` before committing.
 | Sigstore-style provenance attacks on releases | `gh attestation verify` + cosign verification (post-K-40). |
 | Accidental argv leak via shell history / `ps` | CLI rejects secret values as command arguments. Use the masked prompt, pipes, `provision`, or `and-set`. |
 | Terminal scrollback / screen-share exposure | `provision` refuses TTY output without `--show`; `list`/web UI never display values. |
-| Web UI surface (DNS rebinding, token leak) | Loopback-only by default; token-authenticated; cookie auth + Host-header allowlist (post-K-30 / K-31). |
+| Web UI surface (DNS rebinding, token leak, submitted values) | Loopback-only by default; token-authenticated; cookie auth + Host-header allowlist; masked entry disabled on non-loopback binds; submitted values never reflected. |
 | Concurrent operator edits silently dropping a key | Manifest version + flock (post-K-21). |
 
 **Out of scope** — Thimble cannot defend against:
@@ -1085,7 +1167,7 @@ For the active hardening rollout closing each of these gaps, see
 - Interactive entry uses a masked terminal prompt.
 - `provision`, `and-set`, and `and-get` support command flows that avoid
   printing values.
-- CLI listing and the web UI do not display secret values.
+- CLI listing and the web UI do not display stored secret values.
 - The web UI is loopback-only by default and token protected.
 
 See [SECURITY.md](SECURITY.md) for the disclosure policy.

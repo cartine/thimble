@@ -16,6 +16,7 @@
     h2 { margin:0 0 12px; font-size:15px; }
     main { display:grid; grid-template-columns:minmax(240px,320px) 1fr; gap:20px; padding:20px 24px; max-width:1180px; margin:0 auto; }
     section, aside { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    aside.column, section.column { align-self:start; padding:0; border:0; border-radius:0; background:transparent; }
     a { color:var(--accent); text-decoration:none; }
     a:hover { text-decoration:underline; }
     .muted { color:var(--muted); }
@@ -29,16 +30,33 @@
     button { min-height:36px; padding:0 12px; border:0; border-radius:6px; background:var(--accent); color:white; font-weight:700; cursor:pointer; }
     button.secondary { background:#50606f; }
     button.danger { background:var(--warn); }
+    button:disabled { cursor:not-allowed; opacity:.48; }
     ul { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
     li { border-bottom:1px solid var(--line); padding-bottom:8px; }
     table { width:100%; border-collapse:collapse; }
     th, td { text-align:left; border-bottom:1px solid var(--line); padding:9px 6px; vertical-align:top; }
     th { color:var(--muted); font-size:12px; text-transform:uppercase; }
-    .notice { border-color:#9bc7a8; background:#edf7ef; }
-    .error { border-color:#e0a287; background:#fff3ed; }
+    .toast-region { position:fixed; right:24px; bottom:24px; z-index:1000; display:grid; gap:8px; width:min(410px,calc(100vw - 28px)); pointer-events:none; }
+    .toast { padding:11px 14px; border:1px solid #9bc7a8; border-radius:7px; background:#edf7ef; box-shadow:0 8px 24px rgb(23 32 42 / 14%); transition:opacity .18s ease,transform .18s ease; }
+    .toast.error { border-color:#e0a287; background:#fff3ed; }
+    .toast.dismiss { opacity:0; transform:translateY(-6px); }
     .pill { display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; }
     .field-note { margin:4px 0 0; color:var(--muted); font-size:12px; }
-    .scope-banner { margin:0 0 4px; padding:8px 10px; background:#fbf6e9; border:1px solid #e7d39a; border-radius:6px; color:#5e4910; font-size:12px; }
+    .saved { background:#edf7ef; }
+    .path { overflow-wrap:anywhere; }
+    .tabs { display:flex; gap:18px; border-bottom:1px solid var(--line); }
+    button.tab { min-height:36px; padding:0 2px; border-radius:0; border-bottom:2px solid transparent; background:transparent; color:var(--muted); }
+    button.tab[aria-selected="true"] { border-color:var(--accent); color:var(--accent); }
+    .tab-panel { display:grid; gap:12px; padding-top:4px; }
+    .tab-panel[hidden] { display:none; }
+    .staged-list { min-height:112px; max-height:252px; overflow:auto; gap:0; border:1px solid var(--line); border-radius:6px; background:var(--panel); }
+    .staged-list li { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; padding:7px 9px; border-bottom:1px solid var(--line); }
+    .staged-list li:last-child { border-bottom:0; }
+    .staged-list .empty { justify-content:center; color:var(--muted); }
+    .staged-list button { min-height:28px; padding:0 9px; background:transparent; color:var(--warn); border:1px solid #e0a287; }
+    dialog { width:min(430px,calc(100vw - 28px)); padding:20px; border:0; border-radius:9px; color:var(--ink); background:var(--panel); box-shadow:0 20px 60px rgb(23 32 42 / 24%); }
+    dialog::backdrop { background:rgb(23 32 42 / 42%); }
+    .modal-actions { justify-content:flex-end; margin-top:6px; }
     @media (max-width: 820px) { main { grid-template-columns:1fr; padding:14px; } header { padding:14px; } }
   </style>
 </head>
@@ -59,16 +77,52 @@
       <span class="muted">local age-backed secrets</span>
     </div>
   </div>
-  <div class="row">
-    <span class="pill">values stay redacted</span>
-    <a href="/logout">Log out</a>
-  </div>
 </header>
+<div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true">
+  {{if .Notice}}<div class="toast" data-auto-dismiss>{{.Notice}}</div>{{end}}
+  {{if .Error}}<div class="toast error">{{.Error}}</div>{{end}}
+</div>
 <main>
-  <aside class="stack">
-    {{if .Notice}}<section class="notice">{{.Notice}}</section>{{end}}
-    {{if .Error}}<section class="error">{{.Error}}</section>{{end}}
-    <p class="muted scope-banner">single-operator local tool · use CLI for shared/production</p>
+  <aside class="column stack">
+    <section class="stack">
+      <h2>Stores</h2>
+      <div>
+        <strong>{{if .Active.Name}}{{.Active.Name}}{{else}}explicit path{{end}}</strong>
+        <div class="muted path">{{.Active.Path}}</div>
+        <span class="pill">{{.Active.Status}}</span>
+        <span class="pill">via {{.Active.Source}}</span>
+      </div>
+      <ul>
+      {{range .Stores}}
+        {{if not .Active}}
+        <li>
+          <form class="row" action="/store" method="post">
+            <input type="hidden" name="name" value="{{.Name}}">
+            <strong>{{.Name}}</strong>
+            <span class="muted">{{.Status}}</span>
+            {{if ne .Name "-"}}
+              <button class="secondary" name="action" value="select">Use</button>
+            {{end}}
+          </form>
+        </li>
+        {{end}}
+      {{else}}
+        <li class="muted">No managed stores installed.</li>
+      {{end}}
+      </ul>
+      <form class="row" action="/store" method="post">
+        <input name="name" placeholder="personal" autocomplete="off" required>
+        <button name="action" value="create">Create store</button>
+      </form>
+    </section>
+    <section class="tip">
+      <strong>Identity</strong>
+      {{if .CanSet}}
+        <span class="path">{{.Identity}}</span>
+      {{else}}
+        <span>Not configured. Restart with <code>--identity</code> or <code>THIMBLE_AGE_IDENTITY</code> to set values.</span>
+      {{end}}
+    </section>
     <section class="stack">
       <h2>Namespaces</h2>
       <ul>
@@ -92,34 +146,63 @@
         <button>Create</button>
       </form>
     </section>
-    <section class="tip">
-      <strong>Peer handoff</strong>
-      <span>Commit encrypted bundles, never identities. Add a peer by verifying their recipient out of band, then re-encrypt with Recipient Add.</span>
-    </section>
   </aside>
-  <section class="stack">
+  <section class="column stack">
     {{if .Selected}}
-      <div class="row">
-        <h2>{{.Selected.App}} / {{.Selected.Env}}</h2>
-        <span class="pill">values redacted</span>
-      </div>
-      <section class="tip">
-        <strong>Safe entry</strong>
-        <span>The web UI is a redacted viewer. To set or update a value, run the suggested CLI command. The browser never sees plaintext.</span>
+      <h2>{{.Selected.App}} / {{.Selected.Env}}</h2>
+      {{if $.CanSet}}
+      <section class="stack" data-secret-editor>
+        <h2>Create or update a secret</h2>
+        <div class="tabs" role="tablist" aria-label="Secret update method">
+          <button class="tab" id="generate-tab" type="button" role="tab" aria-selected="true" aria-controls="generate-panel">Generate and set</button>
+          <button class="tab" id="value-tab" type="button" role="tab" aria-selected="false" aria-controls="value-panel" tabindex="-1">Set a value</button>
+        </div>
+        <div class="tab-panel" id="generate-panel" role="tabpanel" aria-labelledby="generate-tab">
+          <p class="field-note">Stage one or more key names. No values are generated until you choose Create and set.</p>
+          <form class="stack" id="generate-form" action="/secret" method="post" autocomplete="off">
+            <input type="hidden" name="app" value="{{.Selected.App}}">
+            <input type="hidden" name="env" value="{{.Selected.Env}}">
+            <input type="hidden" name="action" value="generate-passphrases">
+            <input type="hidden" name="generator" value="hyphenated-4w-gt30c">
+            <label>Secret key name
+              <input id="staged-key-input" placeholder="SOME_SECRET_KEY" autocomplete="off" spellcheck="false" pattern="[A-Z_][A-Z0-9_]*" title="Use uppercase letters, numbers, and underscores; start with a letter or underscore.">
+            </label>
+            <span class="field-note">Type a key and press Enter to stage it. You can remove keys before creating anything.</span>
+            <ul class="staged-list" id="staged-key-list" aria-label="Staged secret keys" aria-live="polite">
+              <li class="empty">No keys staged.</li>
+            </ul>
+            <div id="staged-key-fields"></div>
+            <span><code>hyphenated-4w-gt30c</code> · four hyphenated words, always more than 30 characters.</span>
+            <span class="field-note">Each value is created inside Thimble, encrypted, and never sent back to this page.</span>
+            <button id="create-and-set" type="submit" disabled>Create and set</button>
+          </form>
+        </div>
+        <div class="tab-panel" id="value-panel" role="tabpanel" aria-labelledby="value-tab" hidden>
+          <p class="field-note">Paste or type a value you already have. Thimble encrypts it immediately and never displays it after submission.</p>
+          <form class="stack" action="/secret" method="post" autocomplete="off">
+            <input type="hidden" name="app" value="{{.Selected.App}}">
+            <input type="hidden" name="env" value="{{.Selected.Env}}">
+            <label>Secret key name <input name="key" placeholder="SOME_SECRET_KEY" autocomplete="off" spellcheck="false" required></label>
+            <label>Masked value <input type="password" name="value" autocomplete="off" spellcheck="false" required></label>
+            <button name="action" value="set">Create or update without revealing</button>
+          </form>
+        </div>
       </section>
+      {{end}}
       <table>
-        <thead><tr><th>Key</th><th>Set value (CLI)</th><th>Delete</th></tr></thead>
+        <thead><tr><th>Key</th><th>Reveal</th><th>Delete</th></tr></thead>
         <tbody>
           {{range .Selected.Keys}}
-          <tr>
+          <tr{{if eq $.Selected.SavedKey .Key}} class="saved"{{end}}>
             <td><code>{{.Key}}</code></td>
-            <td><code>thimble set {{$.Selected.App}} {{$.Selected.Env}} {{.Key}}</code></td>
+            <td><button class="secondary copy-command" type="button" data-key="{{.Key}}" data-command="{{.GetCommand}}">Copy command</button></td>
             <td>
-              <form class="row" action="/secret" method="post">
+              <form class="row delete-secret-form" action="/secret" method="post">
                 <input type="hidden" name="app" value="{{$.Selected.App}}">
                 <input type="hidden" name="env" value="{{$.Selected.Env}}">
                 <input type="hidden" name="key" value="{{.Key}}">
-                <button class="danger" name="action" value="delete">Delete</button>
+                <input type="hidden" name="action" value="delete">
+                <button class="danger" type="submit">Delete</button>
               </form>
             </td>
           </tr>
@@ -127,8 +210,8 @@
         </tbody>
       </table>
       <section class="tip">
-        <strong>Add a new key</strong>
-        <span>Run <code>thimble set {{.Selected.App}} {{.Selected.Env}} NEW_KEY</code> in your terminal. Thimble masks the prompt and pipes plaintext only into the encrypted bundle.</span>
+        <strong>Reveal stays in the CLI</strong>
+        <span>Copy the command beside a key when you deliberately need its value. The web UI never displays stored values.</span>
       </section>
       <section class="stack">
         <h2>Recipients</h2>
@@ -163,6 +246,167 @@
     {{end}}
   </section>
 </main>
+<dialog id="delete-secret-dialog" aria-labelledby="delete-secret-title">
+  <form class="stack" method="dialog">
+    <h2 id="delete-secret-title">Delete secret?</h2>
+    <p>Delete <code id="delete-secret-name"></code>? This cannot be undone.</p>
+    <div class="row modal-actions">
+      <button class="secondary" value="cancel">Cancel</button>
+      <button class="danger" value="confirm">Delete</button>
+    </div>
+  </form>
+</dialog>
+<script>
+  (() => {
+    const toastRegion = document.querySelector("#toast-region");
+    const dismissToast = (toast, delay = 3200) => {
+      window.setTimeout(() => {
+        toast.classList.add("dismiss");
+        window.setTimeout(() => toast.remove(), 180);
+      }, delay);
+    };
+    const showToast = (message, kind = "success") => {
+      const toast = document.createElement("div");
+      toast.className = kind === "error" ? "toast error" : "toast";
+      toast.textContent = message;
+      toastRegion.append(toast);
+      dismissToast(toast);
+    };
+    document.querySelectorAll("[data-auto-dismiss]").forEach((toast) => {
+      dismissToast(toast);
+    });
+
+    document.querySelectorAll(".copy-command").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const label = button.textContent;
+        try {
+          await navigator.clipboard.writeText(button.dataset.command);
+          button.textContent = "Copied!";
+          showToast(`Copies CLI Reveal for ${button.dataset.key}`);
+        } catch {
+          button.textContent = "Copy failed";
+          showToast("Could not copy the CLI reveal command", "error");
+        }
+        window.setTimeout(() => {
+          button.textContent = label;
+        }, 3000);
+      });
+    });
+
+    const deleteDialog = document.querySelector("#delete-secret-dialog");
+    const deleteName = document.querySelector("#delete-secret-name");
+    let pendingDeleteForm = null;
+    document.querySelectorAll(".delete-secret-form").forEach((deleteForm) => {
+      deleteForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        pendingDeleteForm = deleteForm;
+        deleteName.textContent = deleteForm.elements.key.value;
+        deleteDialog.returnValue = "";
+        deleteDialog.showModal();
+      });
+    });
+    deleteDialog.addEventListener("close", () => {
+      if (deleteDialog.returnValue === "confirm" && pendingDeleteForm) {
+        pendingDeleteForm.submit();
+      }
+      pendingDeleteForm = null;
+    });
+
+    const editor = document.querySelector("[data-secret-editor]");
+    if (!editor) return;
+
+    const tabs = Array.from(editor.querySelectorAll('[role="tab"]'));
+    const activateTab = (activeTab) => {
+      tabs.forEach((tab) => {
+        const active = tab === activeTab;
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+        document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
+      });
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => activateTab(tab));
+      tab.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const next = tabs[(index + direction + tabs.length) % tabs.length];
+        activateTab(next);
+        next.focus();
+      });
+    });
+
+    const form = editor.querySelector("#generate-form");
+    const input = editor.querySelector("#staged-key-input");
+    const list = editor.querySelector("#staged-key-list");
+    const fields = editor.querySelector("#staged-key-fields");
+    const submit = editor.querySelector("#create-and-set");
+    const staged = [];
+    const validKey = /^[A-Z_][A-Z0-9_]*$/;
+
+    const renderStaged = () => {
+      list.replaceChildren();
+      fields.replaceChildren();
+      if (staged.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "empty";
+        empty.textContent = "No keys staged.";
+        list.append(empty);
+      }
+      staged.forEach((key) => {
+        const item = document.createElement("li");
+        const name = document.createElement("code");
+        const remove = document.createElement("button");
+        const hidden = document.createElement("input");
+        name.textContent = key;
+        remove.type = "button";
+        remove.textContent = "Remove";
+        remove.setAttribute("aria-label", `Remove ${key}`);
+        remove.addEventListener("click", () => {
+          staged.splice(staged.indexOf(key), 1);
+          renderStaged();
+          input.focus();
+        });
+        hidden.type = "hidden";
+        hidden.name = "key";
+        hidden.value = key;
+        item.append(name, remove);
+        fields.append(hidden);
+        list.append(item);
+      });
+      submit.disabled = staged.length === 0;
+    };
+
+    input.addEventListener("input", () => input.setCustomValidity(""));
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const key = input.value.trim();
+      if (!validKey.test(key)) {
+        input.setCustomValidity(
+          "Use uppercase letters, numbers, and underscores; start with a letter or underscore.",
+        );
+        input.reportValidity();
+        return;
+      }
+      if (staged.length >= 50) {
+        input.setCustomValidity("Create at most 50 secrets at a time.");
+        input.reportValidity();
+        return;
+      }
+      if (!staged.includes(key)) staged.push(key);
+      input.value = "";
+      input.setCustomValidity("");
+      renderStaged();
+    });
+    form.addEventListener("submit", (event) => {
+      if (staged.length > 0) return;
+      event.preventDefault();
+      input.setCustomValidity("Stage at least one secret key first.");
+      input.reportValidity();
+    });
+  })();
+</script>
 </body>
 </html>{{end}}
 {{define "login"}}<!doctype html>
